@@ -3,26 +3,27 @@ import { RouterLink } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
 import { formatMinorUnits } from '../../domain/money';
-import { formatCalendarDate, localeOf } from '../../i18n/format';
 import { I18n } from '../../i18n/i18n';
+import { DueStatus } from '../../ui/due-status';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon } from '../../ui/icon';
 import { iconForAction } from '../../ui/icon-for';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-home-page',
-  imports: [EmptyState, RouterLink, Icon],
+  imports: [DueStatus, EmptyState, RouterLink, Icon, PageHeading],
   template: `
     <section class="page home-page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('home.heading') }}</h1>
-          <p class="page-intro">{{ i18n.t('home.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading
+        icon="home"
+        [title]="i18n.t('home.heading')"
+        [intro]="i18n.t('home.intro')"
+      />
       @if (summary(); as data) {
         @if (data.actions.length === 0) {
           <app-empty-state
+            icon="home"
             [message]="i18n.t('home.empty')"
             [actionLabel]="i18n.t('home.emptyAction')"
           />
@@ -35,9 +36,11 @@ import { iconForAction } from '../../ui/icon-for';
                 </span>
                 <span class="attention-copy">
                   <h2>{{ i18n.t(first.messageKey, first.params) }}</h2>
-                  @if (dueLabel(first); as due) {
-                    <span class="attention-meta">{{ due }}</span>
-                  }
+                  <app-due-status
+                    class="attention-meta"
+                    [dueOn]="first.dueOn"
+                    [daysUntilDue]="first.daysUntilDue"
+                  />
                 </span>
                 <app-icon class="lead-chevron" name="chevron" />
               </a>
@@ -53,6 +56,7 @@ import { iconForAction } from '../../ui/icon-for';
                 </button>
               } @else {
                 <a class="lead-inline-action" [routerLink]="['/loans', first.loanId]">
+                  <app-icon name="records" />
                   {{ i18n.t('home.openRecord') }}
                 </a>
               }
@@ -66,8 +70,14 @@ import { iconForAction } from '../../ui/icon-for';
           <div class="home-workspace">
             <section class="home-records" aria-labelledby="open-records-title">
               <div class="section-bar">
-                <h2 id="open-records-title">{{ i18n.t('home.openRecords') }}</h2>
-                <a routerLink="/records">{{ i18n.t('home.viewAll') }}</a>
+                <h2 id="open-records-title" class="section-heading">
+                  <app-icon name="records" />
+                  {{ i18n.t('home.openRecords') }}
+                </h2>
+                <a class="icon-link" routerLink="/records">
+                  {{ i18n.t('home.viewAll') }}
+                  <app-icon name="chevron" />
+                </a>
               </div>
               <ul class="action-list open-list">
                 @for (action of remainingActions(); track action.loanId) {
@@ -76,8 +86,13 @@ import { iconForAction } from '../../ui/icon-for';
                       <app-icon [name]="iconForAction(action.messageKey)" />
                       <span class="action-copy">
                         <strong>{{ i18n.t(action.messageKey, action.params) }}</strong>
-                        @if (dueLabel(action); as due) {
-                          <small>{{ due }}</small>
+                        @if (action.dueOn) {
+                          <small>
+                            <app-due-status
+                              [dueOn]="action.dueOn"
+                              [daysUntilDue]="action.daysUntilDue"
+                            />
+                          </small>
                         } @else {
                           <small>{{ directionLabel(action) }}</small>
                         }
@@ -89,14 +104,17 @@ import { iconForAction } from '../../ui/icon-for';
               </ul>
             </section>
             <aside class="home-aside" aria-labelledby="home-aside-title">
-              <h2 id="home-aside-title">{{ i18n.t('home.atAGlance') }}</h2>
+              <h2 id="home-aside-title" class="section-heading">
+                <app-icon name="info" />
+                {{ i18n.t('home.atAGlance') }}
+              </h2>
               <dl class="glance-list">
                 <div>
-                  <dt>{{ i18n.t('home.openLabel') }}</dt>
+                  <dt><app-icon name="records" /> {{ i18n.t('home.openLabel') }}</dt>
                   <dd>{{ openCount(data) }}</dd>
                 </div>
                 <div class="overdue-glance">
-                  <dt>{{ i18n.t('home.overdueLabel') }}</dt>
+                  <dt><app-icon name="overdue" /> {{ i18n.t('home.overdueLabel') }}</dt>
                   <dd>{{ data.overdueCount }}</dd>
                 </div>
               </dl>
@@ -127,22 +145,14 @@ export class HomePage {
   constructor() {
     effect(() => {
       this.app.revision();
-      void this.app.home().then((value) => this.summary.set(value));
+      this.app.currentDay();
+      const locale = this.i18n.locale();
+      void this.app.home(locale).then((value) => this.summary.set(value));
     });
   }
 
   protected money(currency: string, minor: bigint): string {
-    return formatMinorUnits(minor, currency, localeOf());
-  }
-
-  protected dueLabel(action: HomeAction): string | null {
-    if (!action.dueOn) {
-      return null;
-    }
-
-    return this.i18n.t('detail.dueOn', {
-      date: formatCalendarDate(action.dueOn, localeOf()),
-    });
+    return formatMinorUnits(minor, currency, this.i18n.locale());
   }
 
   protected openCount(summary: HomeSummary): string {

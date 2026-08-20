@@ -13,8 +13,14 @@ export function outstandingMinorUnits(loan: Loan, repayments: readonly Repayment
   if (loan.assetKind !== 'money' || loan.originalMinorUnits === null) {
     throw new DomainError('not_money_loan');
   }
-  const paid = sumMinorUnits(activeRepayments(repayments).map((repayment) => repayment.minorUnits));
-  return loan.originalMinorUnits - paid;
+  return loan.originalMinorUnits - repaidMinorUnits(loan, repayments);
+}
+
+export function repaidMinorUnits(loan: Loan, repayments: readonly Repayment[]): bigint {
+  if (loan.assetKind !== 'money' || loan.originalMinorUnits === null) {
+    throw new DomainError('not_money_loan');
+  }
+  return sumMinorUnits(activeRepayments(repayments).map((repayment) => repayment.minorUnits));
 }
 
 export function isPartiallyRepaid(loan: Loan, repayments: readonly Repayment[]): boolean {

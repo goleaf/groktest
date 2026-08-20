@@ -5,6 +5,7 @@ import type {
   LoanDirection,
   LoanEventType,
   StoredLoanStatus,
+  SupportedLanguage,
   SyncEntityType,
 } from '../domain/types';
 import type { RecordDraft } from '../domain/types';
@@ -69,6 +70,7 @@ export interface SettingsRow {
   id: 'local';
   localIdentityId: string;
   preferredCurrency: CurrencyCode;
+  preferredLanguage: SupportedLanguage;
   schemaVersion: number;
   version: number;
   createdAt: Instant;

@@ -24,7 +24,12 @@ export type IconName =
   | 'records'
   | 'filter'
   | 'close'
-  | 'info';
+  | 'info'
+  | 'language'
+  | 'download'
+  | 'warning'
+  | 'all'
+  | 'clock';
 
 @Component({
   selector: 'app-icon',
@@ -131,6 +136,30 @@ export type IconName =
         @case ('info') {
           <circle cx="12" cy="12" r="8" />
           <path d="M12 11v5M12 8h.01" />
+        }
+        @case ('language') {
+          <circle cx="12" cy="12" r="8" />
+          <path
+            d="M4.5 9h15M4.5 15h15M12 4c2 2.2 3 4.9 3 8s-1 5.8-3 8M12 4c-2 2.2-3 4.9-3 8s1 5.8 3 8"
+          />
+        }
+        @case ('download') {
+          <path d="M12 4v11M8 11l4 4 4-4" />
+          <path d="M5 18v2h14v-2" />
+        }
+        @case ('warning') {
+          <path d="M12 4 3.8 19h16.4z" />
+          <path d="M12 9v4M12 16h.01" />
+        }
+        @case ('all') {
+          <rect x="4" y="4" width="6" height="6" rx="1" />
+          <rect x="14" y="4" width="6" height="6" rx="1" />
+          <rect x="4" y="14" width="6" height="6" rx="1" />
+          <rect x="14" y="14" width="6" height="6" rx="1" />
+        }
+        @case ('clock') {
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7v5l3 2" />
         }
       }
     </svg>

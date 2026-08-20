@@ -37,4 +37,20 @@ describe('design system contract', () => {
     expect(styles).not.toContain('radial-gradient(');
     expect(styles).not.toMatch(/box-shadow:\s*[^;]*\s(1[6-9]|[2-9]\d)px/);
   });
+
+  it('defines one responsive semantic icon language across hierarchy and controls', () => {
+    for (const selector of [
+      '.page-heading',
+      '.heading-icon',
+      '.control-icon',
+      '.empty-icon',
+      '.status-with-icon',
+      '.icon-link',
+    ]) {
+      expect(styles).toContain(selector);
+    }
+    expect(styles).toMatch(/\.heading-icon\s*\{[^}]*width:\s*40px[^}]*height:\s*40px/s);
+    expect(styles).toMatch(/\.status-with-icon\s*\{[^}]*min-width:\s*0/s);
+    expect(styles).toMatch(/\.status-with-icon app-icon\s*\{[^}]*flex:\s*0 0 auto/s);
+  });
 });

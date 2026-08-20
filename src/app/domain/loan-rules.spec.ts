@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from './errors';
-import { isLoanDueSoon, isLoanOverdue, outstandingMinorUnits } from './loan-rules';
+import {
+  isLoanDueSoon,
+  isLoanOverdue,
+  outstandingMinorUnits,
+  repaidMinorUnits,
+} from './loan-rules';
 import type { Loan, Repayment } from './types';
 
 function moneyLoan(overrides: Partial<Loan> = {}): Loan {
@@ -57,6 +62,16 @@ describe('outstanding balance', () => {
     const gone = { ...repayment(10000n, 'r1'), deletedAt: '2026-08-11T00:00:00.000Z' };
     expect(outstandingMinorUnits(moneyLoan(), [gone])).toBe(50000n);
   });
+
+  it('sums returned money from append-only active repayments', () => {
+    const loan = moneyLoan({ originalMinorUnits: 10000n });
+    const gone = { ...repayment(2000n, 'r3'), deletedAt: '2026-08-11T00:00:00.000Z' };
+
+    expect(repaidMinorUnits(loan, [repayment(2000n, 'r1'), repayment(1000n, 'r2'), gone])).toBe(
+      3000n,
+    );
+    expect(loan.originalMinorUnits).toBe(10000n);
+  });
 });
 
 describe('overdue and due soon', () => {
@@ -80,5 +95,6 @@ describe('guards', () => {
       quantity: 1,
     });
     expect(() => outstandingMinorUnits(item, [])).toThrow(DomainError);
+    expect(() => repaidMinorUnits(item, [])).toThrow(DomainError);
   });
 });

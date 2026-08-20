@@ -1,29 +1,35 @@
-import { Injectable } from '@angular/core';
-import { en } from './en';
+import { computed, Injectable, signal } from '@angular/core';
+import {
+  DEFAULT_LANGUAGE,
+  localeCatalog,
+  resolveSupportedLanguage,
+  type SupportedLanguage,
+} from './catalog';
+import { findMessage, renderMessage, type TranslationParams } from './locale';
 
-interface Nested {
-  readonly [key: string]: string | Nested;
-}
-
-function lookup(tree: Nested, path: string): string | undefined {
-  const parts = path.split('.');
-  let current: string | Nested | undefined = tree;
-  for (const part of parts) {
-    if (typeof current !== 'object' || current === null) {
-      return undefined;
-    }
-    current = current[part];
-  }
-  return typeof current === 'string' ? current : undefined;
-}
+export { LANGUAGE_OPTIONS } from './catalog';
 
 @Injectable({ providedIn: 'root' })
 export class I18n {
-  t(key: string, params: Record<string, string | number> = {}): string {
-    let template = lookup(en as unknown as Nested, key) ?? key;
-    for (const [name, value] of Object.entries(params)) {
-      template = template.replaceAll(`{${name}}`, String(value));
+  readonly language = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
+  readonly locale = computed(() => localeCatalog[this.language()].locale);
+
+  setLanguage(language: SupportedLanguage | string): void {
+    const resolved = resolveSupportedLanguage(language);
+    this.language.set(resolved);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = localeCatalog[resolved].htmlLang;
     }
-    return template;
+  }
+
+  t(key: string, params: TranslationParams = {}): string {
+    const activeLocale = localeCatalog[this.language()];
+    const message =
+      findMessage(activeLocale.messages, key) ??
+      findMessage(localeCatalog[DEFAULT_LANGUAGE].messages, key);
+    if (message === undefined) {
+      return key;
+    }
+    return renderMessage(message, activeLocale.locale, params);
   }
 }

@@ -42,7 +42,33 @@ describe('home action urgency', () => {
       assetKind: 'money',
       urgency: 'overdue',
       dueOn: '2026-08-19',
+      daysUntilDue: -1,
     });
-    expect(summary.actions[1]).toMatchObject({ loanId: 'open-money', urgency: 'open' });
+    expect(summary.actions[1]).toMatchObject({
+      loanId: 'open-money',
+      urgency: 'open',
+      daysUntilDue: null,
+    });
+  });
+
+  it('carries exact day distance for tomorrow and the due-soon window', () => {
+    const summary = summarizeHome(
+      [
+        moneyLoan({ id: 'tomorrow', dueOn: '2026-08-21' }),
+        moneyLoan({ id: 'in-three-days', dueOn: '2026-08-23' }),
+      ],
+      new Map(),
+      '2026-08-20',
+      'en',
+    );
+
+    expect(summary.actions.find((action) => action.loanId === 'tomorrow')).toMatchObject({
+      urgency: 'due_soon',
+      daysUntilDue: 1,
+    });
+    expect(summary.actions.find((action) => action.loanId === 'in-three-days')).toMatchObject({
+      urgency: 'due_soon',
+      daysUntilDue: 3,
+    });
   });
 });

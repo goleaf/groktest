@@ -41,8 +41,10 @@ export abstract class BorrowedStore {
     apply: (loan: Loan, repayments: readonly Repayment[]) => LoanUpdate;
   }): Promise<Loan>;
   abstract listLoans(): Promise<Loan[]>;
+  abstract listLoansForPerson(personId: string): Promise<Loan[]>;
   abstract findLoan(id: string): Promise<Loan | undefined>;
   abstract listRepayments(loanId?: string): Promise<Repayment[]>;
+  abstract listRepaymentsForLoanIds(loanIds: readonly string[]): Promise<Repayment[]>;
   abstract listEvents(loanId: string): Promise<LoanEvent[]>;
   abstract loadLoanRecord(id: string): Promise<LoanRecord | undefined>;
   abstract listPendingMutations(): Promise<SyncMutation[]>;

@@ -18,6 +18,7 @@ export type DomainErrorCode =
   | 'currency_mismatch'
   | 'invalid_calendar_date'
   | 'date_order_invalid'
+  | 'due_date_unchanged'
   | 'invalid_direction'
   | 'invalid_asset_kind';
 

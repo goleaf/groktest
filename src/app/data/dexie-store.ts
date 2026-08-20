@@ -67,6 +67,7 @@ export class DexieBorrowedStore extends BorrowedStore {
       id: 'local',
       localIdentityId: createId(),
       preferredCurrency: DEFAULT_CURRENCY,
+      preferredLanguage: 'en',
       schemaVersion: LOCAL_SCHEMA_VERSION,
       version: 1,
       createdAt: at,
@@ -213,6 +214,11 @@ export class DexieBorrowedStore extends BorrowedStore {
     return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
   }
 
+  async listLoansForPerson(personId: string): Promise<Loan[]> {
+    const rows = await this.db.loans.where('personId').equals(personId).toArray();
+    return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
+  }
+
   async findLoan(id: string): Promise<Loan | undefined> {
     const row = await this.db.loans.get(id);
     return row && row.deletedAt === null ? loanFromRow(row) : undefined;
@@ -222,6 +228,17 @@ export class DexieBorrowedStore extends BorrowedStore {
     const rows = loanId
       ? await this.db.repayments.where('loanId').equals(loanId).toArray()
       : await this.db.repayments.toArray();
+    return rows.map(repaymentFromRow);
+  }
+
+  async listRepaymentsForLoanIds(loanIds: readonly string[]): Promise<Repayment[]> {
+    if (loanIds.length === 0) {
+      return [];
+    }
+    const rows = await this.db.repayments
+      .where('loanId')
+      .anyOf([...loanIds])
+      .toArray();
     return rows.map(repaymentFromRow);
   }
 

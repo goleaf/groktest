@@ -8,12 +8,12 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 |   2 | Policy                           | Product/UX docs and minimal capture flow reject accounting/CRM concepts.                                                                              |
 |   3 | Implemented                      | Item/money in both directions, return and partial repayment flows/tests.                                                                              |
 |   4 | Implemented                      | Person, Asset kind, Loan and LoanEvent terminology in product/domain docs.                                                                            |
-|   5 | Implemented                      | Home, Records (Lent/Borrowed scopes), Add, Detail, People, History, Search, Settings; reminders deferred.                                             |
+|   5 | Implemented                      | Home, Records (Lent/Borrowed scopes), Add, Detail, People, History, Search, Settings and in-app deadline reminders.                                   |
 |   6 | Implemented                      | Action sentences, counts, currency-grouped totals, overdue/due-soon; no analytics dashboard.                                                          |
 |   7 | Implemented                      | Fast direction→kind→person→item/amount form; optional fields disclosed.                                                                               |
 |   8 | Implemented                      | Angular 22 PWA plus tracked Capacitor 8 Android/iOS projects; iOS compile needs external Xcode 26.                                                    |
 |   9 | Policy                           | No organisation/workspace/seat/tenant model.                                                                                                          |
-|  10 | Implemented                      | Core read/create/search/return/repay are IndexedDB-only and offline; PWA shell cached.                                                                |
+|  10 | Implemented                      | Core read/create/search/return/repay/deadline-change are IndexedDB-only and offline; PWA shell cached.                                                |
 |  11 | Policy                           | No public profiles/feed/directory or cross-user API.                                                                                                  |
 |  12 | Implemented + deferred           | Local-only installation works; account identity/sync mode is separately designed.                                                                     |
 |  13 | Implemented + designed           | Local privacy controls documented; future transport/auth/deletion/export boundaries specified.                                                        |
@@ -25,16 +25,16 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 |  19 | Designed/deferred                | No contacts permission; future contextual adapter in roadmap.                                                                                         |
 |  20 | Implemented                      | Stored active/completed/cancelled/archived vocabulary; overdue/due-soon derived.                                                                      |
 |  21 | Implemented                      | Complete physical return and first-class append-oriented money repayments.                                                                            |
-|  22 | Implemented                      | Semantic LoanEvent activity for create/return/repayment; no technical event noise.                                                                    |
+|  22 | Implemented                      | Semantic LoanEvent activity for create/return/repayment/due-date change; no technical event noise.                                                    |
 |  23 | Implemented                      | Local search over person/item/note/currency/amount with active/history results.                                                                       |
 |  24 | Implemented                      | Direction, item, money, overdue and due-soon mobile filters.                                                                                          |
 |  25 | Implemented + deferred           | Urgency/newness defaults exist; optional user sort selector is later UX.                                                                              |
-|  26 | Designed/deferred                | Reminder is a separate future entity/schedule from due date.                                                                                          |
+|  26 | Implemented + deferred           | Due date drives private in-app today/tomorrow/in-days/overdue reminders; custom OS schedules remain separate future entities.                         |
 |  27 | Designed/deferred                | No permission prompt; contextual opt-in policy documented.                                                                                            |
 |  28 | Designed/deferred                | Independent attachment metadata/blob/upload lifecycle defined; not implemented.                                                                       |
 |  29 | Implemented                      | Settings downloads JSON export with stringified money values.                                                                                         |
 |  30 | Designed/deferred                | Loan/Person/account/device deletion distinctions and snapshots/tombstones documented; no destructive UI yet.                                          |
-|  31 | Implemented                      | Central English translation catalog/interpolation foundation; dates/currency use locale; more catalogs deferred.                                      |
+|  31 | Implemented                      | Independent EN/RU/LT locale files, catalog parity, plurals, immediate switching, locale dates/currency; architecture supports more languages.         |
 |  32 | Implemented                      | Semantic landmarks/labels, keyboard focus, 44px targets, word+icon state, a11y lint.                                                                  |
 |  33 | Implemented                      | Mobile bottom nav, safe areas, no hover dependency/modal stack/fixed-height form.                                                                     |
 |  34 | Implemented                      | Desktop rail and wider composition reuse identical routes/flows.                                                                                      |
@@ -61,7 +61,7 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 |  55 | Policy                           | No feature-flag platform before a real experiment.                                                                                                    |
 |  56 | Implemented                      | Unit, integration, component and real-browser acceptance layers defined and run.                                                                      |
 |  57 | Implemented                      | Deterministic clocks and meaningful drill/ladder/money/history fixtures.                                                                              |
-|  58 | Implemented                      | Dexie v1→v2 reversible-forward strategy/test; native projects versioned.                                                                              |
+|  58 | Implemented                      | Dexie v1→v3 forward migration strategy/test; native projects versioned.                                                                               |
 |  59 | Implemented                      | App, schema, sync protocol, API and native version concepts separated.                                                                                |
 |  60 | Designed/deferred                | Future API/protocol compatibility window and version negotiation documented.                                                                          |
 |  61 | Implemented                      | Focused functions/components, lint/types/format, no duplicate financial rule.                                                                         |
@@ -80,11 +80,11 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 |  74 | Implemented                      | Exact item/money/draft/derived workflow transitions in `docs/workflows.md`.                                                                           |
 |  75 | Implemented                      | Outstanding is original minus valid repayments; tested and never editable.                                                                            |
 |  76 | Implemented                      | Full money repayment/physical return completion rules; archive distinct.                                                                              |
-|  77 | Implemented                      | Active + past local calendar due date rule and boundary tests.                                                                                        |
+|  77 | Implemented                      | Active + past local calendar due-date rule, exact overdue days, today/tomorrow states, midnight/focus refresh and boundary tests.                     |
 |  78 | Implemented                      | Central three-day due-soon constant, not duplicated.                                                                                                  |
 |  79 | Implemented                      | Shared Loan row presents person, item/amount, words/icons for direction/status/due/remaining.                                                         |
 |  80 | Implemented                      | Lent/Borrowed differentiate with label/icon in addition to color.                                                                                     |
-|  81 | Implemented                      | Person view shows active/history and currency-separated owed-to-me/I-owe summaries.                                                                   |
+|  81 | Implemented                      | Person view shows four explicit relationship answers, direction-separated active records, currency-separated debts and completed history.             |
 |  82 | Implemented                      | Completed records remain local, searchable and visible in History/details.                                                                            |
 |  83 | Designed/deferred                | Stored archive vocabulary; archive UI later, never used as completion.                                                                                |
 |  84 | Designed/deferred                | No delete UI exists; future irreversible delete requires confirm/undo design.                                                                         |
@@ -126,13 +126,13 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 | 120 | Implemented                      | Draft and committed Loan are separate; draft never becomes active automatically.                                                                      |
 | 121 | Implemented                      | Today, quantity 1, preferred currency and empty due date defaults.                                                                                    |
 | 122 | Implemented                      | Preferred currency stored separately; existing Loan currency immutable.                                                                               |
-| 123 | Implemented                      | Recent people shown/selectable before typing.                                                                                                         |
+| 123 | Implemented                      | Recent people appear before typing; complete local matching and person-page deep links reuse the selected stable Person ID.                           |
 | 124 | Designed/deferred                | Item suggestions await usage evidence; no inventory introduced.                                                                                       |
 | 125 | Designed/deferred                | Similar records are not blocked; optional warning may be added later.                                                                                 |
 | 126 | Implemented                      | Audit→docs/model→tests→foundation→verification sequence followed and recorded.                                                                        |
 | 127 | Implemented                      | Strict structure/domain/ID/store/schema/repositories/services/tests/i18n/shell/nav/empty-state foundation present.                                    |
 | 128 | Implemented                      | Required physical/money/validation/repayment/outstanding/overpay/completion/overdue/date/ID/store/migration tests.                                    |
-| 129 | Implemented                      | Offline create/reload, completion, repayment, queue, draft and migration integration tests.                                                           |
+| 129 | Implemented                      | Offline create/reload, completion, repayment, deadline change/history/queue, draft and migration integration tests.                                   |
 | 130 | Implemented with external caveat | Audit/docs/foundation/tests/lint/types/PWA/web/Android pass; iOS build requires unavailable full Xcode 26 and is explicitly recorded.                 |
 | 131 | Implemented                      | Final review checks simplicity, account independence, money/history, privacy, abstraction and doc truth.                                              |
 | 132 | Implemented                      | Work was performed without approval pauses; deferrals are explicit and scoped to later Parts.                                                         |

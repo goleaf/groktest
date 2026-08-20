@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Loan } from '../domain/types';
 import { iconForAction, iconForLoan } from './icon-for';
+import * as iconMappings from './icon-for';
 
 function loan(overrides: Partial<Loan>): Loan {
   return {
@@ -41,5 +42,23 @@ describe('icon mapping', () => {
     expect(iconForAction('home.action.borrowedItem')).toBe('borrowed');
     expect(iconForAction('home.action.lentMoney')).toBe('money');
     expect(iconForAction('home.action.borrowedMoney')).toBe('money');
+  });
+
+  it('maps every list scope and filter to a semantic icon', () => {
+    const mappings = iconMappings as typeof iconMappings & {
+      iconForScope(scope: 'all' | 'lent' | 'borrowed'): string;
+      iconForFilter(filter: 'all' | 'items' | 'money' | 'overdue' | 'due_soon'): string;
+    };
+
+    expect(mappings.iconForScope).toBeTypeOf('function');
+    expect(mappings.iconForScope('all')).toBe('records');
+    expect(mappings.iconForScope('lent')).toBe('lent');
+    expect(mappings.iconForScope('borrowed')).toBe('borrowed');
+    expect(mappings.iconForFilter).toBeTypeOf('function');
+    expect(mappings.iconForFilter('all')).toBe('all');
+    expect(mappings.iconForFilter('items')).toBe('item');
+    expect(mappings.iconForFilter('money')).toBe('money');
+    expect(mappings.iconForFilter('overdue')).toBe('overdue');
+    expect(mappings.iconForFilter('due_soon')).toBe('clock');
   });
 });

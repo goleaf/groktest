@@ -4,6 +4,15 @@ export type CalendarDate = string;
 export type Instant = string;
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MILLISECONDS_PER_DAY = 86_400_000;
+
+function calendarDateUtc(value: CalendarDate): number {
+  const match = DATE_PATTERN.exec(requireCalendarDate(value));
+  if (!match) {
+    throw new DomainError('invalid_calendar_date');
+  }
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
 
 export function isCalendarDate(value: string): value is CalendarDate {
   const match = DATE_PATTERN.exec(value);
@@ -49,16 +58,17 @@ export function compareCalendarDates(left: CalendarDate, right: CalendarDate): n
 }
 
 export function addCalendarDays(date: CalendarDate, days: number): CalendarDate {
-  const match = DATE_PATTERN.exec(requireCalendarDate(date));
-  if (!match) {
-    throw new DomainError('invalid_calendar_date');
-  }
-  const utc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days);
+  const utc = calendarDateUtc(date) + days * MILLISECONDS_PER_DAY;
   const shifted = new Date(utc);
   const year = shifted.getUTCFullYear();
   const month = String(shifted.getUTCMonth() + 1).padStart(2, '0');
   const day = String(shifted.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/** Signed calendar days from start to end, independent of local timezone or daylight saving. */
+export function calendarDaysBetween(start: CalendarDate, end: CalendarDate): number {
+  return (calendarDateUtc(end) - calendarDateUtc(start)) / MILLISECONDS_PER_DAY;
 }
 
 export function isOverdueOn(dueOn: CalendarDate | null, today: CalendarDate): boolean {

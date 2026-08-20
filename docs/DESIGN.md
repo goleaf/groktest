@@ -24,6 +24,12 @@ The dark forest frame identifies the tool; the cool near-white work surface keep
 
 Lent and borrowed are always distinguished by words and directional icons, never color alone.
 
+## Icon language
+
+Borrowed uses one typed inline-SVG vocabulary with a 24×24 view box, 1.8px rounded strokes and `currentColor`. Page headings, navigation, actions, selectors, filters, empty states, recovery paths and loan statuses all use semantic icons from this vocabulary. No icon font or third-party icon dependency is used.
+
+Icons support recognition and never replace required wording. Interactive controls keep visible translated labels; their SVGs are hidden from assistive technology. Feature code uses shared state-to-icon mappings for scope, filters, loan type and direction instead of repeating conditions in templates.
+
 ## Type and geometry
 
 One system humanist sans carries the complete product. Page titles are 32px, detail titles 24–32px, section headings 16–18px, body and controls 16px, and metadata 12–14px. Tracking never exceeds `-0.03em`.
@@ -42,6 +48,8 @@ Records is the unified active-record destination. Lent and Borrowed remain route
 - Add reads as a sentence: `I lent an item`, followed by who and what moved.
 - Detail begins with an asset marker, direction sentence, person, state, and action before metadata.
 - Lists, people, history, and navigation share one open-row vocabulary.
+- Page titles use a compact mint icon well; section titles use a smaller unboxed symbol.
+- Empty states use a context icon and keep one clear next action where appropriate.
 
 ## Motion and accessibility
 

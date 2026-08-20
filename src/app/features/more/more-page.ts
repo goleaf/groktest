@@ -2,20 +2,19 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { I18n } from '../../i18n/i18n';
 import { Icon } from '../../ui/icon';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-more-page',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, PageHeading],
   template: `
     <section class="page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('more.title') }}</h1>
-          <p class="page-intro">{{ i18n.t('more.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading icon="more" [title]="i18n.t('more.title')" [intro]="i18n.t('more.intro')" />
       <section class="more-group" aria-labelledby="records-tools-title">
-        <h2 id="records-tools-title">{{ i18n.t('more.yourRecords') }}</h2>
+        <h2 id="records-tools-title" class="section-heading">
+          <app-icon name="records" />
+          {{ i18n.t('more.yourRecords') }}
+        </h2>
         <nav class="list-nav">
           <a routerLink="/people">
             <app-icon name="people" />

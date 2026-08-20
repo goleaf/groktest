@@ -5,18 +5,18 @@ import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { Icon } from '../../ui/icon';
 import { LoanRow } from '../../ui/loan-row';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-search-page',
-  imports: [FormsModule, Icon, LoanRow],
+  imports: [FormsModule, Icon, LoanRow, PageHeading],
   template: `
     <section class="page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('search.title') }}</h1>
-          <p class="page-intro">{{ i18n.t('search.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading
+        icon="search"
+        [title]="i18n.t('search.title')"
+        [intro]="i18n.t('search.intro')"
+      />
       <div class="search-workbench">
         <label class="search-field">
           <app-icon name="search" />
@@ -35,7 +35,10 @@ import { LoanRow } from '../../ui/loan-row';
       } @else if (results().length === 0) {
         <p class="search-guidance"><app-icon name="search" /> {{ i18n.t('search.none') }}</p>
       } @else {
-        <p class="result-count">{{ i18n.t('search.resultCount', { count: results().length }) }}</p>
+        <p class="result-count icon-line">
+          <app-icon name="records" />
+          {{ i18n.t('search.resultCount', { count: results().length }) }}
+        </p>
         <ul class="loan-list">
           @for (loan of results(); track loan.id) {
             <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
@@ -56,9 +59,10 @@ export class SearchPage {
     effect(() => {
       this.app.revision();
       const query = this.query();
+      const locale = this.i18n.locale();
       void this.app.search(query).then(async (loans) => {
         this.results.set(loans);
-        this.remaining.set(await this.app.remainingMap(loans));
+        this.remaining.set(await this.app.remainingMap(loans, locale));
       });
     });
   }

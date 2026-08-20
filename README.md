@@ -68,7 +68,7 @@ See `docs/architecture.md` and `capacitor.config.ts`.
 
 ## Persistence
 
-IndexedDB schema v2 via Dexie, including an in-place v1 migration and one local Add draft. Clearing browser/app data deletes local-only loans. See `docs/data-model.md` and `docs/security.md`.
+IndexedDB schema v3 via Dexie, including in-place migrations, persisted EN/RU/LT preference and one local Add draft. Clearing browser/app data deletes local-only loans. See `docs/data-model.md` and `docs/security.md`.
 
 ## Documentation
 
@@ -80,6 +80,7 @@ IndexedDB schema v2 via Dexie, including an in-place v1 migration and one local 
 | `docs/sync.md`                  | Future sync protocol            |
 | `docs/security.md`              | Threat model                    |
 | `docs/ux-principles.md`         | Interaction rules               |
+| `docs/i18n.md`                  | Translation architecture        |
 | `docs/roadmap.md`               | Intentionally deferred work     |
 | `docs/requirements-coverage.md` | Part 1 requirements disposition |
 | `docs/adr/`                     | Architecture decisions          |

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addRepayment,
   buildPerson,
+  changeLoanDueDate,
   createLoan,
   markItemReturned,
   type DomainClock,
@@ -316,5 +317,52 @@ describe('return and repayment', () => {
     expect(() =>
       addRepayment(loan, [], { amount: '10', currency: 'EUR', occurredOn: '2026-08-19' }, clock),
     ).toThrow(DomainError);
+  });
+});
+
+describe('due-date changes', () => {
+  it('moves an active deadline and appends a meaningful activity event', () => {
+    const { loan } = createLoan(
+      {
+        kind: 'money',
+        direction: 'lent',
+        personId: 'p',
+        personName: 'Sergey',
+        amount: '200',
+        currency: 'EUR',
+        occurredOn: '2026-08-20',
+        dueOn: '2026-09-01',
+      },
+      clock,
+    );
+
+    const result = changeLoanDueDate(loan, '2026-09-05', clock);
+
+    expect(result.loan.dueOn).toBe('2026-09-05');
+    expect(result.loan.status).toBe('active');
+    expect(result.loan.version).toBe(loan.version + 1);
+    expect(result.event.type).toBe('due_date_changed');
+    expect(result.event.summaryKey).toBe('history.dueDateChanged');
+    expect(result.event.summaryParams).toEqual({ date: '2026-09-05' });
+  });
+
+  it('rejects a deadline before the handoff and changes to inactive records', () => {
+    const { loan } = createLoan(
+      {
+        kind: 'physical_item',
+        direction: 'lent',
+        personId: 'p',
+        personName: 'Sergey',
+        itemName: 'drill',
+        occurredOn: '2026-08-20',
+        dueOn: '2026-08-25',
+      },
+      clock,
+    );
+
+    expect(() => changeLoanDueDate(loan, '2026-08-19', clock)).toThrow(DomainError);
+    expect(() => changeLoanDueDate(loan, '2026-08-25', clock)).toThrowError('due_date_unchanged');
+    const completed = markItemReturned(loan, clock).loan;
+    expect(() => changeLoanDueDate(completed, '2026-08-25', clock)).toThrow(DomainError);
   });
 });

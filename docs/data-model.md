@@ -1,6 +1,6 @@
 # Data model
 
-Local schema version **2**. Client-visible IDs are UUIDv7 generated on the device. Money is integer minor units (`bigint` in domain, decimal string in IndexedDB) and is capped at signed 64-bit maximum for future SQLite/SQL interoperability. Dates are calendar `YYYY-MM-DD`; instants are UTC ISO-8601.
+Local schema version **3**. Client-visible IDs are UUIDv7 generated on the device. Money is integer minor units (`bigint` in domain, decimal string in IndexedDB) and is capped at signed 64-bit maximum for future SQLite/SQL interoperability. Dates are calendar `YYYY-MM-DD`; instants are UTC ISO-8601.
 
 ## Implemented entities
 
@@ -13,6 +13,7 @@ Singleton installation preferences and identity.
 | `id`                     | Always `local`                                          |
 | `localIdentityId`        | UUIDv7 installation identity; not an account            |
 | `preferredCurrency`      | Supported ISO 4217 code; affects only new money records |
+| `preferredLanguage`      | Registered locale code: currently `en`, `ru` or `lt`    |
 | `schemaVersion`          | Migrated to current Dexie version                       |
 | `version`                | Incremented on a user preference change                 |
 | `createdAt`, `updatedAt` | Instants                                                |
@@ -36,29 +37,31 @@ Indexes: `id`, `displayName`, `deletedAt`. Same-name people are allowed and neve
 
 Deletion never cascades to loans. Every Loan keeps `personNameSnapshot`, so history remains understandable.
 
+The person overview is derived, never stored. It reads one Person by `id`, reads that person's Loans through the `loans.personId` index, then reads all relevant Repayments in one `repayments.loanId` multi-key query. Physical-item counts, direction groups, completed history and outstanding totals are computed from source records. Currency totals remain separate and partial repayments never rewrite the original amount.
+
 ### Loan
 
 One temporary transfer, physical or money. The kind discriminator keeps v1 simple without storing core searchable data in JSON.
 
-| Field                                 | Constraint / meaning                                                  |
-| ------------------------------------- | --------------------------------------------------------------------- |
-| `id`                                  | UUIDv7                                                                |
-| `direction`                           | `lent` or `borrowed`, always relative to the local user               |
-| `assetKind`                           | `physical_item` or `money`                                            |
-| `status`                              | Stored: `active`, `completed`, `cancelled`, `archived`                |
-| `personId`                            | Stable Person reference                                               |
-| `personNameSnapshot`                  | Historical display fallback                                           |
-| `occurredOn`                          | Required calendar handoff date                                        |
-| `dueOn`                               | Nullable calendar date; must be on/after `occurredOn`; not a reminder |
-| `returnedOn`                          | Completion calendar date                                              |
-| `note`                                | Nullable, max 4,000 characters                                        |
-| `itemName`                            | Physical only, required, max 200 characters                           |
-| `itemDescription`                     | Physical only, nullable, max 2,000 characters                         |
-| `quantity`                            | Physical only, integer 1…1,000,000; defaults to 1                     |
-| `currencyCode`                        | Money only, supported ISO 4217 code                                   |
-| `originalMinorUnits`                  | Money only, positive and ≤ 9,223,372,036,854,775,807; immutable       |
-| `version`                             | Incremented on lifecycle change                                       |
-| `createdAt`, `updatedAt`, `deletedAt` | Sync instants/tombstone                                               |
+| Field                                 | Constraint / meaning                                                                      |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `id`                                  | UUIDv7                                                                                    |
+| `direction`                           | `lent` or `borrowed`, always relative to the local user                                   |
+| `assetKind`                           | `physical_item` or `money`                                                                |
+| `status`                              | Stored: `active`, `completed`, `cancelled`, `archived`                                    |
+| `personId`                            | Stable Person reference                                                                   |
+| `personNameSnapshot`                  | Historical display fallback                                                               |
+| `occurredOn`                          | Required calendar handoff date                                                            |
+| `dueOn`                               | Nullable calendar date; source for derived in-app reminder; must be on/after `occurredOn` |
+| `returnedOn`                          | Completion calendar date                                                                  |
+| `note`                                | Nullable, max 4,000 characters                                                            |
+| `itemName`                            | Physical only, required, max 200 characters                                               |
+| `itemDescription`                     | Physical only, nullable, max 2,000 characters                                             |
+| `quantity`                            | Physical only, integer 1…1,000,000; defaults to 1                                         |
+| `currencyCode`                        | Money only, supported ISO 4217 code                                                       |
+| `originalMinorUnits`                  | Money only, positive and ≤ 9,223,372,036,854,775,807; immutable                           |
+| `version`                             | Incremented on lifecycle change                                                           |
+| `createdAt`, `updatedAt`, `deletedAt` | Sync instants/tombstone                                                                   |
 
 Indexes: `id`, `personId`, `direction`, `assetKind`, `status`, `occurredOn`, `dueOn`, `deletedAt`.
 
@@ -85,7 +88,7 @@ Index: `loanId` plus primary `id` and `deletedAt`. Validation and write happen i
 
 Human-readable activity, not full event sourcing.
 
-Fields: UUIDv7 `id`, indexed `loanId`, semantic `type`, translation `summaryKey`, non-private interpolation parameters, `occurredAt`, `createdAt`. Implemented event writes are loan created, repayment added and item returned. Reserved types enable due-date/note/cancel/archive/reopen vertical slices later. Technical events such as “row updated” are never shown.
+Fields: UUIDv7 `id`, indexed `loanId`, semantic `type`, translation `summaryKey`, non-private interpolation parameters, `occurredAt`, `createdAt`. Implemented event writes are loan created, repayment added, item returned and due date changed. Reserved types enable note/cancel/archive/reopen vertical slices later. Technical events such as “row updated” are never shown.
 
 ### SyncMutation
 
@@ -115,6 +118,7 @@ Indexed only by `id`. It is overwritten after a short debounce, cleared for an e
 | Completed item   | active physical Loan marked returned                                 |
 | Overdue          | active + due date exists + `dueOn < today` in current local timezone |
 | Due soon         | active + today ≤ dueOn ≤ today + central `DUE_SOON_DAYS` (3)         |
+| Days until due   | signed whole calendar days from local today to `dueOn`               |
 
 A date-only due date never becomes overdue because of UTC midnight conversion.
 
@@ -122,13 +126,14 @@ A date-only due date never becomes overdue because of UTC midnight conversion.
 
 - v1: people, loans, repayments, events, mutations, settings.
 - v2: adds drafts; upgrades settings `schemaVersion` and supplies settings `version = 1`.
+- v3: adds `preferredLanguage`; existing installations default safely to English.
 
-Tests create a real v1 fake-IndexedDB database, open it with v2, and verify preferences and the new table. Mobile upgrades must use the same migration; reinstalling is not an upgrade strategy.
+Tests create a real v1 fake-IndexedDB database, open it through v2 to v3, and verify currency, language, settings version and the draft table. Mobile upgrades must use the same migration; reinstalling is not an upgrade strategy.
 
 ## Analyzed but intentionally absent
 
 - Server User and Device: no account/backend yet; local identity remains separate.
 - Asset table: two kinds fit one Loan without premature polymorphism; a later migration can extract assets.
-- Reminder: requires scheduling semantics and permissions separate from due date.
+- Scheduled Reminder: custom lead time/repetition and OS delivery require separate semantics and contextual permission; current in-app due tracking needs no entity.
 - Attachment: requires independent local blob/upload lifecycle.
 - Remote sync receipt/conflict tables: protocol exists, transport does not.

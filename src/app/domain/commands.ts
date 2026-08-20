@@ -214,6 +214,41 @@ export function markItemReturned(loan: Loan, clock: DomainClock): { loan: Loan; 
   };
 }
 
+export function changeLoanDueDate(
+  loan: Loan,
+  dueOnInput: string,
+  clock: DomainClock,
+): { loan: Loan; event: LoanEvent } {
+  if (loan.status !== 'active' || loan.deletedAt !== null) {
+    throw new DomainError('loan_not_active');
+  }
+  const dueOn = requireCalendarDate(dueOnInput);
+  if (dueOn < loan.occurredOn) {
+    throw new DomainError('date_order_invalid');
+  }
+  if (dueOn === loan.dueOn) {
+    throw new DomainError('due_date_unchanged');
+  }
+  const at = instantFrom(clock.now());
+  return {
+    loan: {
+      ...loan,
+      dueOn,
+      updatedAt: at,
+      version: loan.version + 1,
+    },
+    event: {
+      id: createId(),
+      loanId: loan.id,
+      type: 'due_date_changed',
+      summaryKey: 'history.dueDateChanged',
+      summaryParams: { date: dueOn },
+      occurredAt: at,
+      createdAt: at,
+    },
+  };
+}
+
 export function addRepayment(
   loan: Loan,
   existing: readonly Repayment[],

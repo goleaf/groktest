@@ -40,6 +40,10 @@ describe('demo seed', () => {
     );
     expect(peterCash).toBeTruthy();
     if (peterCash) {
+      const peterDrill = lent.find(
+        (loan) => loan.assetKind === 'physical_item' && loan.personNameSnapshot === 'Peter',
+      );
+      expect(peterDrill?.personId).toBe(peterCash.personId);
       const remaining = outstandingMinorUnits(
         peterCash,
         (await app.loanDetail(peterCash.id))?.repayments ?? [],

@@ -15,7 +15,17 @@ describe('Icon vocabulary', () => {
       .getBuiltinModule('fs')
       .readFileSync(`${processApi.process.cwd()}/src/app/ui/icon.ts`, 'utf8');
 
-    for (const name of ['records', 'filter', 'close', 'info']) {
+    for (const name of [
+      'records',
+      'filter',
+      'close',
+      'info',
+      'language',
+      'download',
+      'warning',
+      'all',
+      'clock',
+    ]) {
       expect(source).toContain(`| '${name}'`);
       expect(source).toContain(`@case ('${name}')`);
     }

@@ -1,5 +1,8 @@
 import type { CalendarDate, Instant } from './calendar-date';
 import type { CurrencyCode } from './money';
+import type { SupportedLanguage } from '../i18n/catalog';
+
+export type { SupportedLanguage } from '../i18n/catalog';
 
 export type LoanDirection = 'lent' | 'borrowed';
 export type AssetKind = 'physical_item' | 'money';
@@ -74,6 +77,7 @@ export interface LocalSettings {
   readonly id: 'local';
   readonly localIdentityId: string;
   readonly preferredCurrency: CurrencyCode;
+  readonly preferredLanguage: SupportedLanguage;
   readonly schemaVersion: number;
   readonly version: number;
   readonly createdAt: Instant;
@@ -119,6 +123,7 @@ export interface HomeAction {
   readonly assetKind: AssetKind;
   readonly urgency: 'overdue' | 'due_soon' | 'open';
   readonly dueOn: CalendarDate | null;
+  readonly daysUntilDue: number | null;
   readonly messageKey: string;
   readonly params: Readonly<Record<string, string>>;
 }

@@ -13,6 +13,7 @@ import { provideBorrowedPersistence } from './data/borrowed-app';
 import { BorrowedApp } from './data/borrowed-app';
 import { browserClock, CLOCK } from './data/clock';
 import { routes } from './app.routes';
+import { I18n } from './i18n/i18n';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,6 +26,11 @@ export const appConfig: ApplicationConfig = {
     }),
     { provide: CLOCK, useFactory: browserClock },
     ...provideBorrowedPersistence(),
-    provideAppInitializer(() => inject(BorrowedApp).initialize()),
+    provideAppInitializer(async () => {
+      const app = inject(BorrowedApp);
+      const i18n = inject(I18n);
+      const settings = await app.initialize();
+      i18n.setLanguage(settings.preferredLanguage);
+    }),
   ],
 };

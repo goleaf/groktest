@@ -2,16 +2,17 @@
 
 ## Automated layers
 
-| Layer                   | Coverage                                                                                                                                   | Tool                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
-| Domain                  | UUIDv7, money parsing/format/bounds, dates, create, return, repay, completion, overdue/due soon, query rules                               | Vitest pure tests                 |
-| Persistence/application | offline create/reload, return/history, repayment, concurrent overpay prevention, duplicate people, settings queue, drafts, v1→v2 migration | Dexie + fake-indexeddb            |
-| Component               | shell/navigation, add draft restore/save, lists, home, detail, settings, icons, accessible labels                                          | Angular TestBed/Vitest            |
-| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier                                            | CLI/CI                            |
-| Delivery                | Production PWA artifact and Android debug APK                                                                                              | Angular builder, Capacitor/Gradle |
-| Browser acceptance      | critical flows, responsive widths, offline reload, clean console, accessibility tree                                                       | isolated Chrome DevTools profile  |
+| Layer                   | Coverage                                                                                                                                                                               | Tool                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Domain                  | UUIDv7, money parsing/format/bounds, calendar-day distance, create, return, repay, due-date change, person relationship summaries, completion, urgency and query rules                 | Vitest pure tests                 |
+| Persistence/application | offline create/reload, return/history, repayment, deadline change/event/queue, overpay prevention, stable person reuse, indexed person overview, settings, drafts and v1→v3 migration  | Dexie + fake-indexeddb            |
+| Component               | shell/navigation, local-midnight/focus refresh, Add draft/person matching, shared due status, lists, Home, People/person details, deadline form, settings, icons and accessible labels | Angular TestBed/Vitest            |
+| Localization            | catalog parity, interpolation parameters, EN/RU/LT plural rules, fallback, persistence and HTML language                                                                               | Vitest + Angular TestBed          |
+| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier                                                                                        | CLI/CI                            |
+| Delivery                | Production PWA artifact and Android debug APK                                                                                                                                          | Angular builder, Capacitor/Gradle |
+| Browser acceptance      | critical flows, responsive widths, offline reload, clean console, accessibility tree                                                                                                   | isolated Chrome DevTools profile  |
 
-Deterministic clocks and named fixtures cover active lent drill, borrowed ladder, partial money repayment, completed item and overdue records. Tests do not depend on network or production data.
+Deterministic clocks and named fixtures cover one person with simultaneous lent/borrowed relationships, active lent drill, borrowed ladder, partial money repayment, completed item, due-tomorrow, due-in-three-days and exact overdue duration. Tests do not depend on network or production data.
 
 ## Required local commands
 
@@ -41,6 +42,7 @@ CI performs all web gates and a separate Java 21 Android build. Full iOS compila
 - Keyboard: skip link, logical focus order, visible focus, form labels and actionable buttons.
 - Production PWA: load online once, verify active service worker, create a record, switch offline, reload, find the same record, perform another local action.
 - Console: zero application errors/warnings. Network failures expected only after explicit offline simulation and must not break core behavior.
+- Icon system: every top-level utility page has a semantic heading icon; filters, selectors, empty states, statuses and recovery actions retain visible text and use the shared SVG component.
 
 ## Deferred automation
 

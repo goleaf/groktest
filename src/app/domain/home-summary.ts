@@ -1,9 +1,9 @@
-import type { CalendarDate } from './calendar-date';
+import { calendarDaysBetween, type CalendarDate } from './calendar-date';
 import { formatMinorUnits } from './money';
 import { isLoanDueSoon, isLoanOverdue, outstandingMinorUnits, urgencyRank } from './loan-rules';
 import type { HomeAction, HomeSummary, Loan, MoneyTotal, Repayment } from './types';
 
-function groupMoney(
+export function groupOutstandingMoney(
   loans: readonly Loan[],
   repaymentsByLoan: ReadonlyMap<string, readonly Repayment[]>,
   direction: 'lent' | 'borrowed',
@@ -55,6 +55,7 @@ function actionFor(
       assetKind: loan.assetKind,
       urgency,
       dueOn: loan.dueOn,
+      daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
       messageKey: key,
       params: { person: loan.personNameSnapshot, item: loan.itemName ?? '' },
     };
@@ -68,6 +69,7 @@ function actionFor(
     assetKind: loan.assetKind,
     urgency,
     dueOn: loan.dueOn,
+    daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
     messageKey: key,
     params: { person: loan.personNameSnapshot, amount },
   };
@@ -90,8 +92,8 @@ export function summarizeHome(
   return {
     activeLentCount: active.filter((loan) => loan.direction === 'lent').length,
     activeBorrowedCount: active.filter((loan) => loan.direction === 'borrowed').length,
-    moneyOwedToMe: groupMoney(active, repaymentsByLoan, 'lent'),
-    moneyIOwe: groupMoney(active, repaymentsByLoan, 'borrowed'),
+    moneyOwedToMe: groupOutstandingMoney(active, repaymentsByLoan, 'lent'),
+    moneyIOwe: groupOutstandingMoney(active, repaymentsByLoan, 'borrowed'),
     overdueCount: active.filter((loan) => isLoanOverdue(loan, today)).length,
     dueSoonCount: active.filter((loan) => isLoanDueSoon(loan, today)).length,
     actions,

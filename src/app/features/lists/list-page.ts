@@ -6,14 +6,16 @@ import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon, type IconName } from '../../ui/icon';
+import { iconForFilter, iconForScope } from '../../ui/icon-for';
 import { LoanRow } from '../../ui/loan-row';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-list-page',
-  imports: [EmptyState, LoanRow, Icon, FormsModule],
+  imports: [EmptyState, LoanRow, Icon, FormsModule, PageHeading],
   template: `
     <section class="page">
-      <h1 class="page-title"><app-icon [name]="icon()" /> {{ i18n.t(titleKey()) }}</h1>
+      <app-page-heading [icon]="icon()" [title]="i18n.t(titleKey())" />
       <div class="scope-switch" role="group" [attr.aria-label]="i18n.t('records.scopeLabel')">
         @for (option of scopes; track option) {
           <button
@@ -22,12 +24,17 @@ import { LoanRow } from '../../ui/loan-row';
             [attr.aria-pressed]="scope() === option"
             (click)="scope.set(option)"
           >
+            <app-icon class="control-icon" [name]="iconForScope(option)" />
             {{ i18n.t('records.' + option) }}
           </button>
         }
       </div>
       @if (all().length === 0) {
-        <app-empty-state [message]="i18n.t(emptyKey())" [actionLabel]="i18n.t(emptyActionKey())" />
+        <app-empty-state
+          [icon]="icon()"
+          [message]="i18n.t(emptyKey())"
+          [actionLabel]="i18n.t(emptyActionKey())"
+        />
       } @else {
         <label class="search-field">
           <app-icon name="search" />
@@ -48,12 +55,13 @@ import { LoanRow } from '../../ui/loan-row';
               [attr.aria-pressed]="filter() === option"
               (click)="filter.set(option)"
             >
+              <app-icon class="control-icon" [name]="iconForFilter(option)" />
               {{ i18n.t('filter.' + option) }}
             </button>
           }
         </div>
         @if (shown().length === 0) {
-          <p class="hint">{{ i18n.t('search.none') }}</p>
+          <p class="search-guidance"><app-icon name="search" /> {{ i18n.t('search.none') }}</p>
         } @else {
           <ul class="loan-list">
             @for (loan of shown(); track loan.id) {
@@ -84,14 +92,17 @@ export class ListPage {
   protected readonly shown = computed(() =>
     this.app.filterLoans(this.all(), this.query(), this.filter()),
   );
+  protected readonly iconForScope = iconForScope;
+  protected readonly iconForFilter = iconForFilter;
 
   constructor() {
     effect(() => {
       this.app.revision();
       const direction = this.scope();
+      const locale = this.i18n.locale();
       void this.app.activeLoans(direction === 'all' ? undefined : direction).then(async (value) => {
         this.all.set(value);
-        this.remaining.set(await this.app.remainingMap(value));
+        this.remaining.set(await this.app.remainingMap(value, locale));
       });
     });
   }

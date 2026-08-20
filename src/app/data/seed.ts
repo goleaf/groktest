@@ -26,7 +26,7 @@ export async function seedDemoIfEmpty(app: BorrowedApp, clock: DomainClock): Pro
   });
   void drill;
 
-  await add({
+  const annaLadder = await add({
     direction: 'borrowed',
     kind: 'physical_item',
     personName: 'Anna',
@@ -38,13 +38,14 @@ export async function seedDemoIfEmpty(app: BorrowedApp, clock: DomainClock): Pro
     direction: 'lent',
     kind: 'money',
     personName: 'Peter',
+    personId: drill.personId,
     amount: '50',
     currency: 'EUR',
     dueOn: addCalendarDays(today, 5),
   });
   await app.repay(cash.id, '20', 'EUR');
 
-  await add({
+  const mayaBook = await add({
     direction: 'borrowed',
     kind: 'money',
     personName: 'Mom',
@@ -80,6 +81,7 @@ export async function seedDemoIfEmpty(app: BorrowedApp, clock: DomainClock): Pro
     direction: 'borrowed',
     kind: 'physical_item',
     personName: 'Maya',
+    personId: mayaBook.personId,
     itemName: 'bike pump',
     occurredOn: addCalendarDays(today, -10),
     dueOn: addCalendarDays(today, -5),
@@ -89,6 +91,7 @@ export async function seedDemoIfEmpty(app: BorrowedApp, clock: DomainClock): Pro
     direction: 'lent',
     kind: 'money',
     personName: 'Anna',
+    personId: annaLadder.personId,
     amount: '15',
     currency: 'EUR',
   });

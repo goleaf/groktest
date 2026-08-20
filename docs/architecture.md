@@ -15,7 +15,7 @@ flowchart LR
   Desktop --> App
   App[BorrowedApp use cases] --> Domain[Pure domain rules]
   App --> Store[BorrowedStore]
-  Store --> IDB[(Dexie / IndexedDB v2)]
+  Store --> IDB[(Dexie / IndexedDB v3)]
   Store --> Queue[(Mutation queue)]
   Queue -. future HTTPS sync .-> API[Versioned modular-monolith API]
 ```
@@ -36,12 +36,12 @@ Dependencies point inward. Domain code has no Angular, Dexie, Capacitor or Elect
 - No NgRx: local persisted state is authoritative; signals hold screen state and the application revision marker.
 - Feature routes are lazy loaded. The shell is eager so navigation and the first landmark appear quickly.
 - One flow is used at all widths. Mobile uses a five-item bottom navigation; desktop uses a rail and wider content area.
-- User text comes from `src/app/i18n/en.ts`. Additional catalogs can implement the same keys; visible copy is not assembled from translated fragments.
+- User text comes from self-contained EN/RU/LT locale files. `catalog.ts` derives supported languages and selector metadata; English is the fallback and structural reference. Named parameters and `Intl.PluralRules` handle grammar without concatenating translated fragments. See `docs/i18n.md`.
 - The add form keeps one device-local draft and clears it only after a successful committed record.
 
 ## Local persistence
 
-Dexie/IndexedDB schema v2 is the only implemented store on all shells. It supports indexed queries, transactions, persistence and migrations; `localStorage` is not a database.
+Dexie/IndexedDB schema v3 is the only implemented store on all shells. It supports indexed queries, transactions, persistence, language preference and migrations; `localStorage` is not a database.
 
 The critical loan update boundary is `BorrowedStore.updateLoan()`. It reads the loan and repayments, validates the domain command, writes the new loan/event/repayment and enqueues mutations in one read-write transaction. This prevents two tabs from accepting conflicting repayments against one stale balance.
 
@@ -51,7 +51,11 @@ Native SQLite is not claimed. If WebView persistence proves insufficient, a SQLi
 
 The production web build registers Angular’s service worker and prefetches the application shell and hashed JS/CSS. IndexedDB holds user data. The service worker is disabled inside Capacitor because the native package already ships its web assets and does not need a second cache lifecycle.
 
-Core create, view, search, return, repay, history and settings operations perform no HTTP request. The PWA can reload its cached shell offline after one successful online production load.
+Core create, view, search, return, repay, deadline tracking/change, history and settings operations perform no HTTP request. The PWA can reload its cached shell offline after one successful online production load.
+
+People remain local domain records rather than authenticated identities. The list performs one bounded people read and one bounded loans read for recent ordering/counts. A detail route performs one Person lookup, one indexed `personId` Loan read and at most one batched Repayment read, then the pure `summarizePersonRelationships()` function derives direction groups, physical-item counts, per-currency balances, remaining amounts and history.
+
+`dueOn` remains date-only source data. `calendarDaysBetween()` derives exact relative distance from the user's local today, and the shared `DueStatus` component renders the same EN/RU/LT reminder on Home, lists and Details. `CurrentDayTracker` advances a single reactive day signal at local midnight and refreshes it on window focus or restored page visibility, so an open screen does not keep yesterday's reminder. No stale overdue flag is stored.
 
 ## Backend and remote database
 
@@ -63,7 +67,9 @@ First run creates `LocalSettings.localIdentityId`. This installation identity is
 
 ## Attachments and notifications
 
-Not implemented. A future attachment service has independent local metadata/blob/upload state so photo failure never rolls back a loan. A future reminder has its own schedule separate from `dueOn`; permissions are requested only when the user enables a reminder.
+In-app due-date reminders are implemented without permissions: the app shows today/tomorrow/in-days and exact overdue duration whenever active records are rendered. Moving a deadline uses the same atomic `BorrowedStore.updateLoan()` boundary as return and repayment, appending `due_date_changed` history and sync mutations.
+
+A future attachment service has independent local metadata/blob/upload state so photo failure never rolls back a loan. User-configured operating-system notifications remain a separate Reminder entity and scheduler from `dueOn`; permissions are requested only when the user explicitly enables one. The app never contacts the counterparty automatically.
 
 ## Platform integrations
 
@@ -93,7 +99,7 @@ Capacitor calls are confined to delivery/bootstrap boundaries. A future camera, 
 | Version          | Current source                                           |
 | ---------------- | -------------------------------------------------------- |
 | Application      | `package.json` (`0.1.0`)                                 |
-| IndexedDB schema | `LOCAL_SCHEMA_VERSION` (`2`)                             |
+| IndexedDB schema | `LOCAL_SCHEMA_VERSION` (`3`)                             |
 | Sync protocol    | v0 queue-only design in `docs/sync.md`                   |
 | API              | Not implemented; first remote contract will be `/api/v1` |
 | Native shells    | Capacitor packages and native project files (`8.5`)      |

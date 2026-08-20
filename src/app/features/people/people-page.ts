@@ -1,41 +1,84 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { BorrowedApp, type PersonListRow } from '../../data/borrowed-app';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon } from '../../ui/icon';
-import type { Person } from '../../domain/types';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-people-page',
-  imports: [EmptyState, RouterLink, Icon],
+  imports: [EmptyState, FormsModule, RouterLink, Icon, PageHeading],
   template: `
     <section class="page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('people.title') }}</h1>
-          <p class="page-intro">{{ i18n.t('people.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading
+        icon="people"
+        [title]="i18n.t('people.title')"
+        [intro]="i18n.t('people.intro')"
+      />
       @if (rows().length === 0) {
-        <app-empty-state [message]="i18n.t('people.empty')" />
+        <app-empty-state icon="people" [message]="i18n.t('people.empty')" />
       } @else {
-        <ul class="loan-list">
-          @for (row of rows(); track row.person.id) {
-            <li>
-              <a class="loan-row" [routerLink]="['/people', row.person.id]">
-                <span class="person-avatar" aria-hidden="true">{{
-                  row.person.displayName.charAt(0)
-                }}</span>
-                <span class="body record-row__identity">
-                  <strong>{{ row.person.displayName }}</strong>
-                  <span>{{ i18n.t('people.active', { count: row.activeCount }) }}</span>
-                </span>
-                <span class="row-chevron" aria-hidden="true"><app-icon name="chevron" /></span>
-              </a>
-            </li>
-          }
-        </ul>
+        <label class="people-search" for="people-search">
+          <span class="icon-line"
+            ><app-icon name="search" /> {{ i18n.t('people.searchLabel') }}</span
+          >
+          <input
+            id="people-search"
+            type="search"
+            name="people-search"
+            autocomplete="off"
+            [ngModel]="query()"
+            (ngModelChange)="query.set($event)"
+            [placeholder]="i18n.t('people.searchPlaceholder')"
+          />
+        </label>
+        @if (visibleRows().length === 0) {
+          <app-empty-state icon="search" [message]="i18n.t('people.none')" />
+        } @else {
+          <ul class="loan-list">
+            @for (row of visibleRows(); track row.person.id) {
+              <li>
+                <a class="loan-row" [routerLink]="['/people', row.person.id]">
+                  <span class="person-avatar" aria-hidden="true">{{
+                    row.person.displayName.charAt(0)
+                  }}</span>
+                  <span class="body record-row__identity">
+                    <strong>{{ row.person.displayName }}</strong>
+                    <span class="icon-line">
+                      <app-icon name="records" />
+                      {{ i18n.t('people.active', { count: row.activeCount }) }}
+                    </span>
+                    <small class="person-row-meta">
+                      @if (row.lentActiveCount) {
+                        <span
+                          ><app-icon name="lent" />
+                          {{ i18n.t('people.lentActive', { count: row.lentActiveCount }) }}</span
+                        >
+                      }
+                      @if (row.borrowedActiveCount) {
+                        <span
+                          ><app-icon name="borrowed" />
+                          {{
+                            i18n.t('people.borrowedActive', { count: row.borrowedActiveCount })
+                          }}</span
+                        >
+                      }
+                      @if (row.historyCount) {
+                        <span
+                          ><app-icon name="history" />
+                          {{ i18n.t('people.historyCount', { count: row.historyCount }) }}</span
+                        >
+                      }
+                    </small>
+                  </span>
+                  <span class="row-chevron" aria-hidden="true"><app-icon name="chevron" /></span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
       }
     </section>
   `,
@@ -43,7 +86,17 @@ import type { Person } from '../../domain/types';
 export class PeoplePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
-  protected readonly rows = signal<{ person: Person; activeCount: number }[]>([]);
+  protected readonly rows = signal<PersonListRow[]>([]);
+  protected readonly query = signal('');
+  protected readonly visibleRows = computed(() => {
+    const query = this.query().trim().toLocaleLowerCase(this.i18n.locale());
+    if (!query) {
+      return this.rows();
+    }
+    return this.rows().filter((row) =>
+      row.person.displayName.toLocaleLowerCase(this.i18n.locale()).includes(query),
+    );
+  });
 
   constructor() {
     effect(() => {

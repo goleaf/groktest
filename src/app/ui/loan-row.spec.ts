@@ -34,7 +34,7 @@ describe('LoanRow', () => {
         provideRouter([]),
         {
           provide: BorrowedApp,
-          useValue: { isOverdue: () => true, isDueSoon: () => false },
+          useValue: { daysUntilDue: () => -2 },
         },
       ],
     }).compileComponents();
@@ -48,7 +48,8 @@ describe('LoanRow', () => {
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('Peter');
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('Cordless drill');
     expect(root.querySelector('.record-row__direction')?.textContent).toContain('You lent it');
-    expect(root.querySelector('.meta')?.textContent).toContain('Overdue');
+    expect(root.querySelector('.meta')?.textContent).toContain('Overdue by 2 days');
+    expect(root.querySelector('.meta app-icon')).toBeTruthy();
     expect(root.querySelector('.row-chevron app-icon')).toBeTruthy();
   });
 });

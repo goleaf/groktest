@@ -1,27 +1,22 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { DomainError } from '../../domain/errors';
 import { CURRENCY_EXPONENTS, type CurrencyCode } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
 import type { Person } from '../../domain/types';
 import { Icon } from '../../ui/icon';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-add-page',
-  imports: [FormsModule, Icon],
+  imports: [FormsModule, Icon, PageHeading],
   template: `
     <section class="page add-page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('add.heading') }}</h1>
-          <p class="page-intro">{{ i18n.t('add.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading icon="add" [title]="i18n.t('add.heading')" [intro]="i18n.t('add.intro')" />
       <form (ngSubmit)="save()" class="stack">
         <div class="handoff-builder" [attr.aria-label]="i18n.t('add.handoffLabel')">
-          <span class="handoff-word" aria-hidden="true">{{ i18n.t('add.subject') }}</span>
           <fieldset>
             <legend class="sr-only">{{ i18n.t('add.lent') }} / {{ i18n.t('add.borrowed') }}</legend>
             <div class="segmented">
@@ -31,6 +26,7 @@ import { Icon } from '../../ui/icon';
                 [attr.aria-pressed]="direction() === 'lent' ? 'true' : 'false'"
                 (click)="direction.set('lent')"
               >
+                <app-icon class="control-icon" name="lent" />
                 {{ i18n.t('add.lent') }}
               </button>
               <button
@@ -39,11 +35,11 @@ import { Icon } from '../../ui/icon';
                 [attr.aria-pressed]="direction() === 'borrowed' ? 'true' : 'false'"
                 (click)="direction.set('borrowed')"
               >
+                <app-icon class="control-icon" name="borrowed" />
                 {{ i18n.t('add.borrowed') }}
               </button>
             </div>
           </fieldset>
-          <span class="handoff-word" aria-hidden="true">{{ i18n.t('add.article') }}</span>
           <fieldset>
             <legend class="sr-only">{{ i18n.t('add.item') }} / {{ i18n.t('add.money') }}</legend>
             <div class="segmented">
@@ -53,6 +49,7 @@ import { Icon } from '../../ui/icon';
                 [attr.aria-pressed]="kind() === 'physical_item' ? 'true' : 'false'"
                 (click)="kind.set('physical_item')"
               >
+                <app-icon class="control-icon" name="item" />
                 {{ i18n.t('add.item') }}
               </button>
               <button
@@ -61,13 +58,14 @@ import { Icon } from '../../ui/icon';
                 [attr.aria-pressed]="kind() === 'money' ? 'true' : 'false'"
                 (click)="kind.set('money')"
               >
+                <app-icon class="control-icon" name="money" />
                 {{ i18n.t('add.money') }}
               </button>
             </div>
           </fieldset>
         </div>
         <label for="person">
-          <span class="icon-line"><app-icon name="person" /> {{ i18n.t('add.who') }}</span>
+          <span class="icon-line"><app-icon name="person" /> {{ personPrompt() }}</span>
           <input
             id="person"
             name="person"
@@ -80,11 +78,20 @@ import { Icon } from '../../ui/icon';
           />
         </label>
         @if (recents().length) {
-          <p class="hint">{{ i18n.t('add.recents') }}</p>
+          <p class="hint icon-line">
+            <app-icon [name]="personName().trim() && !personId() ? 'search' : 'history'" />
+            {{ i18n.t(personName().trim() && !personId() ? 'add.matches' : 'add.recents') }}
+          </p>
           <ul class="chips">
             @for (person of recents(); track person.id) {
               <li>
-                <button type="button" (click)="choosePerson(person)">
+                <button
+                  type="button"
+                  [class.on]="personId() === person.id"
+                  [attr.aria-pressed]="personId() === person.id ? 'true' : 'false'"
+                  (click)="choosePerson(person)"
+                >
+                  <app-icon class="control-icon" name="person" />
                   {{ person.displayName }}
                 </button>
               </li>
@@ -133,12 +140,18 @@ import { Icon } from '../../ui/icon';
             </select>
           </label>
         }
+        <label for="due">
+          <span class="icon-line"><app-icon name="calendar" /> {{ duePrompt() }}</span>
+          <input
+            id="due"
+            type="date"
+            name="due"
+            [ngModel]="dueOn()"
+            (ngModelChange)="dueOn.set($event)"
+          />
+        </label>
         <details>
-          <summary>{{ i18n.t('add.more') }}</summary>
-          <label>
-            <span class="icon-line"><app-icon name="calendar" /> {{ i18n.t('add.dueLabel') }}</span>
-            <input type="date" name="due" [ngModel]="dueOn()" (ngModelChange)="dueOn.set($event)" />
-          </label>
+          <summary><app-icon name="more" /> {{ i18n.t('add.more') }}</summary>
           <label>
             <span class="icon-line"><app-icon name="note" /> {{ i18n.t('add.noteLabel') }}</span>
             <textarea
@@ -151,7 +164,7 @@ import { Icon } from '../../ui/icon';
           </label>
         </details>
         @if (error()) {
-          <p class="error" role="alert">{{ error() }}</p>
+          <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ error() }}</p>
         }
         <button class="button" type="submit" [disabled]="busy()">
           <app-icon name="check" />
@@ -165,6 +178,7 @@ export class AddPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly direction = signal<'lent' | 'borrowed'>('lent');
   protected readonly kind = signal<'physical_item' | 'money'>('physical_item');
@@ -177,8 +191,27 @@ export class AddPage {
   protected readonly note = signal('');
   protected readonly busy = signal(false);
   protected readonly error = signal('');
-  protected readonly recents = signal<Person[]>([]);
+  private readonly people = signal<Person[]>([]);
+  protected readonly recents = computed(() => {
+    const people = this.people();
+    const query = this.personName().trim().toLocaleLowerCase(this.i18n.locale());
+    if (!query || this.personId()) {
+      const selected = people.find((person) => person.id === this.personId());
+      return [selected, ...people.filter((person) => person.id !== selected?.id)]
+        .filter((person): person is Person => Boolean(person))
+        .slice(0, 8);
+    }
+    return people
+      .filter((person) => person.displayName.toLocaleLowerCase(this.i18n.locale()).includes(query))
+      .slice(0, 8);
+  });
   protected readonly currencies = Object.keys(CURRENCY_EXPONENTS);
+  protected readonly personPrompt = computed(() =>
+    this.i18n.t(this.direction() === 'lent' ? 'add.personLent' : 'add.personBorrowed'),
+  );
+  protected readonly duePrompt = computed(() =>
+    this.i18n.t(this.direction() === 'lent' ? 'add.dueLent' : 'add.dueBorrowed'),
+  );
   private readonly draftReady = signal(false);
   private draftTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -228,7 +261,7 @@ export class AddPage {
       this.app.people(),
       this.app.recordDraft(),
     ]);
-    this.recents.set(people.slice(0, 8));
+    this.people.set(people);
     if (draft) {
       this.direction.set(draft.direction);
       this.kind.set(draft.kind);
@@ -242,11 +275,16 @@ export class AddPage {
     } else {
       this.currency.set(settings.preferredCurrency);
     }
+    const linkedPersonId = this.route.snapshot.queryParamMap.get('personId');
+    const linkedPerson = people.find((person) => person.id === linkedPersonId);
+    if (linkedPerson) {
+      this.choosePerson(linkedPerson);
+    }
     this.draftReady.set(true);
   }
 
   protected updatePersonName(value: string): void {
-    const selected = this.recents().find((person) => person.id === this.personId());
+    const selected = this.people().find((person) => person.id === this.personId());
     if (selected && selected.displayName !== value) {
       this.personId.set(undefined);
     }

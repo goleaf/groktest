@@ -12,14 +12,43 @@ const clock: DomainClock = {
   timeZone: () => 'UTC',
 };
 
-async function session(name: string): Promise<{ app: BorrowedApp; store: DexieBorrowedStore }> {
+async function session(
+  name: string,
+  sessionClock: DomainClock = clock,
+): Promise<{ app: BorrowedApp; store: DexieBorrowedStore }> {
   const store = new DexieBorrowedStore(name);
-  const app = new BorrowedApp(store, clock);
+  const app = new BorrowedApp(store, sessionClock);
   await app.initialize();
   return { app, store };
 }
 
 describe('local persistence', () => {
+  it('updates relative due state when the local calendar day changes without editing a loan', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    let now = new Date('2026-08-20T12:00:00.000Z');
+    const movingClock: DomainClock = { now: () => now, timeZone: () => 'UTC' };
+    const { app, store } = await session(dbName, movingClock);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Sergey',
+      amount: '200',
+      currency: 'EUR',
+      dueOn: '2026-08-21',
+    });
+
+    expect(app.daysUntilDue(loan)).toBe(1);
+    now = new Date('2026-08-21T12:00:00.000Z');
+    app.refreshCurrentDay();
+    expect(app.daysUntilDue(loan)).toBe(0);
+    now = new Date('2026-08-22T12:00:00.000Z');
+    app.refreshCurrentDay();
+    expect(app.daysUntilDue(loan)).toBe(-1);
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
   it('creates a physical lent record offline and keeps it after reload', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const first = await session(dbName);
@@ -89,6 +118,40 @@ describe('local persistence', () => {
     indexedDB.deleteDatabase(dbName);
   });
 
+  it('moves a deadline offline and keeps the change and activity after reload', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const first = await session(dbName);
+    const loan = await first.app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Sergey',
+      amount: '200',
+      currency: 'EUR',
+      occurredOn: '2026-08-20',
+      dueOn: '2026-09-01',
+    });
+    const mutationsBeforeChange = await first.app.pendingMutations();
+
+    await first.app.changeDueDate(loan.id, '2026-09-05');
+
+    const changed = await first.app.loanDetail(loan.id);
+    expect(changed?.loan.dueOn).toBe('2026-09-05');
+    expect(changed?.loan.status).toBe('active');
+    expect(changed?.events.at(-1)).toMatchObject({
+      type: 'due_date_changed',
+      summaryParams: { date: '2026-09-05' },
+    });
+    expect(await first.app.pendingMutations()).toHaveLength(mutationsBeforeChange.length + 2);
+    await first.store.close();
+
+    const reloaded = await session(dbName);
+    const persisted = await reloaded.app.loanDetail(loan.id);
+    expect(persisted?.loan.dueOn).toBe('2026-09-05');
+    expect(persisted?.events.at(-1)?.type).toBe('due_date_changed');
+    await reloaded.store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
   it('keeps separately typed people separate even when their names match', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const { app, store } = await session(dbName);
@@ -116,6 +179,75 @@ describe('local persistence', () => {
     });
     expect(selected.personId).toBe(first.personId);
     expect(await app.people()).toHaveLength(2);
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('keeps every relationship with one selected person in one reload-safe overview', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const first = await session(dbName);
+    const drill = await first.app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Andrei',
+      itemName: 'drill',
+    });
+    const money = await first.app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personId: drill.personId,
+      personName: 'Andrei',
+      amount: '100',
+      currency: 'EUR',
+    });
+    await first.app.repay(money.id, '30', 'EUR');
+    await first.app.createRecord({
+      direction: 'borrowed',
+      kind: 'physical_item',
+      personId: drill.personId,
+      personName: 'Andrei',
+      itemName: 'ladder',
+    });
+    await first.app.markReturned(drill.id);
+    await first.store.close();
+
+    const reloaded = await session(dbName);
+    const overview = await reloaded.app.personOverview(drill.personId, 'en-GB');
+
+    expect(overview.person?.displayName).toBe('Andrei');
+    expect(overview.activeLent.map((loan) => loan.id)).toEqual([money.id]);
+    expect(overview.activeBorrowed.map((loan) => loan.itemName)).toEqual(['ladder']);
+    expect(overview.lentItemCount).toBe(0);
+    expect(overview.borrowedItemCount).toBe(1);
+    expect(overview.owedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 7000n }]);
+    expect(overview.iOwe).toEqual([]);
+    expect(overview.history.map((loan) => loan.id)).toEqual([drill.id]);
+    expect(overview.remainingByLoan.get(money.id)).toContain('70');
+    await reloaded.store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('loads a person overview through indexed, bounded store reads', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Andrei',
+      amount: '50',
+      currency: 'EUR',
+    });
+    const listAllLoans = vi.spyOn(store, 'listLoans');
+    const listAllRepayments = vi.spyOn(store, 'listRepayments');
+    const personLoans = vi.spyOn(store, 'listLoansForPerson');
+    const personRepayments = vi.spyOn(store, 'listRepaymentsForLoanIds');
+
+    await app.personOverview(loan.personId, 'en-GB');
+
+    expect(personLoans).toHaveBeenCalledExactlyOnceWith(loan.personId);
+    expect(personRepayments).toHaveBeenCalledExactlyOnceWith([loan.id]);
+    expect(listAllLoans).not.toHaveBeenCalled();
+    expect(listAllRepayments).not.toHaveBeenCalled();
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });
@@ -178,7 +310,9 @@ describe('local persistence', () => {
     const { app, store } = await session(dbName);
     const initialMutations = await app.pendingMutations();
     await app.setPreferredCurrency('GBP');
-    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 1);
+    await app.setPreferredLanguage('ru');
+    expect((await app.settings()).preferredLanguage).toBe('ru');
+    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
 
     await app.saveRecordDraft({
       direction: 'borrowed',
@@ -192,14 +326,14 @@ describe('local persistence', () => {
       note: '',
     });
     expect((await app.recordDraft())?.amount).toBe('25');
-    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 1);
+    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
     await app.clearRecordDraft();
     expect(await app.recordDraft()).toBeUndefined();
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });
 
-  it('migrates an existing v1 database to v2 without changing user preferences', async () => {
+  it('migrates an existing v1 database to v3 and adds the default language', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const legacy = new Dexie(dbName);
     legacy.version(1).stores({
@@ -223,7 +357,8 @@ describe('local persistence', () => {
 
     const migrated = await session(dbName);
     expect((await migrated.app.settings()).preferredCurrency).toBe('GBP');
-    expect((await migrated.app.settings()).schemaVersion).toBe(2);
+    expect((await migrated.app.settings()).preferredLanguage).toBe('en');
+    expect((await migrated.app.settings()).schemaVersion).toBe(3);
     expect((await migrated.app.settings()).version).toBe(1);
     await migrated.app.saveRecordDraft({
       direction: 'lent',

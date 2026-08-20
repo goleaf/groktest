@@ -2,25 +2,24 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { I18n } from '../i18n/i18n';
 import { Icon } from '../ui/icon';
+import { LanguageSwitcher } from '../ui/language-switcher';
+import { CurrentDayTracker } from './current-day-tracker';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icon, LanguageSwitcher],
   template: `
     <div class="app-frame">
       <a class="skip-link" href="#main">{{ i18n.t('app.skipToContent') }}</a>
       <aside class="app-navigation">
         <header class="topbar">
-          <a class="brand-link" routerLink="/" aria-label="Borrowed home">
+          <a class="brand-link" routerLink="/" [attr.aria-label]="i18n.t('app.homeLabel')">
             <span class="brand-mark" aria-hidden="true"><app-icon name="brand" /></span>
             <span class="brand">{{ i18n.t('app.name') }}</span>
           </a>
-          <p class="presence mobile-presence">
-            <app-icon name="device" />
-            {{ i18n.t('app.onThisDevice') }}
-          </p>
+          <app-language-switcher [compact]="true" />
         </header>
-        <nav class="rail-nav" aria-label="Workspace">
+        <nav class="rail-nav" [attr.aria-label]="i18n.t('nav.workspaceLabel')">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
             <app-icon name="home" />
             <span>{{ i18n.t('nav.home') }}</span>
@@ -58,7 +57,7 @@ import { Icon } from '../ui/icon';
       <main id="main" class="main">
         <router-outlet />
       </main>
-      <nav class="tabbar mobile-nav" aria-label="Primary">
+      <nav class="tabbar mobile-nav" [attr.aria-label]="i18n.t('nav.primaryLabel')">
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           <app-icon name="home" />
           <span>{{ i18n.t('nav.home') }}</span>
@@ -88,4 +87,8 @@ import { Icon } from '../ui/icon';
 })
 export class Shell {
   protected readonly i18n = inject(I18n);
+
+  constructor() {
+    inject(CurrentDayTracker);
+  }
 }

@@ -20,6 +20,7 @@ const summary: HomeSummary = {
       assetKind: 'physical_item',
       urgency: 'overdue',
       dueOn: '2026-08-18',
+      daysUntilDue: -2,
       messageKey: 'home.action.lentItemOverdue',
       params: { person: 'Peter', item: 'cordless drill' },
     },
@@ -29,6 +30,7 @@ const summary: HomeSummary = {
       assetKind: 'physical_item',
       urgency: 'overdue',
       dueOn: '2026-08-15',
+      daysUntilDue: -5,
       messageKey: 'home.action.borrowedItemOverdue',
       params: { person: 'Maya', item: 'bike pump' },
     },
@@ -38,6 +40,7 @@ const summary: HomeSummary = {
       assetKind: 'physical_item',
       urgency: 'open',
       dueOn: null,
+      daysUntilDue: null,
       messageKey: 'home.action.borrowedItem',
       params: { person: 'Anna', item: 'ladder' },
     },
@@ -55,6 +58,7 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
+            currentDay: signal('2026-08-20'),
             home: async () => summary,
             markReturned,
           },
@@ -69,9 +73,11 @@ describe('HomePage', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('.page-header h1')?.textContent).toContain('Today');
     expect(root.querySelector('.attention-band')?.textContent).toContain('cordless drill');
+    expect(root.querySelector('.attention-band')?.textContent).toContain('Overdue by 2 days');
     expect(root.querySelector('.record-count')?.textContent).toContain('8 open records');
     expect(root.querySelector('.lead-inline-action')?.textContent).toContain('Mark returned');
     expect(root.querySelector('.open-list')?.textContent).toContain('bike pump');
+    expect(root.querySelector('.open-list')?.textContent).toContain('Overdue by 5 days');
     expect(root.querySelector('.open-list')?.textContent).toContain('ladder');
 
     (root.querySelector('.lead-inline-action') as HTMLButtonElement).click();
@@ -94,6 +100,7 @@ describe('HomePage', () => {
           assetKind: 'physical_item',
           urgency: 'open',
           dueOn: null,
+          daysUntilDue: null,
           messageKey: 'home.action.borrowedItem',
           params: { person: 'Anna', item: 'ladder' },
         },
@@ -103,6 +110,7 @@ describe('HomePage', () => {
           assetKind: 'physical_item',
           urgency: 'open',
           dueOn: null,
+          daysUntilDue: null,
           messageKey: 'home.action.lentItem',
           params: { person: 'Maya', item: 'book' },
         },
@@ -117,6 +125,7 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
+            currentDay: signal('2026-08-20'),
             home: async () => ordinarySummary,
             markReturned: async () => undefined,
           },
@@ -135,5 +144,35 @@ describe('HomePage', () => {
     expect(ladderLinks).toHaveLength(1);
     expect(root.querySelector('.attention-band')?.textContent).toContain('ladder');
     expect(root.querySelector('.open-list')?.textContent).toContain('book');
+  });
+
+  it('refreshes its reminder summary when the local calendar day changes', async () => {
+    const currentDay = signal('2026-08-20');
+    const home = vi.fn(async () => summary);
+    await TestBed.configureTestingModule({
+      imports: [HomePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            currentDay,
+            home,
+            markReturned: async () => undefined,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(home).toHaveBeenCalledTimes(1);
+
+    currentDay.set('2026-08-21');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(home).toHaveBeenCalledTimes(2);
   });
 });

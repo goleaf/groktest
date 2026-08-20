@@ -22,6 +22,7 @@ Informal lending is easy to forget. Accounting tools are too heavy. Notes apps h
 - Direction is always relative to **me**: I lent, or I borrowed
 - History is kept when something is returned
 - Money can be repaid in parts without rewriting the original amount
+- An optional return date becomes a private in-app reminder; overdue records stay active
 
 ## What Borrowed is not
 
@@ -52,13 +53,24 @@ Informal lending is easy to forget. Accounting tools are too heavy. Notes apps h
 4. Record a partial or full money repayment
 5. See what needs attention on Home
 6. Find active or completed records locally
-7. Review a person’s active/history records
+7. Open one person to see both active directions, currency-separated debts and completed history
 8. Export a private JSON snapshot
+9. See a return deadline approaching, its exact overdue duration, and move the date when needed
+
+The create screen is one short form built around four facts: `I lent / I borrowed` → `to whom / from whom` → `item / money` → `return date, if any`. Saving immediately creates an active local record.
+
+The core loop is deliberately simple:
+
+> Record it → Borrowed remembers it → see what is still outstanding → close it after return → keep the history.
+
+For money, the detail screen always presents the immutable original amount, the sum of recorded repayments, and the derived remaining amount. Example: `€100 original → €30 returned → €70 remaining`.
+
+A Person is the private local anchor for every relationship with that name. Selecting Andrei again reuses his stable ID, so the person page can answer what of mine is with him, what of his is with me, what he still owes me, what I owe him, and what was already returned. The other person never needs a Borrowed account, invitation, or phone contact entry.
 
 ## Initial scope (Part 1)
 
-Foundation plus the four create paths, return, repayment, search/filters, people/history, JSON export, offline persistence, reload-safe add draft, installable PWA, Android/iOS shells, navigation, empty states and preferred currency.
+Foundation plus the four create paths, return, repayment, in-app deadline reminders, deadline changes, search/filters, people/history, JSON export, offline persistence, reload-safe add draft, installable PWA, Android/iOS shells, navigation, empty states and preferred currency.
 
 ## Out of scope (still designed for)
 
-Reminders, notifications, photos, contact import, account/sync server, shared/confirmed loans, QR, AI, import and native SQLite. See `docs/roadmap.md`.
+User-configured operating-system notifications, custom/repeating reminder schedules, photos, contact import, account/sync server, shared/confirmed loans, QR, AI, import and native SQLite. See `docs/roadmap.md`.

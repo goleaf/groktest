@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addCalendarDays,
+  calendarDaysBetween,
   isCalendarDate,
   isDueSoonOn,
   isOverdueOn,
@@ -31,6 +32,15 @@ describe('calendar dates', () => {
   it('adds calendar days without timezone midnight tricks', () => {
     expect(addCalendarDays('2026-08-20', 1)).toBe('2026-08-21');
     expect(addCalendarDays('2026-12-31', 1)).toBe('2027-01-01');
+  });
+
+  it('calculates signed whole calendar days across calendar boundaries', () => {
+    expect(calendarDaysBetween('2026-08-20', '2026-08-24')).toBe(4);
+    expect(calendarDaysBetween('2026-08-20', '2026-08-20')).toBe(0);
+    expect(calendarDaysBetween('2026-08-20', '2026-08-16')).toBe(-4);
+    expect(calendarDaysBetween('2027-02-28', '2027-03-01')).toBe(1);
+    expect(calendarDaysBetween('2028-02-28', '2028-03-01')).toBe(2);
+    expect(calendarDaysBetween('2026-12-31', '2027-01-01')).toBe(1);
   });
 
   it('reads today in the given time zone, not UTC', () => {

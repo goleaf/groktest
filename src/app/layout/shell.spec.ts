@@ -1,20 +1,30 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { BorrowedApp } from '../data/borrowed-app';
 import { Shell } from './shell';
 
 describe('Shell', () => {
   it('renders focused mobile navigation and expanded desktop navigation', async () => {
     await TestBed.configureTestingModule({
       imports: [Shell],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            refreshCurrentDay: () => undefined,
+            setPreferredLanguage: async (preferredLanguage: string) => ({ preferredLanguage }),
+          },
+        },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(Shell);
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
     const text = root.textContent ?? '';
-    const mobileNavigation = root.querySelector('nav[aria-label="Primary"]');
-    const desktopNavigation = root.querySelector('nav[aria-label="Workspace"]');
+    const mobileNavigation = root.querySelector('nav[aria-label="Primary navigation"]');
+    const desktopNavigation = root.querySelector('nav[aria-label="Borrowed navigation"]');
 
     expect(text).toContain('Borrowed');
     expect(text).toContain('On this device');
@@ -34,5 +44,8 @@ describe('Shell', () => {
     expect(root.querySelector('.brand-mark app-icon')).toBeTruthy();
     expect(root.querySelectorAll('.mobile-nav app-icon')).toHaveLength(5);
     expect(root.querySelector('a[href="#main"]')?.textContent).toContain('Skip to main content');
+    expect(root.querySelectorAll('.language-option')).toHaveLength(3);
+    expect(root.textContent).toContain('🇷🇺');
+    expect(root.textContent).toContain('🇱🇹');
   });
 });

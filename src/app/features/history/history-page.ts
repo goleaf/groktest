@@ -6,20 +6,20 @@ import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon } from '../../ui/icon';
 import { LoanRow } from '../../ui/loan-row';
+import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-history-page',
-  imports: [EmptyState, LoanRow, Icon, FormsModule],
+  imports: [EmptyState, LoanRow, Icon, FormsModule, PageHeading],
   template: `
     <section class="page">
-      <header class="page-header">
-        <div>
-          <h1>{{ i18n.t('history.title') }}</h1>
-          <p class="page-intro">{{ i18n.t('history.intro') }}</p>
-        </div>
-      </header>
+      <app-page-heading
+        icon="history"
+        [title]="i18n.t('history.title')"
+        [intro]="i18n.t('history.intro')"
+      />
       @if (all().length === 0) {
-        <app-empty-state [message]="i18n.t('history.empty')" />
+        <app-empty-state icon="history" [message]="i18n.t('history.empty')" />
       } @else {
         <label class="search-field">
           <app-icon name="search" />
@@ -33,7 +33,7 @@ import { LoanRow } from '../../ui/loan-row';
           />
         </label>
         @if (shown().length === 0) {
-          <p class="hint">{{ i18n.t('search.none') }}</p>
+          <p class="search-guidance"><app-icon name="search" /> {{ i18n.t('search.none') }}</p>
         } @else {
           <ul class="loan-list">
             @for (loan of shown(); track loan.id) {

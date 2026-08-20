@@ -10,7 +10,7 @@ Present-checkout audit performed on 20 August 2026 before and during Borrowed Pa
 | UI             | Responsive mobile-first shell, feature screens, shared UI primitives, English catalog                  |
 | Routing        | Angular Router; feature screens are lazy loaded; unknown paths return Home                             |
 | State          | Angular signals for view state; no NgRx                                                                |
-| Persistence    | Dexie 4 over IndexedDB, schema v2, migration from v1, local draft table                                |
+| Persistence    | Dexie 4 over IndexedDB, schema v3, migrations from v1, language preference and local draft table       |
 | Domain         | Person, Loan, Repayment, LoanEvent, settings, mutation queue; UUIDv7; integer money                    |
 | API / backend  | None; no network dependency for core behavior                                                          |
 | Authentication | Local installation identity only; no account or token                                                  |
@@ -42,9 +42,10 @@ Versions were checked with `pnpm list`, `ng version`, `cap doctor`, and the lock
 
 ## Corrections in this Part
 
-- Added schema v2 with local record drafts and a tested v1→v2 migration.
+- Added schema v3 with local record drafts, persisted language preference and tested v1→v3 migration.
 - Moved return/repayment read-validation-write into one IndexedDB transaction.
 - Kept same-name people separate unless the user explicitly chooses an existing person ID.
+- Completed the People hub: full local name matching, stable-ID Add deep links, indexed person-specific reads, four relationship answers, direction-separated active records and completed history.
 - Added queued, versioned settings changes and stopped re-enqueuing an unchanged person on loan updates.
 - Added portable signed-64-bit money bounds, BigInt-safe formatting, text limits and chronological validation.
 - Added lazy routes; current production initial bundle is about 403 kB raw.
@@ -65,7 +66,7 @@ Versions were checked with `pnpm list`, `ng version`, `cap doctor`, and the lock
 
 ## Remaining technical debt and risks
 
-- No remote API, account, sync drain, attachment store or reminder scheduler exists. Their contracts are documented, not faked.
+- No remote API, account, sync drain, attachment store or operating-system reminder scheduler exists. Their contracts are documented, not faked; date-driven reminders inside the app are implemented separately.
 - Native data still uses WebView IndexedDB. The repository seam permits a SQLite adapter later; no encryption claim is made.
 - The mutation queue is durable but has no compaction, acknowledgement client or conflict UI yet.
 - Automated browser E2E is deferred; Part 1 uses component/integration tests plus a real-browser production/offline acceptance pass.
