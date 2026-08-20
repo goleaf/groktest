@@ -50,3 +50,13 @@ Confirm only when data is gone for good. Completing a loan is not destruction (u
 ## Offline
 
 Local actions feel instant. There is no spinner waiting for a server. In Part 1 the truthful status is “On this device”.
+
+The Add screen persists one local form draft after a short debounce. It is not an active Loan, never appears in totals/history and clears only after successful commit (or when the form is empty). A network failure cannot erase the form because core save has no network dependency.
+
+## Responsive continuity
+
+Phone navigation prioritizes Home, Records, Add, Search and More. Desktop unwraps People/History/Settings into a rail but keeps the same routes and wording. Wider space improves composition; it does not create an incompatible workflow. Layouts do not depend on fixed viewport height, so the mobile keyboard can scroll important controls into reach.
+
+## Motion and loading
+
+Motion is restrained, honors reduced-motion preferences and never conveys state alone. Local actions use focused busy states on the affected button/form; there is no global blocking spinner for small operations.

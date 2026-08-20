@@ -3,7 +3,7 @@
 ## Physical item
 
 ```
-(form draft, not a loan)
+(device-local form draft, not a loan and not synced)
     → create → Active
     → mark returned → Completed (returnedOn = today, history event)
     → cancel (later) → Cancelled
@@ -17,13 +17,15 @@ Partial quantity return is not in v1; return means the whole loan.
 ## Money
 
 ```
-(form draft)
+(device-local form draft)
     → create → Active (outstanding = original)
     → repayment → Active + derived partially_repaid if outstanding > 0
     → repayment that zeroes outstanding → Completed
 ```
 
 `partially_repaid` is never stored.
+
+Loan update commands run inside one storage transaction with the current repayment set. Concurrent repayments cannot both validate against a stale balance.
 
 ## Overdue / due soon
 

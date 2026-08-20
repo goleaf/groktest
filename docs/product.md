@@ -44,18 +44,21 @@ Informal lending is easy to forget. Accounting tools are too heavy. Notes apps h
 | **Stored status**  | `active`, `completed`, `cancelled`, `archived`.                                             |
 | **Derived status** | `overdue`, `due_soon`, `partially_repaid` — computed, never stored.                         |
 
-## Core flows (v1)
+## Core flows (Part 1)
 
 1. Lend or borrow a physical item
 2. Lend or borrow money
 3. Mark an item returned (record stays, moves to history)
 4. Record a partial or full money repayment
 5. See what needs attention on Home
+6. Find active or completed records locally
+7. Review a person’s active/history records
+8. Export a private JSON snapshot
 
 ## Initial scope (Part 1)
 
-Foundation plus the four create paths, return, repayment, local persistence, shell navigation, empty states, settings for preferred currency.
+Foundation plus the four create paths, return, repayment, search/filters, people/history, JSON export, offline persistence, reload-safe add draft, installable PWA, Android/iOS shells, navigation, empty states and preferred currency.
 
 ## Out of scope (still designed for)
 
-Reminders, notifications, photos, contact import, search screen, account/sync server, sharing a loan with another Borrowed user, QR, AI, import wizards. See `docs/roadmap.md`.
+Reminders, notifications, photos, contact import, account/sync server, shared/confirmed loans, QR, AI, import and native SQLite. See `docs/roadmap.md`.

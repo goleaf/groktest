@@ -1,40 +1,47 @@
 # Testing
 
-Runner: **Vitest** via `ng test` (Angular 22 unit-test builder).
+## Automated layers
 
-## Layers
+| Layer | Coverage | Tool |
+| --- | --- | --- |
+| Domain | UUIDv7, money parsing/format/bounds, dates, create, return, repay, completion, overdue/due soon, query rules | Vitest pure tests |
+| Persistence/application | offline create/reload, return/history, repayment, concurrent overpay prevention, duplicate people, settings queue, drafts, v1→v2 migration | Dexie + fake-indexeddb |
+| Component | shell/navigation, add draft restore/save, lists, home, detail, settings, icons, accessible labels | Angular TestBed/Vitest |
+| Static quality | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier | CLI/CI |
+| Delivery | Production PWA artifact and Android debug APK | Angular builder, Capacitor/Gradle |
+| Browser acceptance | critical flows, responsive widths, offline reload, clean console, accessibility tree | isolated Chrome DevTools profile |
 
-| Layer       | What                                             | How                         |
-| ----------- | ------------------------------------------------ | --------------------------- |
-| Domain      | IDs, money, dates, create/repay/complete/overdue | Pure unit tests, no Angular |
-| Persistence | Dexie store, reload, migrations                  | `fake-indexeddb`            |
-| Application | Use cases through `BorrowedApp`                  | Store + domain              |
-| Component   | Shell renders nav landmarks                      | Angular TestBed, sparse     |
-| E2E         | Critical flows                                   | Deferred to a later part    |
+Deterministic clocks and named fixtures cover active lent drill, borrowed ladder, partial money repayment, completed item and overdue records. Tests do not depend on network or production data.
 
-## Domain tests required (Part 1)
-
-- Physical lent/borrowed creation
-- Money lent/borrowed creation
-- Positive amount and currency validation
-- Repayment, outstanding, over-repayment rejected
-- Completion (item return and full repay)
-- Overdue and due-soon with calendar-date semantics
-- Stable UUIDv7 identifiers
-- Repository persist and reload
-
-## Local-first tests
-
-- Record still there after a new store instance (reload)
-- Local edit and completion
-- Repayment without any network
-- Mutation remains queued (`ackedAt` is null)
-
-## Commands
+## Required local commands
 
 ```sh
+pnpm audit --audit-level high
+pnpm lint
 pnpm test
-pnpm test -- --watch=false
+pnpm typecheck
+pnpm build
+pnpm exec cap sync
 ```
 
-Do not log fixture names, notes, or amounts in CI beyond assertions.
+Android (JDK 21 and API 36):
+
+```sh
+cd android
+JAVA_HOME=$(/usr/libexec/java_home -v 21) ./gradlew assembleDebug
+```
+
+CI performs all web gates and a separate Java 21 Android build. Full iOS compilation additionally requires Xcode 26+.
+
+## Browser acceptance matrix
+
+- 320×568, 375×812, 390×844: no ordinary horizontal scroll; bottom navigation respects safe area; form controls and submit remain reachable.
+- Tablet around 768×1024: usable layout with no mobile-only hover dependency.
+- Desktop around 1440×900: rail, landmarks, readable line length and wider layout.
+- Keyboard: skip link, logical focus order, visible focus, form labels and actionable buttons.
+- Production PWA: load online once, verify active service worker, create a record, switch offline, reload, find the same record, perform another local action.
+- Console: zero application errors/warnings. Network failures expected only after explicit offline simulation and must not break core behavior.
+
+## Deferred automation
+
+A checked-in cross-browser Playwright suite is the next delivery slice once stable CI browser images are selected. Until then, browser acceptance is recorded as run evidence, not misrepresented as automated coverage. Native emulator/device interaction tests, notification permission tests and sync contract tests start with those features.

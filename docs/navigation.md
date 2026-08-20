@@ -1,37 +1,30 @@
 # Navigation
 
-## Choice
+Navigation follows the questions users ask, not the underlying Loan table.
 
-Five primary destinations, same on phone and desktop:
+## Phone
 
-| Tab      | Route       | Job                            |
-| -------- | ----------- | ------------------------------ |
-| Home     | `/`         | What needs attention           |
-| Lent     | `/lent`     | Active things/money I lent     |
-| Add      | `/add`      | The main action                |
-| Borrowed | `/borrowed` | Active things/money I borrowed |
-| More     | `/more`     | History, People, Settings      |
+Five thumb-reachable destinations:
 
-Add is a first-class tab, not a hidden FAB-only control. A FAB may mirror it on Home, but the tab remains.
+| Destination | Route | Responsibility |
+| --- | --- | --- |
+| Home | `/` | Urgent/open summary and next actions |
+| Records | `/records` | One searchable/filterable active list with All/Lent/Borrowed scope |
+| Add | `/add` | Primary create action, visually central |
+| Search | `/search` | Find active or historic content on device |
+| More | `/more` | People, History and Settings |
 
-## Why not other layouts
+Why: separate Lent and Borrowed tabs duplicated one list and consumed navigation capacity. Direction remains visible by words and icons, and is one tap away in Records. Search is first-class because finding “Peter/drill/€50” is a core retrieval task. Add remains a labeled destination, not an unlabeled floating button.
 
-- Four tabs without Add buries the only action that matters
-- A hamburger on mobile hides Lent/Borrowed
-- Separate desktop IA would split muscle memory
+## Desktop/tablet
 
-Wide screens keep the same five items (left rail) and may show list + detail for Lent/Borrowed. They do not gain extra modules.
+The persistent workspace rail exposes Home, Records, Search, People, History and Settings plus a labeled Add button. It does not invent a different workflow; it unwraps the More grouping when space permits. Content uses wider/two-column composition where useful.
 
-## Secondary screens (push, not tabs)
+## Secondary screens
 
-- `/loans/:id` — details, return, repay
-- `/history` — completed (and not archived)
-- `/people` — person list
-- `/people/:id` — that person’s loans
-- `/settings` — preferred currency, local-only explanation
+- `/loans/:id`: details, activity, return/repayment.
+- `/people/:id`: that person’s open balances and history.
+- `/lent` and `/borrowed`: retained lazy routes for direct links/shortcuts; primary navigation uses scoped Records.
+- Unknown paths redirect to Home.
 
-Person picker and “new person” live **inline on Add**, not as a stacked modal chain. Optional due date and note are a disclosure on the same screen.
-
-## Back
-
-Android/web back and an in-app back control on pushed screens. Tabs reset to their root.
+Person selection and creation remain inline in Add. Optional due date/note use one disclosure. There are no modal chains. Browser/OS back works; pushed screens include an understandable route back where needed.

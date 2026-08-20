@@ -6,7 +6,7 @@
 | Home           | Screen            | Yes      | Action sentences, counts, overdue/due soon. Not analytics                                                  |
 | Lent           | Screen            | Yes      | Active lent list, empty state                                                                              |
 | Borrowed       | Screen            | Yes      | Active borrowed list                                                                                       |
-| Add            | Screen            | Yes      | Direction, kind, person, item/amount, save                                                                 |
+| Add            | Screen            | Yes      | Direction, kind, person, item/amount, optional due/note, local draft, save                                  |
 | Person field   | Inline            | Yes      | Type a name; recents if any                                                                                |
 | New person     | Inline            | Yes      | Creating a loan with a new name creates the person                                                         |
 | Loan details   | Screen            | Yes      | Facts, history, return or repay                                                                            |
@@ -16,7 +16,7 @@
 | People         | Screen            | Yes      | Names with active counts                                                                                   |
 | Person details | Screen            | Yes      | Their active/history loans                                                                                 |
 | Search         | Screen            | Yes      | Local search across person, item, note, currency                                                           |
-| Settings       | Screen            | Yes      | Preferred currency, “On this device”, app version                                                          |
+| Settings       | Screen            | Yes      | Preferred currency, “On this device”, JSON export, app version                                             |
 | Reminders      | —                 | Deferred |                                                                                                            |
 | Notifications  | —                 | Deferred |                                                                                                            |
 
