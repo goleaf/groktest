@@ -1,0 +1,51 @@
+# Project MCP for Codex. Skills come from ../.agents/skills (auto-discovered).
+# Same servers as .grok/config.toml and .mcp.json.
+
+[mcp_servers.angular-cli]
+command = "npx"
+args = ["-y", "@angular/cli", "mcp"]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+  "-y",
+  "@playwright/mcp@latest",
+  "--browser",
+  "chrome",
+  "--isolated",
+  "--headless",
+  "--viewport-size",
+  "1440x900",
+  "--console-level",
+  "warning",
+  "--output-dir",
+  "/tmp/codex-playwright-mcp",
+  "--output-max-size",
+  "52428800",
+]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = [
+  "-y",
+  "chrome-devtools-mcp@latest",
+  "--channel=stable",
+  "--isolated",
+  "--headless",
+  "--viewport=1440x900",
+  "--redact-network-headers",
+  "--no-usage-statistics",
+  "--no-performance-crux",
+]
+startup_timeout_sec = 60
+tool_timeout_sec = 120

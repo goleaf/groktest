@@ -31,6 +31,9 @@ yarn-error.log
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/mcp.json
+
+# Accidental skills-cli dump (real skills live in .agents/skills)
+/agent/
 .history/*
 
 # Miscellaneous
