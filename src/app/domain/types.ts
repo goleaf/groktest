@@ -75,7 +75,22 @@ export interface LocalSettings {
   readonly localIdentityId: string;
   readonly preferredCurrency: CurrencyCode;
   readonly schemaVersion: number;
+  readonly version: number;
   readonly createdAt: Instant;
+  readonly updatedAt: Instant;
+}
+
+export interface RecordDraft {
+  readonly id: 'add-record';
+  readonly direction: LoanDirection;
+  readonly kind: AssetKind;
+  readonly personName: string;
+  readonly personId: string | null;
+  readonly itemName: string;
+  readonly amount: string;
+  readonly currency: CurrencyCode;
+  readonly dueOn: string;
+  readonly note: string;
   readonly updatedAt: Instant;
 }
 
@@ -100,6 +115,10 @@ export interface MoneyTotal {
 
 export interface HomeAction {
   readonly loanId: string;
+  readonly direction: LoanDirection;
+  readonly assetKind: AssetKind;
+  readonly urgency: 'overdue' | 'due_soon' | 'open';
+  readonly dueOn: CalendarDate | null;
   readonly messageKey: string;
   readonly params: Readonly<Record<string, string>>;
 }

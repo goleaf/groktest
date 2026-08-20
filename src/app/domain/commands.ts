@@ -1,6 +1,7 @@
 import type { CalendarDate } from './calendar-date';
 import { instantFrom, requireCalendarDate, todayInTimeZone } from './calendar-date';
 import { DomainError } from './errors';
+import { INPUT_LIMITS } from './config';
 import { createId } from './ids';
 import { parseAmountToMinorUnits, requireCurrency } from './money';
 import type { CurrencyCode } from './money';
@@ -31,6 +32,21 @@ function trimName(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
+function optionalText(
+  value: string | null | undefined,
+  maximum: number,
+  error: 'item_description_too_long' | 'note_too_long',
+): string | null {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) {
+    return null;
+  }
+  if (trimmed.length > maximum) {
+    throw new DomainError(error);
+  }
+  return trimmed;
+}
+
 export function buildPerson(
   displayName: string,
   clock: DomainClock,
@@ -39,6 +55,9 @@ export function buildPerson(
   const name = trimName(displayName);
   if (!name) {
     throw new DomainError('person_name_required');
+  }
+  if (name.length > INPUT_LIMITS.personName) {
+    throw new DomainError('person_name_too_long');
   }
   const at = instantFrom(clock.now());
   return {
@@ -94,9 +113,15 @@ export function createLoan(
   if (!personName) {
     throw new DomainError('person_name_required');
   }
+  if (personName.length > INPUT_LIMITS.personName) {
+    throw new DomainError('person_name_too_long');
+  }
   const occurredOn = requireCalendarDate(input.occurredOn ?? today(clock));
   const dueOn = input.dueOn ? requireCalendarDate(input.dueOn) : null;
-  const note = input.note?.trim() ? input.note.trim() : null;
+  if (dueOn && dueOn < occurredOn) {
+    throw new DomainError('date_order_invalid');
+  }
+  const note = optionalText(input.note, INPUT_LIMITS.note, 'note_too_long');
   const at = instantFrom(clock.now());
   const base = {
     id: createId(),
@@ -120,15 +145,22 @@ export function createLoan(
     if (!itemName) {
       throw new DomainError('item_name_required');
     }
+    if (itemName.length > INPUT_LIMITS.itemName) {
+      throw new DomainError('item_name_too_long');
+    }
     const quantity = input.quantity ?? 1;
-    if (!Number.isInteger(quantity) || quantity < 1) {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > INPUT_LIMITS.quantity) {
       throw new DomainError('quantity_invalid');
     }
     loan = {
       ...base,
       assetKind: 'physical_item',
       itemName,
-      itemDescription: input.itemDescription?.trim() || null,
+      itemDescription: optionalText(
+        input.itemDescription,
+        INPUT_LIMITS.itemDescription,
+        'item_description_too_long',
+      ),
       quantity,
       currencyCode: null,
       originalMinorUnits: null,
@@ -192,13 +224,17 @@ export function addRepayment(
   const minorUnits = parseAmountToMinorUnits(input.amount, currency);
   assertCanRepay(loan, existing, minorUnits, currency);
   const at = instantFrom(clock.now());
+  const occurredOn = requireCalendarDate(input.occurredOn ?? today(clock));
+  if (occurredOn < loan.occurredOn) {
+    throw new DomainError('date_order_invalid');
+  }
   const repayment: Repayment = {
     id: createId(),
     loanId: loan.id,
     minorUnits,
     currencyCode: currency,
-    occurredOn: requireCalendarDate(input.occurredOn ?? today(clock)),
-    note: input.note?.trim() ? input.note.trim() : null,
+    occurredOn,
+    note: optionalText(input.note, INPUT_LIMITS.note, 'note_too_long'),
     createdAt: at,
     version: 1,
     deletedAt: null,

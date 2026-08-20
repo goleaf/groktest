@@ -9,14 +9,25 @@ import {
   type DomainClock,
 } from '../domain/commands';
 import { summarizeHome } from '../domain/home-summary';
+import { DomainError } from '../domain/errors';
 import {
   isLoanDueSoon,
   isLoanOverdue,
   outstandingMinorUnits,
   urgencyRank,
 } from '../domain/loan-rules';
-import { requireCurrency } from '../domain/money';
-import type { HomeSummary, Loan, LocalSettings, Person, SyncMutation } from '../domain/types';
+import { formatMinorUnits, requireCurrency } from '../domain/money';
+import type { ListFilter } from '../domain/query';
+import { visibleLoans } from '../domain/query';
+import type {
+  HomeSummary,
+  Loan,
+  LocalSettings,
+  MoneyTotal,
+  Person,
+  RecordDraft,
+  SyncMutation,
+} from '../domain/types';
 import { CLOCK } from './clock';
 import { DexieBorrowedStore } from './dexie-store';
 import { BorrowedStore } from './store';
@@ -30,6 +41,7 @@ export interface CreateRecordInput {
   quantity?: number;
   amount?: string;
   currency?: string;
+  occurredOn?: string;
   dueOn?: string | null;
   note?: string | null;
 }
@@ -62,8 +74,9 @@ export class BorrowedApp {
       ...current,
       preferredCurrency: code,
       updatedAt: instantFrom(this.clock.now()),
+      version: current.version + 1,
     };
-    await this.store.saveSettings(next);
+    await this.store.saveSettings(next, this.clock);
     this.touch();
     return next;
   }
@@ -87,9 +100,9 @@ export class BorrowedApp {
     let person: Person | undefined;
     if (input.personId) {
       person = await this.store.findPersonById(input.personId);
-    }
-    if (!person) {
-      person = await this.store.findPersonByName(input.personName);
+      if (!person) {
+        throw new DomainError('person_missing');
+      }
     }
     if (!person) {
       person = buildPerson(input.personName, this.clock);
@@ -105,6 +118,7 @@ export class BorrowedApp {
         quantity: input.quantity,
         amount: input.amount,
         currency: input.currency ?? settings.preferredCurrency,
+        occurredOn: input.occurredOn,
         dueOn: input.dueOn,
         note: input.note,
       },
@@ -115,10 +129,10 @@ export class BorrowedApp {
     return loan;
   }
 
-  async activeLoans(direction: 'lent' | 'borrowed'): Promise<Loan[]> {
+  async activeLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
     const today = todayInTimeZone(this.clock.now(), this.clock.timeZone());
     const loans = (await this.store.listLoans()).filter(
-      (loan) => loan.status === 'active' && loan.direction === direction,
+      (loan) => loan.status === 'active' && (!direction || loan.direction === direction),
     );
     return loans.sort((left, right) => urgencyRank(left, today) - urgencyRank(right, today));
   }
@@ -160,41 +174,49 @@ export class BorrowedApp {
   }
 
   async markReturned(loanId: string): Promise<Loan> {
-    const record = await this.store.loadLoanRecord(loanId);
-    if (!record) {
-      throw new Error('loan_missing');
-    }
-    const result = markItemReturned(record.loan, this.clock);
-    await this.store.putLoanBundle({
-      person: record.person,
-      loan: result.loan,
-      event: result.event,
+    const loan = await this.store.updateLoan({
+      loanId,
       clock: this.clock,
+      apply: (current) => markItemReturned(current, this.clock),
     });
     this.touch();
-    return result.loan;
+    return loan;
   }
 
   async repay(loanId: string, amount: string, currency?: string): Promise<Loan> {
-    const record = await this.store.loadLoanRecord(loanId);
-    if (!record) {
-      throw new Error('loan_missing');
-    }
-    const result = addRepayment(
-      record.loan,
-      record.repayments,
-      { amount, currency: currency ?? record.loan.currencyCode ?? 'EUR' },
-      this.clock,
-    );
-    await this.store.putLoanBundle({
-      person: record.person,
-      loan: result.loan,
-      event: result.event,
-      extra: { repayment: result.repayment },
+    const loan = await this.store.updateLoan({
+      loanId,
       clock: this.clock,
+      apply: (current, repayments) => {
+        const result = addRepayment(
+          current,
+          repayments,
+          { amount, currency: currency ?? current.currencyCode ?? 'EUR' },
+          this.clock,
+        );
+        return { ...result, repayment: result.repayment };
+      },
     });
     this.touch();
-    return result.loan;
+    return loan;
+  }
+
+  async recordDraft(): Promise<RecordDraft | undefined> {
+    return this.store.getRecordDraft();
+  }
+
+  async saveRecordDraft(draft: Omit<RecordDraft, 'id' | 'updatedAt'>): Promise<RecordDraft> {
+    const saved: RecordDraft = {
+      ...draft,
+      id: 'add-record',
+      updatedAt: instantFrom(this.clock.now()),
+    };
+    await this.store.saveRecordDraft(saved);
+    return saved;
+  }
+
+  async clearRecordDraft(): Promise<void> {
+    await this.store.clearRecordDraft();
   }
 
   async pendingMutations(): Promise<SyncMutation[]> {
@@ -221,6 +243,104 @@ export class BorrowedApp {
 
   async loansForPerson(personId: string): Promise<Loan[]> {
     return (await this.store.listLoans()).filter((loan) => loan.personId === personId);
+  }
+
+  today(): string {
+    return todayInTimeZone(this.clock.now(), this.clock.timeZone());
+  }
+
+  filterLoans(loans: readonly Loan[], query: string, filter: ListFilter): Loan[] {
+    return visibleLoans(loans, query, filter, this.today());
+  }
+
+  async remainingMap(loans: readonly Loan[]): Promise<ReadonlyMap<string, string | null>> {
+    const locale = typeof navigator === 'undefined' ? 'en' : navigator.language;
+    const map = new Map<string, string | null>();
+    for (const loan of loans) {
+      if (loan.assetKind !== 'money' || !loan.currencyCode || loan.originalMinorUnits === null) {
+        map.set(loan.id, null);
+        continue;
+      }
+      const remaining = await this.remainingFor(loan);
+      if (remaining === null || remaining === loan.originalMinorUnits) {
+        map.set(loan.id, null);
+        continue;
+      }
+      map.set(loan.id, formatMinorUnits(remaining, loan.currencyCode, locale));
+    }
+    return map;
+  }
+
+  async search(query: string): Promise<Loan[]> {
+    const loans = await this.store.listLoans();
+    const today = this.today();
+    return visibleLoans(loans, query, 'all', today).sort(
+      (left, right) => urgencyRank(left, today) - urgencyRank(right, today),
+    );
+  }
+
+  async personOverview(personId: string): Promise<{
+    person: Person | undefined;
+    active: Loan[];
+    history: Loan[];
+    owedToMe: readonly MoneyTotal[];
+    iOwe: readonly MoneyTotal[];
+  }> {
+    const people = await this.people();
+    const person = people.find((item) => item.id === personId);
+    const loans = await this.loansForPerson(personId);
+    const repaymentsByLoan = new Map<
+      string,
+      Awaited<ReturnType<BorrowedStore['listRepayments']>>
+    >();
+    for (const loan of loans) {
+      if (loan.assetKind === 'money') {
+        repaymentsByLoan.set(loan.id, await this.store.listRepayments(loan.id));
+      }
+    }
+    const summary = summarizeHome(loans, repaymentsByLoan, this.today(), 'en');
+    return {
+      person,
+      active: loans.filter((loan) => loan.status === 'active'),
+      history: loans.filter((loan) => loan.status === 'completed'),
+      owedToMe: summary.moneyOwedToMe,
+      iOwe: summary.moneyIOwe,
+    };
+  }
+
+  async exportJson(): Promise<string> {
+    const [people, loans, settings] = await Promise.all([
+      this.store.listPeople(),
+      this.store.listLoans(),
+      this.store.getSettings(),
+    ]);
+    const repayments = [];
+    for (const loan of loans) {
+      if (loan.assetKind === 'money') {
+        repayments.push(...(await this.store.listRepayments(loan.id)));
+      }
+    }
+    return JSON.stringify(
+      {
+        app: 'borrowed',
+        exportedAt: instantFrom(this.clock.now()),
+        settings: {
+          preferredCurrency: settings.preferredCurrency,
+          schemaVersion: settings.schemaVersion,
+        },
+        people,
+        loans: loans.map((loan) => ({
+          ...loan,
+          originalMinorUnits: loan.originalMinorUnits?.toString() ?? null,
+        })),
+        repayments: repayments.map((repayment) => ({
+          ...repayment,
+          minorUnits: repayment.minorUnits.toString(),
+        })),
+      },
+      null,
+      2,
+    );
   }
 }
 

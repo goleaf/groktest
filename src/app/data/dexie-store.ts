@@ -7,6 +7,7 @@ import type {
   LoanEvent,
   LocalSettings,
   Person,
+  RecordDraft,
   Repayment,
   SyncEntityType,
   SyncMutation,
@@ -67,6 +68,7 @@ export class DexieBorrowedStore extends BorrowedStore {
       localIdentityId: createId(),
       preferredCurrency: DEFAULT_CURRENCY,
       schemaVersion: LOCAL_SCHEMA_VERSION,
+      version: 1,
       createdAt: at,
       updatedAt: at,
     };
@@ -87,27 +89,17 @@ export class DexieBorrowedStore extends BorrowedStore {
     return settingsFromRow(row);
   }
 
-  async saveSettings(settings: LocalSettings): Promise<void> {
-    await this.db.settings.put(settingsToRow(settings));
-  }
-
-  async putPerson(person: Person): Promise<void> {
-    await this.db.people.put(personToRow(person));
+  async saveSettings(settings: LocalSettings, clock: DomainClock): Promise<void> {
+    await this.db.transaction('rw', this.db.settings, this.db.mutations, async () => {
+      await this.db.settings.put(settingsToRow(settings));
+      await this.db.mutations.put(
+        mutationToRow(mutation('settings', settings.id, settingsToRow(settings), clock)),
+      );
+    });
   }
 
   async findPersonById(id: string): Promise<Person | undefined> {
     const row = await this.db.people.get(id);
-    return row ? personFromRow(row) : undefined;
-  }
-
-  async findPersonByName(name: string): Promise<Person | undefined> {
-    const normalized = name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-    const rows = await this.db.people.toArray();
-    const row = rows.find(
-      (candidate) =>
-        candidate.deletedAt === null &&
-        candidate.displayName.trim().replace(/\s+/g, ' ').toLocaleLowerCase() === normalized,
-    );
     return row ? personFromRow(row) : undefined;
   }
 
@@ -132,12 +124,15 @@ export class DexieBorrowedStore extends BorrowedStore {
       this.db.events,
       this.db.mutations,
       async () => {
+        const personIsNew = !(await this.db.people.get(input.person.id));
         await this.db.people.put(personToRow(input.person));
         await this.db.loans.put(loanToRow(input.loan));
         await this.db.events.put(eventToRow(input.event));
-        await this.db.mutations.put(
-          mutationToRow(mutation('person', input.person.id, personToRow(input.person), clock)),
-        );
+        if (personIsNew) {
+          await this.db.mutations.put(
+            mutationToRow(mutation('person', input.person.id, personToRow(input.person), clock)),
+          );
+        }
         await this.db.mutations.put(
           mutationToRow(mutation('loan', input.loan.id, loanToRow(input.loan), clock)),
         );
@@ -157,6 +152,58 @@ export class DexieBorrowedStore extends BorrowedStore {
             ),
           );
         }
+      },
+    );
+  }
+
+  async updateLoan(input: {
+    loanId: string;
+    clock: DomainClock;
+    apply: (
+      loan: Loan,
+      repayments: readonly Repayment[],
+    ) => { loan: Loan; event: LoanEvent; repayment?: Repayment };
+  }): Promise<Loan> {
+    return this.db.transaction(
+      'rw',
+      this.db.loans,
+      this.db.repayments,
+      this.db.events,
+      this.db.mutations,
+      async () => {
+        const loanRow = await this.db.loans.get(input.loanId);
+        if (!loanRow || loanRow.deletedAt !== null) {
+          throw new Error('loan_missing');
+        }
+        const repaymentRows = await this.db.repayments
+          .where('loanId')
+          .equals(input.loanId)
+          .toArray();
+        const result = input.apply(loanFromRow(loanRow), repaymentRows.map(repaymentFromRow));
+        await this.db.loans.put(loanToRow(result.loan));
+        await this.db.events.put(eventToRow(result.event));
+        await this.db.mutations.put(
+          mutationToRow(mutation('loan', result.loan.id, loanToRow(result.loan), input.clock)),
+        );
+        await this.db.mutations.put(
+          mutationToRow(
+            mutation('loan_event', result.event.id, eventToRow(result.event), input.clock),
+          ),
+        );
+        if (result.repayment) {
+          await this.db.repayments.put(repaymentToRow(result.repayment));
+          await this.db.mutations.put(
+            mutationToRow(
+              mutation(
+                'repayment',
+                result.repayment.id,
+                repaymentToRow(result.repayment),
+                input.clock,
+              ),
+            ),
+          );
+        }
+        return result.loan;
       },
     );
   }
@@ -205,6 +252,18 @@ export class DexieBorrowedStore extends BorrowedStore {
     return rows
       .map(mutationFromRow)
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  async getRecordDraft(): Promise<RecordDraft | undefined> {
+    return this.db.drafts.get('add-record');
+  }
+
+  async saveRecordDraft(draft: RecordDraft): Promise<void> {
+    await this.db.drafts.put(draft);
+  }
+
+  async clearRecordDraft(): Promise<void> {
+    await this.db.drafts.delete('add-record');
   }
 
   async close(): Promise<void> {

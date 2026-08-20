@@ -35,6 +35,11 @@ function actionFor(
   locale: string,
 ): HomeAction {
   const overdue = isLoanOverdue(loan, today);
+  const urgency: HomeAction['urgency'] = overdue
+    ? 'overdue'
+    : isLoanDueSoon(loan, today)
+      ? 'due_soon'
+      : 'open';
   if (loan.assetKind === 'physical_item') {
     const key =
       loan.direction === 'lent'
@@ -46,6 +51,10 @@ function actionFor(
           : 'home.action.borrowedItem';
     return {
       loanId: loan.id,
+      direction: loan.direction,
+      assetKind: loan.assetKind,
+      urgency,
+      dueOn: loan.dueOn,
       messageKey: key,
       params: { person: loan.personNameSnapshot, item: loan.itemName ?? '' },
     };
@@ -55,6 +64,10 @@ function actionFor(
   const key = loan.direction === 'lent' ? 'home.action.lentMoney' : 'home.action.borrowedMoney';
   return {
     loanId: loan.id,
+    direction: loan.direction,
+    assetKind: loan.assetKind,
+    urgency,
+    dueOn: loan.dueOn,
     messageKey: key,
     params: { person: loan.personNameSnapshot, amount },
   };

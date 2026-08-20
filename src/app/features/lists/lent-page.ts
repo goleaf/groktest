@@ -10,6 +10,7 @@ import { ListPage } from './list-page';
       titleKey="lent.title"
       emptyKey="lent.empty"
       emptyActionKey="lent.emptyAction"
+      icon="lent"
     />
   `,
 })

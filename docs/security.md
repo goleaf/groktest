@@ -1,63 +1,59 @@
 # Security
 
-## Threat model (Part 1)
+## Data and trust model
 
-Borrowed holds names, notes, and money amounts on one person’s device. There is no server, no public URL for records, and no other-user access path.
+Borrowed stores names, relationships, notes and money values. All are private. In Part 1 there is no server, public profile, analytics, ad SDK, account, cookie session or cross-user read path.
 
-| Threat                                 | Part 1 reality                                                            |
-| -------------------------------------- | ------------------------------------------------------------------------- |
-| Another Borrowed user reading my loans | Not possible; no API                                                      |
-| Guessable IDs                          | UUIDv7, not sequential                                                    |
-| XSS                                    | Angular default sanitization; no `innerHTML` of user notes                |
-| SQL injection                          | No SQL; Dexie/IndexedDB                                                   |
-| CSRF                                   | No cookies/session against a server                                       |
-| Stolen laptop                          | Data is in IndexedDB in plaintext. Anyone with OS user access can read it |
-| XSS in a malicious extension           | Can read IndexedDB on this origin                                         |
-| Analytics leaking item names           | No analytics                                                              |
+| Threat | Current control / honest boundary |
+| --- | --- |
+| Guessable public records | UUIDv7, but no public API; IDs are never treated as authorization |
+| XSS from user content | Angular interpolation/escaping; no user-controlled `innerHTML` or runtime template |
+| SQL injection | No SQL adapter; structured Dexie calls only |
+| CSRF/BOLA/rate abuse | No remote state endpoint; mandatory design controls below for a future API |
+| Malicious dependency | Lockfile, CI high-severity audit, minimal dependencies, Electron upgraded from vulnerable EOL release |
+| Lost/unlocked device | IndexedDB is readable by the OS user/profile; rely on OS device lock/disk protection |
+| Browser extension/origin compromise | Can read origin IndexedDB; the app cannot defend against a privileged malicious extension |
+| Sensitive logs | Application does not log record bodies; generic UI errors only |
+| Native WebView cache | Packaged assets and local database remain private only to the limits of OS app sandbox/device state |
 
-## Honest boundary
+## Local storage
 
-**IndexedDB is not encrypted.** We do not claim device encryption. OS disk encryption (FileVault, device PIN) is the realistic control. A future optional app lock (biometrics) only hides the UI; it is not cryptographic protection of the database.
+**IndexedDB is not encrypted by Borrowed.** No documentation or UI may imply otherwise. `localIdentityId` is an identifier, not a secret. Clearing browser site data or app data irreversibly removes local-only records unless the user exported them.
 
-## Authentication
+The app does not store authentication material in `localStorage`. There is currently no token. A future native token uses OS secure credential storage; a web session should prefer Secure, HttpOnly, SameSite cookies with CSRF protection where appropriate. Do not confuse Capacitor Preferences with cryptographic secure storage.
 
-Local-only: no passwords, no tokens. Do not store secrets in `localStorage`. When accounts exist:
+Optional biometric app lock is future defense against casual access, not database encryption or server authentication.
 
-- Tokens go in Capacitor Preferences / Electron `safeStorage` / cookie+`Secure` on web
-- Never in `localStorage`
-- Passwords hashed only on a future server, with a mature library, never a custom KDF
+## Input and rendering controls
 
-## Authorization
+- Domain validates direction/kind, supported currency, positive bounded money, integer quantity, chronological dates and text limits.
+- Repayment read-validation-write is transactional.
+- UI messages map typed error codes; raw exception strings and database contents are not rendered.
+- JSON export stringifies BigInt values explicitly and is started only by a user action.
+- File upload does not exist. Future implementation validates type by content, size and image decode, strips unnecessary metadata, generates thumbnails, uses non-public object storage and authorizes every download.
 
-When a server exists: every read/write is scoped to the authenticated account. Client-supplied IDs are not an access check. No sequential public IDs.
+## Future server requirements
 
-## Privacy
+- TLS only with secure headers; no mixed content.
+- Mature authentication/session libraries and password hashing; no custom cryptography.
+- Every model access scoped by authenticated account and policy. Client UUID ownership is verified on every read/write.
+- Versioned request DTO validation and response resources; ORM rows are not the contract.
+- CSRF protection for cookie-authenticated mutations, rate limits for auth/sync/file endpoints, token/device revocation and session rotation.
+- Idempotent mutation receipts and optimistic version checks from `docs/sync.md`.
+- Secrets only in environment-backed deployment configuration; never client bundles or logs.
+- Logs contain event category, correlation ID, timing and sanitized failure code—not names, notes, amount, photos, credentials or mutation payloads.
+- Account recovery has anti-enumeration, throttling and revocation semantics.
 
-- Private by default
-- No public profiles or feeds
-- Logs must not include notes, amounts, names, or tokens
-- Console errors should stay generic in production
+## Deletion and export
 
-## Attachments (future)
+Current JSON export is a readable point-in-time copy containing private data; the browser download location is outside app control and the UI must say so when export UX is expanded.
 
-Treat photos as sensitive. Compress before store. Do not upload on a public bucket without auth. Failed upload must not delete the loan.
+Future deletion distinguishes: archive Loan, tombstone Loan, delete Person, clear one device, revoke Device, and delete Account. Account deletion requires authenticated confirmation, server retention policy, attachment cleanup and propagation of tombstones. Person removal never makes historical loans unintelligible.
 
-## Transport (future)
+## Device loss and recovery
 
-HTTPS only. No mixed content.
+Today, a lost device means lost local-only data unless an export exists. A future synced account can restore acknowledged data but not necessarily unsynced mutations. Device management must show last sync and allow revocation. Revocation stops future server access; it cannot erase an offline stolen device, so product copy must not promise remote wipe.
 
-## Account deletion / export (future)
+## Privacy and analytics
 
-Deletion must define local wipe vs server wipe. Export is a user right; the schema is JSON-serializable.
-
-## Device loss (future)
-
-Recovery requires a synced account or a user-held export. Local-only mode cannot restore a smashed phone. Settings should say that clearly.
-
-## Rate limiting / BOLA
-
-Not applicable until an API exists. Design then: authenticated routes, no IDOR, standard rate limits.
-
-## Dependencies
-
-Prefer platform crypto (`crypto.getRandomValues`). No custom cryptography. No blockchain.
+No data sale, public directory or content analytics. If privacy-aware product analytics is later added, it must be optional and content-free (`loan_created kind=money`, never names/notes/amounts). The product remains functional with analytics disabled.

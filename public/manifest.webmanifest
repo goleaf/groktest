@@ -2,16 +2,32 @@
   "name": "Borrowed",
   "short_name": "Borrowed",
   "description": "Remember what you lent and what you borrowed.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f3ecdf",
-  "theme_color": "#f3ecdf",
+  "background_color": "#f5f8f7",
+  "theme_color": "#0d3028",
   "icons": [
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add record",
+      "short_name": "Add",
+      "url": "/add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

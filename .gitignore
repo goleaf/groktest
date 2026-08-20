@@ -8,8 +8,6 @@
 /tmp
 /out-tsc
 /bazel-out
-/ios
-/android
 /release
 
 # Node

@@ -7,39 +7,61 @@ import type { LoanRecord } from '../../data/store';
 import { DomainError } from '../../domain/errors';
 import { formatCalendarDate, formatLoanTitle, formatRemaining, localeOf } from '../../i18n/format';
 import { I18n } from '../../i18n/i18n';
+import { Icon } from '../../ui/icon';
+import { iconForLoan } from '../../ui/icon-for';
 
 @Component({
   selector: 'app-detail-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, Icon],
   template: `
-    <section class="page">
-      <button type="button" class="back" (click)="back()">{{ i18n.t('nav.back') }}</button>
+    <section class="page detail-page">
+      <button type="button" class="back" (click)="back()">
+        <app-icon name="back" /> {{ i18n.t('nav.back') }}
+      </button>
       @if (missing()) {
-        <p>{{ i18n.t('detail.missing') }}</p>
+        <div class="missing-state">
+          <app-icon name="info" />
+          <h1>{{ i18n.t('detail.missingTitle') }}</h1>
+          <p>{{ i18n.t('detail.missing') }}</p>
+          <a class="button" routerLink="/records">{{ i18n.t('detail.backToRecords') }}</a>
+        </div>
       } @else if (record(); as data) {
-        <p class="dir">{{ directionCopy() }}</p>
-        <h1>{{ title() }}</h1>
-        <p>
-          <a [routerLink]="['/people', data.person.id]">{{ data.person.displayName }}</a>
-        </p>
-        @if (overdue()) {
-          <p class="pill">{{ i18n.t('detail.overdue') }}</p>
-        }
-        @if (remaining()) {
-          <p>{{ i18n.t('detail.remaining', { amount: remaining()! }) }}</p>
-        }
-        <p>
-          {{
-            data.loan.dueOn
-              ? i18n.t('detail.dueOn', { date: formatCalendarDate(data.loan.dueOn, locale) })
-              : i18n.t('detail.noDue')
-          }}
-        </p>
-        @if (data.loan.note) {
-          <p>{{ data.loan.note }}</p>
-        }
+        <header class="detail-hero">
+          <div class="detail-identity">
+            <span class="detail-icon" aria-hidden="true">
+              <app-icon [name]="iconForLoan(data.loan)" />
+            </span>
+            <div>
+              <p class="record-label">{{ i18n.t('detail.recordLabel') }}</p>
+              <h1>{{ title() }}</h1>
+              <p class="detail-context">{{ directionCopy() }}</p>
+            </div>
+          </div>
+          <a class="person-link" [routerLink]="['/people', data.person.id]">
+            <span class="person-avatar" aria-hidden="true">{{
+              data.person.displayName.charAt(0)
+            }}</span>
+            <span>{{ data.person.displayName }}</span>
+            <app-icon name="chevron" />
+          </a>
+        </header>
+        <div class="status-panel">
+          @if (overdue()) {
+            <p class="status-line overdue-line">
+              <app-icon name="overdue" />
+              <strong>{{ i18n.t('detail.overdue') }}</strong>
+            </p>
+          }
+          @if (remaining()) {
+            <p class="remaining icon-line">
+              <app-icon name="money" />
+              {{ i18n.t('detail.remaining', { amount: remaining()! }) }}
+            </p>
+          }
+        </div>
         @if (data.loan.status === 'active' && data.loan.assetKind === 'physical_item') {
-          <button class="button" type="button" (click)="markReturned()">
+          <button class="button primary-detail-action" type="button" (click)="markReturned()">
+            <app-icon name="check" />
             {{ i18n.t('detail.returned') }}
           </button>
         }
@@ -50,18 +72,49 @@ import { I18n } from '../../i18n/i18n';
               {{ i18n.t('detail.repayAmount') }}
               <input name="repay" inputmode="decimal" [(ngModel)]="repayAmount" />
             </label>
-            <button class="button" type="submit">{{ i18n.t('detail.repayAction') }}</button>
+            <button class="button" type="submit">
+              <app-icon name="money" />
+              {{ i18n.t('detail.repayAction') }}
+            </button>
           </form>
         }
+        <section class="detail-summary" [attr.aria-label]="i18n.t('detail.details')">
+          <div class="detail-row">
+            <span class="icon-line"
+              ><app-icon name="calendar" /> {{ i18n.t('detail.dueDate') }}</span
+            >
+            <strong>
+              {{
+                data.loan.dueOn
+                  ? formatCalendarDate(data.loan.dueOn, locale)
+                  : i18n.t('detail.noDue')
+              }}
+            </strong>
+          </div>
+          @if (data.loan.note) {
+            <div class="detail-row">
+              <span class="icon-line"><app-icon name="note" /> {{ i18n.t('detail.note') }}</span>
+              <strong>{{ data.loan.note }}</strong>
+            </div>
+          }
+        </section>
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }
-        <h2>{{ i18n.t('detail.historyHeading') }}</h2>
-        <ol class="timeline">
-          @for (event of data.events; track event.id) {
-            <li>{{ i18n.t(event.summaryKey, event.summaryParams) }}</li>
-          }
-        </ol>
+        <section class="section-block">
+          <h2 class="section-heading">
+            <app-icon name="history" /> {{ i18n.t('detail.historyHeading') }}
+          </h2>
+          <ol class="timeline">
+            @for (event of data.events; track event.id) {
+              <li>
+                <time [attr.datetime]="event.occurredAt">{{ eventDate(event.occurredAt) }}</time>
+                <span class="timeline-marker" aria-hidden="true"></span>
+                <span>{{ i18n.t(event.summaryKey, event.summaryParams) }}</span>
+              </li>
+            }
+          </ol>
+        </section>
       }
     </section>
   `,
@@ -77,6 +130,7 @@ export class DetailPage {
   protected readonly error = signal('');
   protected repayAmount = '';
   protected readonly formatCalendarDate = formatCalendarDate;
+  protected readonly iconForLoan = iconForLoan;
 
   protected readonly title = computed(() => {
     const record = this.record();
@@ -97,12 +151,12 @@ export class DetailPage {
     }
     if (loan.assetKind === 'physical_item') {
       return loan.direction === 'lent'
-        ? this.i18n.t('detail.lentItem')
-        : this.i18n.t('detail.borrowedItem');
+        ? this.i18n.t('detail.lentItemWithPerson', { person: loan.personNameSnapshot })
+        : this.i18n.t('detail.borrowedItemWithPerson', { person: loan.personNameSnapshot });
     }
     return loan.direction === 'lent'
-      ? this.i18n.t('detail.lentMoney')
-      : this.i18n.t('detail.borrowedMoney');
+      ? this.i18n.t('detail.lentMoneyWithPerson', { person: loan.personNameSnapshot })
+      : this.i18n.t('detail.borrowedMoneyWithPerson', { person: loan.personNameSnapshot });
   });
 
   constructor() {
@@ -122,6 +176,12 @@ export class DetailPage {
 
   protected back(): void {
     this.location.back();
+  }
+
+  protected eventDate(value: string): string {
+    return new Intl.DateTimeFormat(this.locale, { day: 'numeric', month: 'short' }).format(
+      new Date(value),
+    );
   }
 
   protected async markReturned(): Promise<void> {

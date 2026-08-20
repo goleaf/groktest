@@ -82,6 +82,66 @@ describe('create physical loans', () => {
       ),
     ).toThrow(DomainError);
   });
+
+  it('rejects oversized names, notes, descriptions, and quantities', () => {
+    expect(() => buildPerson('P'.repeat(121), clock)).toThrow(DomainError);
+    expect(() =>
+      createLoan(
+        {
+          kind: 'physical_item',
+          direction: 'lent',
+          personId: 'p',
+          personName: 'Peter',
+          itemName: 'D'.repeat(201),
+        },
+        clock,
+      ),
+    ).toThrow(DomainError);
+    expect(() =>
+      createLoan(
+        {
+          kind: 'physical_item',
+          direction: 'lent',
+          personId: 'p',
+          personName: 'Peter',
+          itemName: 'drill',
+          itemDescription: 'D'.repeat(2001),
+          note: 'N'.repeat(4001),
+        },
+        clock,
+      ),
+    ).toThrow(DomainError);
+    expect(() =>
+      createLoan(
+        {
+          kind: 'physical_item',
+          direction: 'lent',
+          personId: 'p',
+          personName: 'Peter',
+          itemName: 'drill',
+          quantity: 1_000_001,
+        },
+        clock,
+      ),
+    ).toThrow(DomainError);
+  });
+
+  it('does not accept a due date before the handoff date', () => {
+    expect(() =>
+      createLoan(
+        {
+          kind: 'physical_item',
+          direction: 'borrowed',
+          personId: 'p',
+          personName: 'Peter',
+          itemName: 'drill',
+          occurredOn: '2026-08-20',
+          dueOn: '2026-08-19',
+        },
+        clock,
+      ),
+    ).toThrow(DomainError);
+  });
 });
 
 describe('create money loans', () => {
@@ -237,6 +297,24 @@ describe('return and repayment', () => {
     const first = addRepayment(loan, [], { amount: '30', currency: 'EUR' }, clock);
     expect(() =>
       addRepayment(first.loan, [first.repayment], { amount: '20', currency: 'EUR' }, clock),
+    ).toThrow(DomainError);
+  });
+
+  it('rejects a repayment dated before the original handoff', () => {
+    const { loan } = createLoan(
+      {
+        kind: 'money',
+        direction: 'lent',
+        personId: 'p',
+        personName: 'Peter',
+        amount: '40',
+        currency: 'EUR',
+        occurredOn: '2026-08-20',
+      },
+      clock,
+    );
+    expect(() =>
+      addRepayment(loan, [], { amount: '10', currency: 'EUR', occurredOn: '2026-08-19' }, clock),
     ).toThrow(DomainError);
   });
 });

@@ -1,4 +1,5 @@
 import { DomainError } from './errors';
+import { MAX_MINOR_UNITS } from './config';
 
 /** ISO 4217 alphabetic codes supported in v1, with minor-unit exponents. */
 export const CURRENCY_EXPONENTS = {
@@ -54,19 +55,30 @@ export function parseAmountToMinorUnits(raw: string, currency: string): bigint {
   if (minor <= 0n) {
     throw new DomainError('amount_not_positive');
   }
+  if (minor > MAX_MINOR_UNITS) {
+    throw new DomainError('amount_too_large');
+  }
   return minor;
 }
 
 export function formatMinorUnits(minorUnits: bigint, currency: string, locale: string): string {
   const code = requireCurrency(currency);
   const exponent = exponentFor(code);
-  const asNumber = Number(minorUnits) / 10 ** exponent;
-  return new Intl.NumberFormat(locale, {
+  const scale = 10n ** BigInt(exponent);
+  const absoluteMinorUnits = minorUnits < 0n ? -minorUnits : minorUnits;
+  const whole = absoluteMinorUnits / scale;
+  const fraction = (absoluteMinorUnits % scale).toString().padStart(exponent, '0');
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: code,
     minimumFractionDigits: exponent,
     maximumFractionDigits: exponent,
-  }).format(asNumber);
+  });
+  const parts = formatter
+    .formatToParts(whole)
+    .map((part) => (part.type === 'fraction' ? { ...part, value: fraction } : part));
+  const formatted = parts.map((part) => part.value).join('');
+  return minorUnits < 0n ? `-${formatted}` : formatted;
 }
 
 export function sumMinorUnits(values: readonly bigint[]): bigint {

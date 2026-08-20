@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import type { DomainClock } from '../domain/commands';
@@ -88,20 +89,127 @@ describe('local persistence', () => {
     indexedDB.deleteDatabase(dbName);
   });
 
-  it('schema initialize is idempotent (migration no-op on v1)', async () => {
+  it('keeps separately typed people separate even when their names match', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
-    const first = await session(dbName);
-    await first.app.createRecord({
+    const { app, store } = await session(dbName);
+    const first = await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Peter',
+      itemName: 'drill',
+    });
+    const second = await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Peter',
+      itemName: 'book',
+    });
+    expect(first.personId).not.toBe(second.personId);
+    expect(await app.people()).toHaveLength(2);
+
+    const selected = await app.createRecord({
+      direction: 'borrowed',
+      kind: 'physical_item',
+      personId: first.personId,
+      personName: 'Peter',
+      itemName: 'ladder',
+    });
+    expect(selected.personId).toBe(first.personId);
+    expect(await app.people()).toHaveLength(2);
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('serializes concurrent repayments so outstanding money never becomes negative', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Peter',
+      amount: '100',
+      currency: 'EUR',
+    });
+    const results = await Promise.allSettled([
+      app.repay(loan.id, '70', 'EUR'),
+      app.repay(loan.id, '70', 'EUR'),
+    ]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    const detail = await app.loanDetail(loan.id);
+    expect(detail?.repayments).toHaveLength(1);
+    if (detail) {
+      expect(outstandingMinorUnits(detail.loan, detail.repayments)).toBe(3000n);
+    }
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('queues settings changes but keeps form drafts local to the device', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const initialMutations = await app.pendingMutations();
+    await app.setPreferredCurrency('GBP');
+    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 1);
+
+    await app.saveRecordDraft({
+      direction: 'borrowed',
+      kind: 'money',
+      personName: 'Anna',
+      personId: null,
+      itemName: '',
+      amount: '25',
+      currency: 'GBP',
+      dueOn: '',
+      note: '',
+    });
+    expect((await app.recordDraft())?.amount).toBe('25');
+    expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 1);
+    await app.clearRecordDraft();
+    expect(await app.recordDraft()).toBeUndefined();
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('migrates an existing v1 database to v2 without changing user preferences', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const legacy = new Dexie(dbName);
+    legacy.version(1).stores({
+      people: 'id, displayName, deletedAt',
+      loans: 'id, personId, direction, assetKind, status, occurredOn, dueOn, deletedAt',
+      repayments: 'id, loanId, deletedAt',
+      events: 'id, loanId',
+      mutations: 'id, ackedAt, createdAt, entityId',
+      settings: 'id',
+    });
+    await legacy.open();
+    await legacy.table('settings').put({
+      id: 'local',
+      localIdentityId: crypto.randomUUID(),
+      preferredCurrency: 'GBP',
+      schemaVersion: 1,
+      createdAt: '2026-08-19T12:00:00.000Z',
+      updatedAt: '2026-08-19T12:00:00.000Z',
+    });
+    legacy.close();
+
+    const migrated = await session(dbName);
+    expect((await migrated.app.settings()).preferredCurrency).toBe('GBP');
+    expect((await migrated.app.settings()).schemaVersion).toBe(2);
+    expect((await migrated.app.settings()).version).toBe(1);
+    await migrated.app.saveRecordDraft({
       direction: 'lent',
       kind: 'physical_item',
       personName: 'Mom',
+      personId: null,
       itemName: 'keys',
+      amount: '',
+      currency: 'GBP',
+      dueOn: '',
+      note: '',
     });
-    await first.store.close();
-    const second = await session(dbName);
-    expect((await second.app.activeLoans('lent'))[0]?.itemName).toBe('keys');
-    expect((await second.app.settings()).schemaVersion).toBe(1);
-    await second.store.close();
+    expect((await migrated.app.recordDraft())?.itemName).toBe('keys');
+    await migrated.store.close();
     indexedDB.deleteDatabase(dbName);
   });
 });

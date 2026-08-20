@@ -1,14 +1,18 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Icon } from './icon';
 
 @Component({
   selector: 'app-empty-state',
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
   template: `
     <div class="empty">
       <p>{{ message() }}</p>
       @if (actionLabel()) {
-        <a class="button" [routerLink]="actionLink()">{{ actionLabel() }}</a>
+        <a class="button" [routerLink]="actionLink()">
+          <app-icon name="add" />
+          {{ actionLabel() }}
+        </a>
       }
     </div>
   `,

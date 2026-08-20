@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { en } from './en';
 
-type Nested = { readonly [key: string]: string | Nested };
+interface Nested {
+  readonly [key: string]: string | Nested;
+}
 
 function lookup(tree: Nested, path: string): string | undefined {
   const parts = path.split('.');

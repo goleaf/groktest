@@ -25,8 +25,18 @@ describe('money', () => {
     expect(() => parseAmountToMinorUnits('1.5', 'JPY')).toThrow(DomainError);
   });
 
+  it('rejects values that cannot fit the portable signed 64-bit storage boundary', () => {
+    expect(parseAmountToMinorUnits('92233720368547758.07', 'EUR')).toBe(9_223_372_036_854_775_807n);
+    expect(() => parseAmountToMinorUnits('92233720368547758.08', 'EUR')).toThrow(DomainError);
+  });
+
   it('formats with the locale and does not mix currencies', () => {
     expect(formatMinorUnits(4000n, 'EUR', 'en-IE')).toMatch(/40/);
     expect(formatMinorUnits(4000n, 'EUR', 'en-IE')).toMatch(/€|EUR/);
+  });
+
+  it('formats large values without converting them through an unsafe number', () => {
+    const formatted = formatMinorUnits(9_223_372_036_854_775_807n, 'EUR', 'en-IE');
+    expect(formatted).toContain('92,233,720,368,547,758.07');
   });
 });

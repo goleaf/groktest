@@ -8,14 +8,14 @@ Part 1 implements foundation + core create/return/repay. Everything below is **o
 | Reminders & notifications              | Easy to spam; needs OS permission                 | Separate from `dueOn`                   |
 | Photos / attachments                   | Compression, quota, independent retry             | Loan create must not depend on upload   |
 | Contact import                         | Permission only when used                         | Person is just a name                   |
-| Search screen                          | Lists are short at first                          | Local indexes exist                     |
+| Search screen                          | Done — `/search` plus list filters                | Local query on device                   |
 | Partial item quantity return           | Rare                                              | Quantity is a field; return is complete |
 | Person merge                           | Dangerous                                         | Stable IDs, no auto-merge               |
 | Archive UI                             | Completion ≠ archive                              | Stored status supports it               |
 | Reopen completed                       | Edge                                              | Event type reserved                     |
 | Biometric app lock                     | Native wrapper                                    | Not encryption                          |
 | Device list / revoke                   | Needs account                                     |                                         |
-| Export JSON/CSV                        | Schema is serializable                            |                                         |
+| Export JSON                            | Done — Settings downloads JSON                    | CSV later                               |
 | Account deletion                       | Needs account                                     |                                         |
 | Shared loan with another user          | Person ≠ user                                     |                                         |
 | Request/confirm flow                   |                                                   |                                         |

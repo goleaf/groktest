@@ -1,94 +1,104 @@
 # Synchronization design
 
-Part 1 does **not** talk to a server. Core actions work with no network.
+Part 1 implements protocol **v0**: stable IDs, record versions, tombstone fields and a durable outbound mutation queue. It intentionally does not contact a server. This document defines the compatible future v1 protocol.
 
-This document is the protocol the local app already prepares for.
+## Invariants
 
-## Goals
+- Every core action commits locally first and works offline.
+- IDs are generated on the client as UUIDv7; the server accepts them.
+- Retrying the same mutation cannot create a second entity, repayment or event.
+- Money source facts are never merged through editable balances or “last request wins”.
+- Important user-entered values are never silently discarded.
+- A failed sync never rolls back the local user action or its attachment-independent Loan.
 
-- Create, edit, complete, and repay without a round trip
-- Multiple devices later, without changing IDs
-- Never use “last HTTP request wins” for money
-- Recover from interrupted uploads without duplicating repayments
+## Identity
 
-## Identifiers
+`localIdentityId` identifies one installation. A future authenticated account owns one or more registered Devices. Person remains a private address-book-like entity and is not replaced by account identity. Linking a local installation to an account uploads through sync; it does not rewrite client IDs.
 
-Every entity ID is a client-generated UUIDv7. The server must accept client IDs. The server must not allocate IDs for loans, people, or repayments.
+## v0 mutation queue (implemented)
 
-## Local identity vs account
+One transaction writes domain rows, semantic event and mutations. Each mutation has:
 
-`LocalSettings.localIdentityId` is the installation. A future account id is separate. Domain rows do not have a mandatory `userId` in v1. When sync lands, the account is associated at the mutation/upload layer, not by rewriting history.
+- `id`: UUIDv7 and idempotency key;
+- `entityType` + `entityId`;
+- `operation`: upsert/delete;
+- payload snapshot;
+- `createdAt`, `ackedAt`, `attempts`, sanitized `lastError`.
 
-## Mutation queue
+Drafts never enter the queue. Pending mutations sort by `createdAt` (and ID as stable tie-breaker). No current process drains or acknowledges them.
 
-Each successful local write enqueues a `SyncMutation`:
+## Proposed v1 API exchange
 
-- `id` — idempotency key
-- `entityType` + `entityId`
-- `operation` — `upsert` or `delete` (tombstone)
-- `payloadJson` — entity snapshot
-- `ackedAt` — null until acknowledged
+`POST /api/v1/sync/batches` over HTTPS:
 
-Order: mutations are drained in `createdAt` / UUIDv7 order per device.
+```text
+request:  protocolVersion, deviceId, cursor, mutations[]
+mutation: id, entityType, entityId, operation, baseVersion, version, changedFields, payload
+response: acknowledgedMutationIds[], remoteChanges[], nextCursor, conflicts[]
+```
 
-A future server endpoint should be idempotent on `mutation.id`. Retrying an ack’d mutation is a no-op.
+Authentication identifies the account; entity IDs never authorize access. The server stores a unique `(account_id, mutation_id)` receipt and returns the same acknowledgement for a retry. Batch processing is transactional where practical and response cursors advance only past durable changes.
 
-## Record versions
+The client marks `ackedAt` only after persisting the acknowledgement and remote changes. A crash before that point safely retries the same IDs. Backoff has jitter and a ceiling; manual retry remains available.
 
-Each Person/Loan/Repayment has an integer `version` incremented on local change, plus `updatedAt`.
+## Conflict detection and merge
 
-For **scalar loan fields** (note, dueOn, status): last-write-wins using `(updatedAt, version, id)` as the total order if two devices edit the same field.
+This is optimistic concurrency, not naive timestamp overwrite.
 
-For **repayments and loan events**: append-only. Conflicts do not merge amounts. Duplicate `id` is ignored.
+1. Create with an unknown ID is accepted at version 1.
+2. Update includes `baseVersion`, new `version`, and explicit changed fields.
+3. If server version equals base, apply and increment.
+4. If versions differ, compare field sets since base.
+5. Disjoint scalar changes may merge automatically and produce a new server version.
+6. Same-field changes become a conflict unless a domain-specific rule below resolves them without data loss.
 
-Original money amount is immutable after create. A server that receives a different `originalMinorUnits` for an existing id must reject the mutation.
+`updatedAt` orders activity for display and retry diagnostics; device clocks do not decide which same-field value wins.
 
-## Deletes
+### Domain-specific rules
 
-Soft delete via `deletedAt`. Sync sends `operation: delete`. Clients hide tombstones. Physical erase is a later “purge archived” concern, not v1.
+- Repayment and LoanEvent are append-only by stable ID. Distinct IDs are both retained; duplicate IDs are idempotent.
+- Original money amount/currency/direction/asset kind are immutable after create. A conflicting mutation is rejected.
+- Server recomputes outstanding from accepted repayments. If concurrent repayments would overpay, the repayment that cannot be accepted is returned as `needs_attention`; it is not silently deleted or allowed to make balance negative.
+- Completion is derived from accepted repayment facts for money. For physical items, completion is a versioned lifecycle transition; a concurrent note/due change may merge, but completed→active requires an explicit later reopen operation.
+- Person display-name conflicts preserve both candidate values in conflict metadata; no auto-merge of Person IDs.
 
-## Interrupted sync
+Conflict UI shows the record and the two competing values in ordinary language. The mutation remains recoverable until the user chooses or edits a value.
 
-If upload fails, `attempts` and `lastError` update. The local record stays as the user left it. UI may later show “Needs attention”; it must not revert the loan.
+## Deletes and tombstones
 
-## Attachments (future)
+Delete writes a tombstone with a version; it is not physical purge. Changes made against a tombstoned entity conflict and require recovery/restore semantics. Tombstones remain until every registered device cursor has passed them plus a documented retention period. Deleting a Person does not erase Loan snapshots.
 
-Loan mutations and attachment blobs are independent queues. A photo failure must not roll back the loan.
+## Multiple devices and ordering
 
-## Conflicts the user might see
+The server change log has a monotonic account-scoped cursor. Clients can upload and pull in one batch, apply remote changes in a local transaction, then advance the cursor. Per-entity versions provide causality; UUIDv7/time is not a substitute for it.
 
-Automatic:
+## Attachments
 
-- Two due-date edits → later `updatedAt` wins; an event is kept for both if both devices recorded `due_date_changed`
-- Two devices add different repayments → both kept; outstanding is recomputed; if the sum would exceed original, the **later** repayment is marked failed/needs attention rather than silently shrinking the other
+Future attachment metadata participates in sync, but binary upload has its own resumable queue and checksum. A locally created Loan is visible immediately. Offline/failed image upload leaves an independently retryable attachment and never deletes or blocks the Loan.
 
-User intervention (rare):
+## Backup versus sync
 
-- Concurrent full-repay vs extra repayment that would overpay
+- Sync converges current state across devices and may propagate deletion.
+- Backup/export is a point-in-time user-controlled recovery artifact.
 
-Never silently drop a repayment.
+JSON export exists locally. Remote backup, restore verification and retention are future work.
 
-## Backup vs sync
+## User-facing state
 
-- **Sync** — ongoing multi-device convergence
-- **Backup** — point-in-time recovery (export/archive)
+| Technical state | Copy |
+| --- | --- |
+| Local-only installation | On this device |
+| Account caught up | Synced |
+| Batch active | Syncing |
+| Network unavailable with pending work | Offline |
+| Rejected mutation/conflict | Needs attention |
 
-Part 1 implements neither upload nor backup. Export should later serialize the same entities to JSON.
+Never expose HTTP status, cursor or mutation offsets as product language.
 
-## Protocol version
+## Recovery scenarios
 
-**v0** — local queue only, no drain.
-
-**v1** (future) — HTTPS JSON API, auth bearer, idempotency key header = mutation id, no WebSockets required.
-
-## User-facing states
-
-| Internal              | User copy (local-only now) |
-| --------------------- | -------------------------- |
-| No account            | On this device             |
-| Queue empty + account | Synced                     |
-| Drain in progress     | Syncing                    |
-| No network + pending  | Offline                    |
-| Conflict / overpay    | Needs attention            |
-
-Do not show HTTP codes or queue offsets.
+- Interrupted upload: retry same mutation IDs.
+- Duplicate batch: receipt table returns prior acknowledgement.
+- Interrupted remote apply: local transaction rolls back and cursor stays unchanged.
+- Token expiry: local queue remains; reauthentication resumes it.
+- Unsupported protocol: server returns a minimum/maximum version and client stops safely without dropping mutations.

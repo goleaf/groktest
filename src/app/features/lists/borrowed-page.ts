@@ -10,6 +10,7 @@ import { ListPage } from './list-page';
       titleKey="borrowed.title"
       emptyKey="borrowed.empty"
       emptyActionKey="borrowed.emptyAction"
+      icon="borrowed"
     />
   `,
 })

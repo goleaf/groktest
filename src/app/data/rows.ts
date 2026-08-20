@@ -7,6 +7,7 @@ import type {
   StoredLoanStatus,
   SyncEntityType,
 } from '../domain/types';
+import type { RecordDraft } from '../domain/types';
 
 export interface PersonRow {
   id: string;
@@ -69,9 +70,12 @@ export interface SettingsRow {
   localIdentityId: string;
   preferredCurrency: CurrencyCode;
   schemaVersion: number;
+  version: number;
   createdAt: Instant;
   updatedAt: Instant;
 }
+
+export type RecordDraftRow = RecordDraft;
 
 export interface MutationRow {
   id: string;

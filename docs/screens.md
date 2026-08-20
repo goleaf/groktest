@@ -15,7 +15,7 @@
 | History        | Screen            | Yes      | Completed records                                                                                          |
 | People         | Screen            | Yes      | Names with active counts                                                                                   |
 | Person details | Screen            | Yes      | Their active/history loans                                                                                 |
-| Search         | Screen            | Deferred | Local filter; lists have a simple text filter in Part 1 if cheap                                           |
+| Search         | Screen            | Yes      | Local search across person, item, note, currency                                                           |
 | Settings       | Screen            | Yes      | Preferred currency, “On this device”, app version                                                          |
 | Reminders      | —                 | Deferred |                                                                                                            |
 | Notifications  | —                 | Deferred |                                                                                                            |

@@ -1,6 +1,6 @@
 # UX principles
 
-Borrowed should feel like a small notebook, not a back office.
+Borrowed should feel like a quiet instrument, not a notebook app, a bank, or a back office.
 
 ## Speed of capture
 
