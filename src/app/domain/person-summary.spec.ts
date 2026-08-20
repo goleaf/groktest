@@ -132,4 +132,18 @@ describe('person relationship summary', () => {
       { currencyCode: 'GBP', minorUnits: 2000n },
     ]);
   });
+
+  it('counts physical quantities instead of counting only loan rows', () => {
+    const summary = summarizePersonRelationships(
+      [
+        loan('three-books', { quantity: 3 }),
+        loan('two-chairs', { direction: 'borrowed', itemName: 'chairs', quantity: 2 }),
+      ],
+      new Map(),
+      '2026-08-20',
+    );
+
+    expect(summary.lentItemCount).toBe(3);
+    expect(summary.borrowedItemCount).toBe(2);
+  });
 });
