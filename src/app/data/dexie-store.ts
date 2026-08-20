@@ -218,8 +218,10 @@ export class DexieBorrowedStore extends BorrowedStore {
     return row && row.deletedAt === null ? loanFromRow(row) : undefined;
   }
 
-  async listRepayments(loanId: string): Promise<Repayment[]> {
-    const rows = await this.db.repayments.where('loanId').equals(loanId).toArray();
+  async listRepayments(loanId?: string): Promise<Repayment[]> {
+    const rows = loanId
+      ? await this.db.repayments.where('loanId').equals(loanId).toArray()
+      : await this.db.repayments.toArray();
     return rows.map(repaymentFromRow);
   }
 

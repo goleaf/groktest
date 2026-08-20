@@ -72,13 +72,14 @@ IndexedDB schema v2 via Dexie, including an in-place v1 migration and one local 
 
 ## Documentation
 
-| Doc                     | What it is                  |
-| ----------------------- | --------------------------- |
-| `docs/product.md`       | Product definition          |
-| `docs/architecture.md`  | System shape                |
-| `docs/data-model.md`    | Entities and rules          |
-| `docs/sync.md`          | Future sync protocol        |
-| `docs/security.md`      | Threat model                |
-| `docs/ux-principles.md` | Interaction rules           |
-| `docs/roadmap.md`       | Intentionally deferred work |
-| `docs/adr/`             | Architecture decisions      |
+| Doc                             | What it is                      |
+| ------------------------------- | ------------------------------- |
+| `docs/product.md`               | Product definition              |
+| `docs/architecture.md`          | System shape                    |
+| `docs/data-model.md`            | Entities and rules              |
+| `docs/sync.md`                  | Future sync protocol            |
+| `docs/security.md`              | Threat model                    |
+| `docs/ux-principles.md`         | Interaction rules               |
+| `docs/roadmap.md`               | Intentionally deferred work     |
+| `docs/requirements-coverage.md` | Part 1 requirements disposition |
+| `docs/adr/`                     | Architecture decisions          |

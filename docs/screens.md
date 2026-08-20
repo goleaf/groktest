@@ -6,7 +6,7 @@
 | Home           | Screen            | Yes      | Action sentences, counts, overdue/due soon. Not analytics                                                  |
 | Lent           | Screen            | Yes      | Active lent list, empty state                                                                              |
 | Borrowed       | Screen            | Yes      | Active borrowed list                                                                                       |
-| Add            | Screen            | Yes      | Direction, kind, person, item/amount, optional due/note, local draft, save                                  |
+| Add            | Screen            | Yes      | Direction, kind, person, item/amount, optional due/note, local draft, save                                 |
 | Person field   | Inline            | Yes      | Type a name; recents if any                                                                                |
 | New person     | Inline            | Yes      | Creating a loan with a new name creates the person                                                         |
 | Loan details   | Screen            | Yes      | Facts, history, return or repay                                                                            |

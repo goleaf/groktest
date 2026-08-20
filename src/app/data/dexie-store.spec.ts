@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DomainClock } from '../domain/commands';
 import { outstandingMinorUnits } from '../domain/loan-rules';
 import { BorrowedApp } from './borrowed-app';
@@ -141,6 +141,34 @@ describe('local persistence', () => {
     if (detail) {
       expect(outstandingMinorUnits(detail.loan, detail.repayments)).toBe(3000n);
     }
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('loads repayments in one bounded query for multi-loan summaries', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Peter',
+      amount: '100',
+      currency: 'EUR',
+    });
+    await app.createRecord({
+      direction: 'borrowed',
+      kind: 'money',
+      personName: 'Anna',
+      amount: '50',
+      currency: 'EUR',
+    });
+    const repaymentQueries = vi.spyOn(store, 'listRepayments');
+    await app.home();
+    expect(repaymentQueries).toHaveBeenCalledTimes(1);
+
+    repaymentQueries.mockClear();
+    await app.remainingMap(await app.activeLoans());
+    expect(repaymentQueries).toHaveBeenCalledTimes(1);
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });

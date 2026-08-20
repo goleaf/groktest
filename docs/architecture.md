@@ -71,14 +71,14 @@ Capacitor calls are confined to delivery/bootstrap boundaries. A future camera, 
 
 ## Error boundaries
 
-| Boundary | Behavior |
-| --- | --- |
-| Domain validation | Typed `DomainError` code, translated to actionable UI copy |
-| Missing local row | Generic non-private “not found” state |
-| Draft persistence | Best-effort and non-blocking; committed save still reports local storage failure |
-| Local database failure | Form remains populated; generic retry message, no raw exception |
-| Network/sync | Not present; future states are Synced, Syncing, Offline, Needs attention |
-| Global runtime | Angular global browser error listeners; no private payload logging |
+| Boundary               | Behavior                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| Domain validation      | Typed `DomainError` code, translated to actionable UI copy                       |
+| Missing local row      | Generic non-private “not found” state                                            |
+| Draft persistence      | Best-effort and non-blocking; committed save still reports local storage failure |
+| Local database failure | Form remains populated; generic retry message, no raw exception                  |
+| Network/sync           | Not present; future states are Synced, Syncing, Offline, Needs attention         |
+| Global runtime         | Angular global browser error listeners; no private payload logging               |
 
 ## Testing architecture
 
@@ -90,12 +90,12 @@ Capacitor calls are confined to delivery/bootstrap boundaries. A future camera, 
 
 ## Version boundaries
 
-| Version | Current source |
-| --- | --- |
-| Application | `package.json` (`0.1.0`) |
-| IndexedDB schema | `LOCAL_SCHEMA_VERSION` (`2`) |
-| Sync protocol | v0 queue-only design in `docs/sync.md` |
-| API | Not implemented; first remote contract will be `/api/v1` |
-| Native shells | Capacitor packages and native project files (`8.5`) |
+| Version          | Current source                                           |
+| ---------------- | -------------------------------------------------------- |
+| Application      | `package.json` (`0.1.0`)                                 |
+| IndexedDB schema | `LOCAL_SCHEMA_VERSION` (`2`)                             |
+| Sync protocol    | v0 queue-only design in `docs/sync.md`                   |
+| API              | Not implemented; first remote contract will be `/api/v1` |
+| Native shells    | Capacitor packages and native project files (`8.5`)      |
 
 Older clients and a future newer backend must coexist. Remote breaking changes require a new API/protocol version and a documented compatibility window.

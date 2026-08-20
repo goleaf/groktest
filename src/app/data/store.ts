@@ -42,7 +42,7 @@ export abstract class BorrowedStore {
   }): Promise<Loan>;
   abstract listLoans(): Promise<Loan[]>;
   abstract findLoan(id: string): Promise<Loan | undefined>;
-  abstract listRepayments(loanId: string): Promise<Repayment[]>;
+  abstract listRepayments(loanId?: string): Promise<Repayment[]>;
   abstract listEvents(loanId: string): Promise<LoanEvent[]>;
   abstract loadLoanRecord(id: string): Promise<LoanRecord | undefined>;
   abstract listPendingMutations(): Promise<SyncMutation[]>;

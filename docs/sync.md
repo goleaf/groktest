@@ -85,13 +85,13 @@ JSON export exists locally. Remote backup, restore verification and retention ar
 
 ## User-facing state
 
-| Technical state | Copy |
-| --- | --- |
-| Local-only installation | On this device |
-| Account caught up | Synced |
-| Batch active | Syncing |
-| Network unavailable with pending work | Offline |
-| Rejected mutation/conflict | Needs attention |
+| Technical state                       | Copy            |
+| ------------------------------------- | --------------- |
+| Local-only installation               | On this device  |
+| Account caught up                     | Synced          |
+| Batch active                          | Syncing         |
+| Network unavailable with pending work | Offline         |
+| Rejected mutation/conflict            | Needs attention |
 
 Never expose HTTP status, cursor or mutation offsets as product language.
 

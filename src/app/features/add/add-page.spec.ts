@@ -42,6 +42,7 @@ describe('AddPage', () => {
 
   it('restores a local draft and clears it after a successful save', async () => {
     const clearRecordDraft = vi.fn(async () => undefined);
+    const saveRecordDraft = vi.fn(async () => undefined);
     const createRecord = vi.fn(async () => ({ id: 'loan-1' }));
     await TestBed.configureTestingModule({
       imports: [AddPage],
@@ -63,7 +64,7 @@ describe('AddPage', () => {
               dueOn: '2026-08-30',
               note: 'Lunch',
             }),
-            saveRecordDraft: async () => undefined,
+            saveRecordDraft,
             clearRecordDraft,
             createRecord,
           },
@@ -85,5 +86,7 @@ describe('AddPage', () => {
     await fixture.whenStable();
     expect(createRecord).toHaveBeenCalledWith(expect.objectContaining({ personName: 'Anna' }));
     expect(clearRecordDraft).toHaveBeenCalledOnce();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(saveRecordDraft).not.toHaveBeenCalled();
   });
 });

@@ -26,6 +26,7 @@ import type {
   MoneyTotal,
   Person,
   RecordDraft,
+  Repayment,
   SyncMutation,
 } from '../domain/types';
 import { CLOCK } from './clock';
@@ -82,8 +83,11 @@ export class BorrowedApp {
   }
 
   async people(): Promise<Person[]> {
-    const list = await this.store.listPeople();
-    const loans = await this.store.listLoans();
+    const [list, loans] = await Promise.all([this.store.listPeople(), this.store.listLoans()]);
+    return this.sortPeopleByRecent(list, loans);
+  }
+
+  private sortPeopleByRecent(list: readonly Person[], loans: readonly Loan[]): Person[] {
     const recent = new Map<string, string>();
     for (const loan of loans) {
       const previous = recent.get(loan.personId);
@@ -144,15 +148,7 @@ export class BorrowedApp {
 
   async home(): Promise<HomeSummary> {
     const loans = await this.store.listLoans();
-    const repaymentsByLoan = new Map<
-      string,
-      Awaited<ReturnType<BorrowedStore['listRepayments']>>
-    >();
-    for (const loan of loans) {
-      if (loan.assetKind === 'money') {
-        repaymentsByLoan.set(loan.id, await this.store.listRepayments(loan.id));
-      }
-    }
+    const repaymentsByLoan = await this.repaymentsByLoan();
     const locale = typeof navigator === 'undefined' ? 'en' : navigator.language;
     return summarizeHome(
       loans,
@@ -232,12 +228,16 @@ export class BorrowedApp {
   }
 
   async peopleWithCounts(): Promise<{ person: Person; activeCount: number }[]> {
-    const people = await this.people();
-    const loans = await this.store.listLoans();
-    return people.map((person) => ({
+    const [people, loans] = await Promise.all([this.store.listPeople(), this.store.listLoans()]);
+    const activeCounts = new Map<string, number>();
+    for (const loan of loans) {
+      if (loan.status === 'active') {
+        activeCounts.set(loan.personId, (activeCounts.get(loan.personId) ?? 0) + 1);
+      }
+    }
+    return this.sortPeopleByRecent(people, loans).map((person) => ({
       person,
-      activeCount: loans.filter((loan) => loan.personId === person.id && loan.status === 'active')
-        .length,
+      activeCount: activeCounts.get(person.id) ?? 0,
     }));
   }
 
@@ -256,13 +256,14 @@ export class BorrowedApp {
   async remainingMap(loans: readonly Loan[]): Promise<ReadonlyMap<string, string | null>> {
     const locale = typeof navigator === 'undefined' ? 'en' : navigator.language;
     const map = new Map<string, string | null>();
+    const repaymentsByLoan = await this.repaymentsByLoan();
     for (const loan of loans) {
       if (loan.assetKind !== 'money' || !loan.currencyCode || loan.originalMinorUnits === null) {
         map.set(loan.id, null);
         continue;
       }
-      const remaining = await this.remainingFor(loan);
-      if (remaining === null || remaining === loan.originalMinorUnits) {
+      const remaining = outstandingMinorUnits(loan, repaymentsByLoan.get(loan.id) ?? []);
+      if (remaining === loan.originalMinorUnits) {
         map.set(loan.id, null);
         continue;
       }
@@ -286,18 +287,13 @@ export class BorrowedApp {
     owedToMe: readonly MoneyTotal[];
     iOwe: readonly MoneyTotal[];
   }> {
-    const people = await this.people();
+    const [people, allLoans, repaymentsByLoan] = await Promise.all([
+      this.store.listPeople(),
+      this.store.listLoans(),
+      this.repaymentsByLoan(),
+    ]);
     const person = people.find((item) => item.id === personId);
-    const loans = await this.loansForPerson(personId);
-    const repaymentsByLoan = new Map<
-      string,
-      Awaited<ReturnType<BorrowedStore['listRepayments']>>
-    >();
-    for (const loan of loans) {
-      if (loan.assetKind === 'money') {
-        repaymentsByLoan.set(loan.id, await this.store.listRepayments(loan.id));
-      }
-    }
+    const loans = allLoans.filter((loan) => loan.personId === personId);
     const summary = summarizeHome(loans, repaymentsByLoan, this.today(), 'en');
     return {
       person,
@@ -309,17 +305,12 @@ export class BorrowedApp {
   }
 
   async exportJson(): Promise<string> {
-    const [people, loans, settings] = await Promise.all([
+    const [people, loans, settings, repayments] = await Promise.all([
       this.store.listPeople(),
       this.store.listLoans(),
       this.store.getSettings(),
+      this.store.listRepayments(),
     ]);
-    const repayments = [];
-    for (const loan of loans) {
-      if (loan.assetKind === 'money') {
-        repayments.push(...(await this.store.listRepayments(loan.id)));
-      }
-    }
     return JSON.stringify(
       {
         app: 'borrowed',
@@ -341,6 +332,16 @@ export class BorrowedApp {
       null,
       2,
     );
+  }
+
+  private async repaymentsByLoan(): Promise<Map<string, Repayment[]>> {
+    const grouped = new Map<string, Repayment[]>();
+    for (const repayment of await this.store.listRepayments()) {
+      const loanRepayments = grouped.get(repayment.loanId) ?? [];
+      loanRepayments.push(repayment);
+      grouped.set(repayment.loanId, loanRepayments);
+    }
+    return grouped;
   }
 }
 

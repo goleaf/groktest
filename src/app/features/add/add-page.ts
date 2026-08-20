@@ -180,6 +180,7 @@ export class AddPage {
   protected readonly recents = signal<Person[]>([]);
   protected readonly currencies = Object.keys(CURRENCY_EXPONENTS);
   private readonly draftReady = signal(false);
+  private draftTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
     void this.loadForm();
@@ -198,7 +199,7 @@ export class AddPage {
       if (!this.draftReady()) {
         return;
       }
-      const timer = setTimeout(() => {
+      this.draftTimer = setTimeout(() => {
         const hasUserContent = Boolean(
           draft.personName.trim() ||
           draft.itemName.trim() ||
@@ -211,7 +212,13 @@ export class AddPage {
           : this.app.clearRecordDraft();
         void persistence.catch(() => undefined);
       }, 250);
-      onCleanup(() => clearTimeout(timer));
+      const timer = this.draftTimer;
+      onCleanup(() => {
+        clearTimeout(timer);
+        if (this.draftTimer === timer) {
+          this.draftTimer = undefined;
+        }
+      });
     });
   }
 
@@ -267,6 +274,10 @@ export class AddPage {
         note: this.note() || null,
       });
       this.draftReady.set(false);
+      if (this.draftTimer) {
+        clearTimeout(this.draftTimer);
+        this.draftTimer = undefined;
+      }
       await this.app.clearRecordDraft();
       await this.router.navigate(['/loans', loan.id]);
     } catch (caught) {

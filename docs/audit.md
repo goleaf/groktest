@@ -4,23 +4,23 @@ Present-checkout audit performed on 20 August 2026 before and during Borrowed Pa
 
 ## Current state
 
-| Area | Verified state |
-| --- | --- |
-| Framework | Angular 22.1 standalone application, TypeScript 6.0 strict mode, zoneless change detection |
-| UI | Responsive mobile-first shell, feature screens, shared UI primitives, English catalog |
-| Routing | Angular Router; feature screens are lazy loaded; unknown paths return Home |
-| State | Angular signals for view state; no NgRx |
-| Persistence | Dexie 4 over IndexedDB, schema v2, migration from v1, local draft table |
-| Domain | Person, Loan, Repayment, LoanEvent, settings, mutation queue; UUIDv7; integer money |
-| API / backend | None; no network dependency for core behavior |
-| Authentication | Local installation identity only; no account or token |
-| Tests | Vitest domain, application, fake-IndexedDB persistence, migration and component tests |
-| Quality | ESLint 10 + angular-eslint 22 + template accessibility rules + Prettier |
-| CI | install, high-severity dependency audit, lint, tests, typecheck, production build, Android debug build |
-| PWA | Angular service worker, manifest, 192/512 icons, cached production shell |
-| Native | Capacitor 8 Android and iOS projects tracked in the repository |
-| Desktop | Electron 43 development wrapper; no packaged release yet |
-| Documentation | Product, architecture, model, sync, security, UX, screens, workflows, testing, roadmap and ADRs |
+| Area           | Verified state                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| Framework      | Angular 22.1 standalone application, TypeScript 6.0 strict mode, zoneless change detection             |
+| UI             | Responsive mobile-first shell, feature screens, shared UI primitives, English catalog                  |
+| Routing        | Angular Router; feature screens are lazy loaded; unknown paths return Home                             |
+| State          | Angular signals for view state; no NgRx                                                                |
+| Persistence    | Dexie 4 over IndexedDB, schema v2, migration from v1, local draft table                                |
+| Domain         | Person, Loan, Repayment, LoanEvent, settings, mutation queue; UUIDv7; integer money                    |
+| API / backend  | None; no network dependency for core behavior                                                          |
+| Authentication | Local installation identity only; no account or token                                                  |
+| Tests          | Vitest domain, application, fake-IndexedDB persistence, migration and component tests                  |
+| Quality        | ESLint 10 + angular-eslint 22 + template accessibility rules + Prettier                                |
+| CI             | install, high-severity dependency audit, lint, tests, typecheck, production build, Android debug build |
+| PWA            | Angular service worker, manifest, 192/512 icons, cached production shell                               |
+| Native         | Capacitor 8 Android and iOS projects tracked in the repository                                         |
+| Desktop        | Electron 43 development wrapper; no packaged release yet                                               |
+| Documentation  | Product, architecture, model, sync, security, UX, screens, workflows, testing, roadmap and ADRs        |
 
 Versions were checked with `pnpm list`, `ng version`, `cap doctor`, and the lockfile. Angular 22 and TypeScript 6.0 are compatible. Capacitor packages are aligned at 8.5.0.
 
@@ -50,7 +50,7 @@ Versions were checked with `pnpm list`, `ng version`, `cap doctor`, and the lock
 - Added lazy routes; current production initial bundle is about 403 kB raw.
 - Added the Angular service worker and installable assets.
 - Added ESLint/template accessibility linting and CI gates.
-- Upgraded Electron to 43.4.1; `pnpm audit --audit-level high` reports no known vulnerabilities.
+- Upgraded Electron to 43.4.1; the high/critical audit gate is clean. One moderate transitive `uuid` advisory remains inside Capacitor CLI’s `xcode` tooling and is not shipped in the browser bundle.
 - Upgraded Capacitor to 8.5.0, added Android/iOS projects, and produced an Android debug APK with JDK 21.
 
 ## Good architecture retained

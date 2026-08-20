@@ -4,23 +4,25 @@
 
 Borrowed stores names, relationships, notes and money values. All are private. In Part 1 there is no server, public profile, analytics, ad SDK, account, cookie session or cross-user read path.
 
-| Threat | Current control / honest boundary |
-| --- | --- |
-| Guessable public records | UUIDv7, but no public API; IDs are never treated as authorization |
-| XSS from user content | Angular interpolation/escaping; no user-controlled `innerHTML` or runtime template |
-| SQL injection | No SQL adapter; structured Dexie calls only |
-| CSRF/BOLA/rate abuse | No remote state endpoint; mandatory design controls below for a future API |
-| Malicious dependency | Lockfile, CI high-severity audit, minimal dependencies, Electron upgraded from vulnerable EOL release |
-| Lost/unlocked device | IndexedDB is readable by the OS user/profile; rely on OS device lock/disk protection |
-| Browser extension/origin compromise | Can read origin IndexedDB; the app cannot defend against a privileged malicious extension |
-| Sensitive logs | Application does not log record bodies; generic UI errors only |
-| Native WebView cache | Packaged assets and local database remain private only to the limits of OS app sandbox/device state |
+| Threat                              | Current control / honest boundary                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Guessable public records            | UUIDv7, but no public API; IDs are never treated as authorization                                     |
+| XSS from user content               | Angular interpolation/escaping; no user-controlled `innerHTML` or runtime template                    |
+| SQL injection                       | No SQL adapter; structured Dexie calls only                                                           |
+| CSRF/BOLA/rate abuse                | No remote state endpoint; mandatory design controls below for a future API                            |
+| Malicious dependency                | Lockfile, CI high-severity audit, minimal dependencies, Electron upgraded from vulnerable EOL release |
+| Lost/unlocked device                | IndexedDB is readable by the OS user/profile; rely on OS device lock/disk protection                  |
+| Browser extension/origin compromise | Can read origin IndexedDB; the app cannot defend against a privileged malicious extension             |
+| Sensitive logs                      | Application does not log record bodies; generic UI errors only                                        |
+| Native WebView cache                | Packaged assets and local database remain private only to the limits of OS app sandbox/device state   |
 
 ## Local storage
 
 **IndexedDB is not encrypted by Borrowed.** No documentation or UI may imply otherwise. `localIdentityId` is an identifier, not a secret. Clearing browser site data or app data irreversibly removes local-only records unless the user exported them.
 
 The app does not store authentication material in `localStorage`. There is currently no token. A future native token uses OS secure credential storage; a web session should prefer Secure, HttpOnly, SameSite cookies with CSRF protection where appropriate. Do not confuse Capacitor Preferences with cryptographic secure storage.
+
+The Android shell disables automatic application backup until Borrowed has an explicit encrypted backup/restore contract. JSON export is the current deliberate user-controlled recovery path.
 
 Optional biometric app lock is future defense against casual access, not database encryption or server authentication.
 
