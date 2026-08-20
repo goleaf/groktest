@@ -1,1 +1,385 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: light;
+  --paper: #f3ecdf;
+  --ink: #241c14;
+  --muted: #6b5d50;
+  --line: #d7ccbc;
+  --accent: #9a3412;
+  --accent-soft: #f0d3c4;
+  --card: #fffaf2;
+  --danger: #7f1d1d;
+  --tabbar: #efe6d6;
+  --focus: #1d4ed8;
+  --radius: 16px;
+  --font: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --ui: ui-rounded, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pad: 20px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+body {
+  padding: 0;
+}
+
+h1,
+h2,
+.brand {
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin: 0 0 0.75rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.app-frame {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: calc(12px + var(--safe-top)) var(--pad) 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.presence {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.main {
+  padding: 16px var(--pad) 24px;
+}
+
+.tabbar {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px 8px calc(8px + var(--safe-bottom));
+  background: var(--tabbar);
+  border-top: 1px solid var(--line);
+}
+
+.tabbar a {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+.tabbar a.active {
+  color: var(--ink);
+  background: var(--card);
+}
+
+.tabbar a.add {
+  color: #fffaf2;
+  background: var(--accent);
+}
+
+.page {
+  max-width: 40rem;
+}
+
+.lede {
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.empty {
+  display: grid;
+  gap: 16px;
+  padding: 24px 0;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.button,
+button.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fffaf2;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.button:disabled {
+  opacity: 0.6;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.segmented button {
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.segmented button.on {
+  border-color: var(--ink);
+  background: var(--accent-soft);
+  font-weight: 650;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.chips button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.loan-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.loan-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--card);
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--line);
+}
+
+.loan-row .dir {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.loan-row .body {
+  display: grid;
+}
+
+.loan-row .meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.pill.quiet {
+  background: var(--line);
+}
+
+.counts,
+.actions {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.actions a,
+.list-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 4px;
+  color: inherit;
+}
+
+.list-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.timeline {
+  padding-left: 1.2rem;
+}
+
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 800px) {
+  .app-frame {
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+  }
+
+  .tabbar {
+    position: static;
+    grid-template-columns: 1fr;
+    align-content: start;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    padding: 16px;
+  }
+
+  .main {
+    padding: 28px 32px 48px;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Borrowed",
+  "short_name": "Borrowed",
+  "description": "Remember what you lent and what you borrowed.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3ecdf",
+  "theme_color": "#f3ecdf",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

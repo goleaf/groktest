@@ -5,111 +5,111 @@ export type LoanDirection = 'lent' | 'borrowed';
 export type AssetKind = 'physical_item' | 'money';
 export type StoredLoanStatus = 'active' | 'completed' | 'cancelled' | 'archived';
 export type LoanEventType =
-    | 'loan_created'
-    | 'repayment_added'
-    | 'item_returned'
-    | 'due_date_changed'
-    | 'note_changed'
-    | 'loan_cancelled'
-    | 'loan_archived'
-    | 'loan_reopened';
+  | 'loan_created'
+  | 'repayment_added'
+  | 'item_returned'
+  | 'due_date_changed'
+  | 'note_changed'
+  | 'loan_cancelled'
+  | 'loan_archived'
+  | 'loan_reopened';
 
 export interface Person {
-    readonly id: string;
-    readonly displayName: string;
-    readonly phone: string | null;
-    readonly email: string | null;
-    readonly notes: string | null;
-    readonly createdAt: Instant;
-    readonly updatedAt: Instant;
-    readonly version: number;
-    readonly deletedAt: Instant | null;
+  readonly id: string;
+  readonly displayName: string;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly notes: string | null;
+  readonly createdAt: Instant;
+  readonly updatedAt: Instant;
+  readonly version: number;
+  readonly deletedAt: Instant | null;
 }
 
 export interface Loan {
-    readonly id: string;
-    readonly direction: LoanDirection;
-    readonly assetKind: AssetKind;
-    readonly status: StoredLoanStatus;
-    readonly personId: string;
-    readonly personNameSnapshot: string;
-    readonly occurredOn: CalendarDate;
-    readonly dueOn: CalendarDate | null;
-    readonly returnedOn: CalendarDate | null;
-    readonly note: string | null;
-    readonly itemName: string | null;
-    readonly itemDescription: string | null;
-    readonly quantity: number | null;
-    readonly currencyCode: CurrencyCode | null;
-    readonly originalMinorUnits: bigint | null;
-    readonly createdAt: Instant;
-    readonly updatedAt: Instant;
-    readonly version: number;
-    readonly deletedAt: Instant | null;
+  readonly id: string;
+  readonly direction: LoanDirection;
+  readonly assetKind: AssetKind;
+  readonly status: StoredLoanStatus;
+  readonly personId: string;
+  readonly personNameSnapshot: string;
+  readonly occurredOn: CalendarDate;
+  readonly dueOn: CalendarDate | null;
+  readonly returnedOn: CalendarDate | null;
+  readonly note: string | null;
+  readonly itemName: string | null;
+  readonly itemDescription: string | null;
+  readonly quantity: number | null;
+  readonly currencyCode: CurrencyCode | null;
+  readonly originalMinorUnits: bigint | null;
+  readonly createdAt: Instant;
+  readonly updatedAt: Instant;
+  readonly version: number;
+  readonly deletedAt: Instant | null;
 }
 
 export interface Repayment {
-    readonly id: string;
-    readonly loanId: string;
-    readonly minorUnits: bigint;
-    readonly currencyCode: CurrencyCode;
-    readonly occurredOn: CalendarDate;
-    readonly note: string | null;
-    readonly createdAt: Instant;
-    readonly version: number;
-    readonly deletedAt: Instant | null;
+  readonly id: string;
+  readonly loanId: string;
+  readonly minorUnits: bigint;
+  readonly currencyCode: CurrencyCode;
+  readonly occurredOn: CalendarDate;
+  readonly note: string | null;
+  readonly createdAt: Instant;
+  readonly version: number;
+  readonly deletedAt: Instant | null;
 }
 
 export interface LoanEvent {
-    readonly id: string;
-    readonly loanId: string;
-    readonly type: LoanEventType;
-    readonly summaryKey: string;
-    readonly summaryParams: Readonly<Record<string, string>>;
-    readonly occurredAt: Instant;
-    readonly createdAt: Instant;
+  readonly id: string;
+  readonly loanId: string;
+  readonly type: LoanEventType;
+  readonly summaryKey: string;
+  readonly summaryParams: Readonly<Record<string, string>>;
+  readonly occurredAt: Instant;
+  readonly createdAt: Instant;
 }
 
 export interface LocalSettings {
-    readonly id: 'local';
-    readonly localIdentityId: string;
-    readonly preferredCurrency: CurrencyCode;
-    readonly schemaVersion: number;
-    readonly createdAt: Instant;
-    readonly updatedAt: Instant;
+  readonly id: 'local';
+  readonly localIdentityId: string;
+  readonly preferredCurrency: CurrencyCode;
+  readonly schemaVersion: number;
+  readonly createdAt: Instant;
+  readonly updatedAt: Instant;
 }
 
 export type SyncEntityType = 'person' | 'loan' | 'repayment' | 'loan_event' | 'settings';
 
 export interface SyncMutation {
-    readonly id: string;
-    readonly entityType: SyncEntityType;
-    readonly entityId: string;
-    readonly operation: 'upsert' | 'delete';
-    readonly payloadJson: string;
-    readonly createdAt: Instant;
-    readonly ackedAt: Instant | null;
-    readonly attempts: number;
-    readonly lastError: string | null;
+  readonly id: string;
+  readonly entityType: SyncEntityType;
+  readonly entityId: string;
+  readonly operation: 'upsert' | 'delete';
+  readonly payloadJson: string;
+  readonly createdAt: Instant;
+  readonly ackedAt: Instant | null;
+  readonly attempts: number;
+  readonly lastError: string | null;
 }
 
 export interface MoneyTotal {
-    readonly currencyCode: CurrencyCode;
-    readonly minorUnits: bigint;
+  readonly currencyCode: CurrencyCode;
+  readonly minorUnits: bigint;
 }
 
 export interface HomeAction {
-    readonly loanId: string;
-    readonly messageKey: string;
-    readonly params: Readonly<Record<string, string>>;
+  readonly loanId: string;
+  readonly messageKey: string;
+  readonly params: Readonly<Record<string, string>>;
 }
 
 export interface HomeSummary {
-    readonly activeLentCount: number;
-    readonly activeBorrowedCount: number;
-    readonly moneyOwedToMe: readonly MoneyTotal[];
-    readonly moneyIOwe: readonly MoneyTotal[];
-    readonly overdueCount: number;
-    readonly dueSoonCount: number;
-    readonly actions: readonly HomeAction[];
+  readonly activeLentCount: number;
+  readonly activeBorrowedCount: number;
+  readonly moneyOwedToMe: readonly MoneyTotal[];
+  readonly moneyIOwe: readonly MoneyTotal[];
+  readonly overdueCount: number;
+  readonly dueSoonCount: number;
+  readonly actions: readonly HomeAction[];
 }

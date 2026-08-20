@@ -8,21 +8,21 @@ This repository started empty except for an aborted localhost scaffold (Next.js 
 
 They were removed. The repository is now an Angular 22 standalone application created with the official CLI.
 
-| Area | Finding |
-|---|---|
-| Framework | Angular 22.1, TypeScript ~6, Vitest, zoneless (no `zone.js`) |
-| Routing | Present, previously empty |
-| State | None beyond CLI starter |
-| Persistence | None |
-| API / backend | None |
-| Authentication | None |
-| Tests | CLI `App` smoke test only |
-| Lint / format | Prettier from CLI; no ESLint schematic in this CLI version |
-| CI | None |
-| PWA | Not configured by CLI |
-| Capacitor | None |
-| Electron | None |
-| Domain | None |
+| Area           | Finding                                                      |
+| -------------- | ------------------------------------------------------------ |
+| Framework      | Angular 22.1, TypeScript ~6, Vitest, zoneless (no `zone.js`) |
+| Routing        | Present, previously empty                                    |
+| State          | None beyond CLI starter                                      |
+| Persistence    | None                                                         |
+| API / backend  | None                                                         |
+| Authentication | None                                                         |
+| Tests          | CLI `App` smoke test only                                    |
+| Lint / format  | Prettier from CLI; no ESLint schematic in this CLI version   |
+| CI             | None                                                         |
+| PWA            | Not configured by CLI                                        |
+| Capacitor      | None                                                         |
+| Electron       | None                                                         |
+| Domain         | None                                                         |
 
 ## Problems
 
@@ -45,3 +45,7 @@ No data to migrate. Replace the starter shell with the Borrowed application. Do 
 ## Decision
 
 Treat the repository as new. Follow the Part 1 architecture (Angular + PWA + Capacitor + Electron desktop wrapper + local-first IndexedDB).
+
+## After Part 1
+
+The CLI starter UI is gone. The app is a local-first Angular 22 shell with domain rules, Dexie persistence, five-tab navigation, add/return/repay flows, and docs under `docs/`.

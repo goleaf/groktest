@@ -4,13 +4,13 @@ Runner: **Vitest** via `ng test` (Angular 22 unit-test builder).
 
 ## Layers
 
-| Layer | What | How |
-|---|---|---|
-| Domain | IDs, money, dates, create/repay/complete/overdue | Pure unit tests, no Angular |
-| Persistence | Dexie store, reload, migrations | `fake-indexeddb` |
-| Application | Use cases through `BorrowedApp` | Store + domain |
-| Component | Shell renders nav landmarks | Angular TestBed, sparse |
-| E2E | Critical flows | Deferred to a later part |
+| Layer       | What                                             | How                         |
+| ----------- | ------------------------------------------------ | --------------------------- |
+| Domain      | IDs, money, dates, create/repay/complete/overdue | Pure unit tests, no Angular |
+| Persistence | Dexie store, reload, migrations                  | `fake-indexeddb`            |
+| Application | Use cases through `BorrowedApp`                  | Store + domain              |
+| Component   | Shell renders nav landmarks                      | Angular TestBed, sparse     |
+| E2E         | Critical flows                                   | Deferred to a later part    |
 
 ## Domain tests required (Part 1)
 

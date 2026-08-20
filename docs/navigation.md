@@ -4,13 +4,13 @@
 
 Five primary destinations, same on phone and desktop:
 
-| Tab | Route | Job |
-|---|---|---|
-| Home | `/` | What needs attention |
-| Lent | `/lent` | Active things/money I lent |
-| Add | `/add` | The main action |
+| Tab      | Route       | Job                            |
+| -------- | ----------- | ------------------------------ |
+| Home     | `/`         | What needs attention           |
+| Lent     | `/lent`     | Active things/money I lent     |
+| Add      | `/add`      | The main action                |
 | Borrowed | `/borrowed` | Active things/money I borrowed |
-| More | `/more` | History, People, Settings |
+| More     | `/more`     | History, People, Settings      |
 
 Add is a first-class tab, not a hidden FAB-only control. A FAB may mirror it on Home, but the tab remains.
 

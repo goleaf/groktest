@@ -1,59 +1,75 @@
 # Borrowed
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.5.
+A personal app that remembers what you lent, what you borrowed, and what is still outstanding.
 
-## Development server
+Data lives **on this device**. There is no account and no hosted backend in this version.
 
-To start a local development server, run:
+## Requirements
 
-```bash
-ng serve
+- Node.js 22
+- pnpm 10 (`corepack enable`)
+
+## Local web
+
+```sh
+pnpm install
+pnpm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://127.0.0.1:4200`.
 
-## Code scaffolding
+## Tests, types, lint, production build
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```sh
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Desktop (Electron)
 
-```bash
-ng generate --help
+In one terminal:
+
+```sh
+pnpm start
 ```
 
-## Building
+In another:
 
-To build the project run:
-
-```bash
-ng build
+```sh
+pnpm electron
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Electron loads the local Angular URL. It does not talk to the internet.
 
-## Running unit tests
+## Mobile (Capacitor)
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+The same Angular build is the iOS/Android app. Native project files are not committed yet (they need Xcode / Android Studio on your machine):
 
-```bash
-ng test
+```sh
+pnpm build
+pnpm exec cap add ios     # once
+pnpm exec cap add android # once
+pnpm exec cap sync
+pnpm exec cap open ios
 ```
 
-## Running end-to-end tests
+See `docs/architecture.md` and `capacitor.config.ts`.
 
-For end-to-end (e2e) testing, run:
+## Persistence
 
-```bash
-ng e2e
-```
+IndexedDB via Dexie. Clearing site data in the browser deletes loans. See `docs/data-model.md` and `docs/security.md`.
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Documentation
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+| Doc                     | What it is                  |
+| ----------------------- | --------------------------- |
+| `docs/product.md`       | Product definition          |
+| `docs/architecture.md`  | System shape                |
+| `docs/data-model.md`    | Entities and rules          |
+| `docs/sync.md`          | Future sync protocol        |
+| `docs/security.md`      | Threat model                |
+| `docs/ux-principles.md` | Interaction rules           |
+| `docs/roadmap.md`       | Intentionally deferred work |
+| `docs/adr/`             | Architecture decisions      |

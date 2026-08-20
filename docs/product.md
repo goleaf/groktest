@@ -32,17 +32,17 @@ Informal lending is easy to forget. Accounting tools are too heavy. Notes apps h
 
 ## Terminology
 
-| Term | Meaning |
-|---|---|
-| **User** | The person using this copy of the app. Local-only until they later choose a synced account. |
-| **Person** | A name on a loan (Peter, Mom, Neighbor). Not a registered user. |
-| **Asset** | What moved. v1 kinds: physical item, money. Other kinds may be added later. |
-| **Loan** | One temporary transfer between the user and a person. Not money-only. |
-| **Direction** | `lent` (they have mine / they owe me) or `borrowed` (I have theirs / I owe them). |
-| **Repayment** | An append-only money event against a money loan. Never edits the original amount. |
-| **Loan event** | A user-visible history entry (created, repaid, returned, …). Not a technical audit log. |
-| **Stored status** | `active`, `completed`, `cancelled`, `archived`. |
-| **Derived status** | `overdue`, `due_soon`, `partially_repaid` — computed, never stored. |
+| Term               | Meaning                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| **User**           | The person using this copy of the app. Local-only until they later choose a synced account. |
+| **Person**         | A name on a loan (Peter, Mom, Neighbor). Not a registered user.                             |
+| **Asset**          | What moved. v1 kinds: physical item, money. Other kinds may be added later.                 |
+| **Loan**           | One temporary transfer between the user and a person. Not money-only.                       |
+| **Direction**      | `lent` (they have mine / they owe me) or `borrowed` (I have theirs / I owe them).           |
+| **Repayment**      | An append-only money event against a money loan. Never edits the original amount.           |
+| **Loan event**     | A user-visible history entry (created, repaid, returned, …). Not a technical audit log.     |
+| **Stored status**  | `active`, `completed`, `cancelled`, `archived`.                                             |
+| **Derived status** | `overdue`, `due_soon`, `partially_repaid` — computed, never stored.                         |
 
 ## Core flows (v1)
 

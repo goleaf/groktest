@@ -67,12 +67,12 @@ Not implemented. Permission will be requested only when the user creates a remin
 
 ## Platform integrations
 
-| Platform | Role |
-|---|---|
-| Browser | Primary development target, `http://127.0.0.1:4200` |
-| PWA | Installable web app, same origin, same IndexedDB |
+| Platform  | Role                                                                        |
+| --------- | --------------------------------------------------------------------------- |
+| Browser   | Primary development target, `http://127.0.0.1:4200`                         |
+| PWA       | Installable web app, same origin, same IndexedDB                            |
 | Capacitor | Same web build in a native WebView. Plugins behind `src/app/platform` later |
-| Electron | Desktop window loading the local Angular URL in development |
+| Electron  | Desktop window loading the local Angular URL in development                 |
 
 Capacitor plugin calls must not appear in domain or feature components. Wrap them when the first native capability is added.
 
@@ -92,9 +92,9 @@ Capacitor plugin calls must not appear in domain or feature components. Wrap the
 
 ## Versioning
 
-| Version | Where |
-|---|---|
-| Application | `package.json` |
-| Local schema | Dexie version / `LocalSettings.schemaVersion` |
-| API | Not applicable yet |
+| Version       | Where                                           |
+| ------------- | ----------------------------------------------- |
+| Application   | `package.json`                                  |
+| Local schema  | Dexie version / `LocalSettings.schemaVersion`   |
+| API           | Not applicable yet                              |
 | Sync protocol | Documented as v0 (queue only) in `docs/sync.md` |

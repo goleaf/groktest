@@ -4,16 +4,16 @@
 
 Borrowed holds names, notes, and money amounts on one person’s device. There is no server, no public URL for records, and no other-user access path.
 
-| Threat | Part 1 reality |
-|---|---|
-| Another Borrowed user reading my loans | Not possible; no API |
-| Guessable IDs | UUIDv7, not sequential |
-| XSS | Angular default sanitization; no `innerHTML` of user notes |
-| SQL injection | No SQL; Dexie/IndexedDB |
-| CSRF | No cookies/session against a server |
-| Stolen laptop | Data is in IndexedDB in plaintext. Anyone with OS user access can read it |
-| XSS in a malicious extension | Can read IndexedDB on this origin |
-| Analytics leaking item names | No analytics |
+| Threat                                 | Part 1 reality                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| Another Borrowed user reading my loans | Not possible; no API                                                      |
+| Guessable IDs                          | UUIDv7, not sequential                                                    |
+| XSS                                    | Angular default sanitization; no `innerHTML` of user notes                |
+| SQL injection                          | No SQL; Dexie/IndexedDB                                                   |
+| CSRF                                   | No cookies/session against a server                                       |
+| Stolen laptop                          | Data is in IndexedDB in plaintext. Anyone with OS user access can read it |
+| XSS in a malicious extension           | Can read IndexedDB on this origin                                         |
+| Analytics leaking item names           | No analytics                                                              |
 
 ## Honest boundary
 

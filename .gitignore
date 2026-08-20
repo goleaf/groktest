@@ -1,10 +1,16 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+.env
+.env.local
+
 # Compiled output
 /dist
 /tmp
 /out-tsc
 /bazel-out
+/ios
+/android
+/release
 
 # Node
 /node_modules

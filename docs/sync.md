@@ -83,12 +83,12 @@ Part 1 implements neither upload nor backup. Export should later serialize the s
 
 ## User-facing states
 
-| Internal | User copy (local-only now) |
-|---|---|
-| No account | On this device |
-| Queue empty + account | Synced |
-| Drain in progress | Syncing |
-| No network + pending | Offline |
-| Conflict / overpay | Needs attention |
+| Internal              | User copy (local-only now) |
+| --------------------- | -------------------------- |
+| No account            | On this device             |
+| Queue empty + account | Synced                     |
+| Drain in progress     | Syncing                    |
+| No network + pending  | Offline                    |
+| Conflict / overpay    | Needs attention            |
 
 Do not show HTTP codes or queue offsets.

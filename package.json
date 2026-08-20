@@ -1,15 +1,20 @@
 {
   "name": "borrowed",
-  "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
+  "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --host 127.0.0.1 --port 4200",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test --watch=false",
+    "typecheck": "ng build --configuration development",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "desktop": "pnpm start",
+    "electron": "electron electron/main.cjs"
+  },
   "dependencies": {
     "@angular/common": "^22.1.0",
     "@angular/compiler": "^22.1.0",
@@ -17,13 +22,27 @@
     "@angular/forms": "^22.1.0",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
+    "@capacitor/core": "^7.4.3",
+    "dexie": "^4.2.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "electron",
+      "@parcel/watcher",
+      "lmdb",
+      "msgpackr-extract"
+    ]
   },
   "devDependencies": {
     "@angular/build": "^22.1.5",
     "@angular/cli": "^22.1.5",
     "@angular/compiler-cli": "^22.1.0",
+    "@capacitor/cli": "^7.4.3",
+    "electron": "^37.3.1",
+    "fake-indexeddb": "^6.2.2",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
