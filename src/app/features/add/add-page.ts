@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormField, form, maxLength, required, submit } from '@angular/forms/signals';
+import { FormField, form, hidden, maxLength, required, submit } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { DomainError } from '../../domain/errors';
@@ -122,7 +122,7 @@ interface AddRecordFormModel {
               }
             </ul>
           }
-          @if (kind() === 'physical_item') {
+          @if (!addForm.itemName().hidden()) {
             <label for="item">
               <span class="icon-line"><app-icon name="item" /> {{ i18n.t('add.itemLabel') }}</span>
               <input
@@ -242,10 +242,16 @@ export class AddPage {
       message: this.i18n.t('add.itemRequired'),
       when: ({ valueOf }) => valueOf(record.kind) === 'physical_item',
     });
+    hidden(record.itemName, {
+      when: ({ valueOf }) => valueOf(record.kind) === 'money',
+    });
     maxLength(record.itemName, 200);
     required(record.amount, {
       message: this.i18n.t('add.amountRequired'),
       when: ({ valueOf }) => valueOf(record.kind) === 'money',
+    });
+    hidden(record.amount, {
+      when: ({ valueOf }) => valueOf(record.kind) === 'physical_item',
     });
     maxLength(record.amount, 80);
     maxLength(record.note, 4000);

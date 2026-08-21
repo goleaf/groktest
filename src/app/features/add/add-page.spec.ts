@@ -53,6 +53,107 @@ describe('AddPage', () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  it('submits money after an overlong item field becomes hidden', async () => {
+    const createRecord = vi.fn(async () => ({ id: 'loan-money' }));
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings: async () => ({ preferredCurrency: 'EUR' }),
+            people: async () => [],
+            recordDraft: async () => undefined,
+            saveRecordDraft: async () => undefined,
+            clearRecordDraft: async () => undefined,
+            createRecord,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const person = root.querySelector('#person') as HTMLInputElement;
+    const item = root.querySelector('#item') as HTMLInputElement;
+
+    person.value = 'Peter';
+    person.dispatchEvent(new Event('input'));
+    item.value = 'x'.repeat(201);
+    item.dispatchEvent(new Event('input'));
+    (
+      root
+        .querySelectorAll('.handoff-builder fieldset')[1]
+        ?.querySelectorAll('button')[1] as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const amount = root.querySelector('#amount') as HTMLInputElement;
+    amount.value = '25';
+    amount.dispatchEvent(new Event('input'));
+
+    root.querySelector('form')?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(createRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'money', amount: '25', personName: 'Peter' }),
+    );
+  });
+
+  it('submits an item after an overlong amount field becomes hidden', async () => {
+    const createRecord = vi.fn(async () => ({ id: 'loan-item' }));
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings: async () => ({ preferredCurrency: 'EUR' }),
+            people: async () => [],
+            recordDraft: async () => undefined,
+            saveRecordDraft: async () => undefined,
+            clearRecordDraft: async () => undefined,
+            createRecord,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const kindButtons = root
+      .querySelectorAll('.handoff-builder fieldset')[1]
+      ?.querySelectorAll('button');
+
+    (kindButtons?.[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const amount = root.querySelector('#amount') as HTMLInputElement;
+    amount.value = '9'.repeat(81);
+    amount.dispatchEvent(new Event('input'));
+    (kindButtons?.[0] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const person = root.querySelector('#person') as HTMLInputElement;
+    const item = root.querySelector('#item') as HTMLInputElement;
+    person.value = 'Peter';
+    person.dispatchEvent(new Event('input'));
+    item.value = 'Drill';
+    item.dispatchEvent(new Event('input'));
+
+    root.querySelector('form')?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(createRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'physical_item', itemName: 'Drill', personName: 'Peter' }),
+    );
+  });
+
   it('presents one accessible fast create form', async () => {
     await TestBed.configureTestingModule({
       imports: [AddPage],
