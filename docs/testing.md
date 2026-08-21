@@ -25,6 +25,10 @@ pnpm build
 pnpm exec cap sync
 ```
 
+`pnpm typecheck` runs the Angular development build with `strictTemplates` and
+`strictStandalone` inherited from `tsconfig.json`. It therefore checks application template
+bindings and rejects non-standalone declarations as part of the normal local and CI gate.
+
 Android (JDK 21 and API 36):
 
 ```sh

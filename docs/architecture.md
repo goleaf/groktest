@@ -32,7 +32,9 @@ Dependencies point inward. Domain code has no Angular, Dexie, Capacitor or Elect
 
 ## Frontend
 
-- Angular 22 standalone components, strict templates, signals and zoneless change detection.
+- Angular 22 standalone components, signals and zoneless change detection. `tsconfig.json`
+  enforces `strictTemplates` and `strictStandalone`, so normal application compilation checks
+  template bindings and rejects non-standalone declarations.
 - No NgRx: local persisted state is authoritative; signals hold screen state and the application revision marker.
 - Feature routes are lazy loaded. The shell is eager so navigation and the first landmark appear quickly.
 - One flow is used at all widths. Mobile uses a five-item bottom navigation; desktop uses a horizontal header and wider ledger workspace.
