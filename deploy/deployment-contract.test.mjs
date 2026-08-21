@@ -141,17 +141,37 @@ test('activation is least-privilege, integrity-checked, atomic, and rollback-saf
 test('CI uploads artifacts only for main push events', () => {
   const workflow = readRequired(join(repoRoot, '.github/workflows/ci.yml'));
 
-  assert.equal((workflow.match(/actions\/checkout@v7/g) ?? []).length, 2);
-  assert.equal((workflow.match(/pnpm\/action-setup@v6/g) ?? []).length, 2);
-  assert.equal((workflow.match(/actions\/setup-node@v7/g) ?? []).length, 2);
-  assert.match(workflow, /actions\/setup-java@v5/);
-  assert.match(workflow, /android-actions\/setup-android@v4/);
-  assert.doesNotMatch(workflow, /pnpm\/action-setup@v6\s*\n\s*with:\s*\n\s*version:/);
+  assert.equal((workflow.match(/actions\/checkout@[0-9a-f]{40}/g) ?? []).length, 2);
+  assert.equal((workflow.match(/pnpm\/action-setup@[0-9a-f]{40}/g) ?? []).length, 2);
+  assert.equal((workflow.match(/actions\/setup-node@[0-9a-f]{40}/g) ?? []).length, 2);
+  assert.match(workflow, /actions\/setup-java@[0-9a-f]{40}/);
+  assert.match(workflow, /android-actions\/setup-android@[0-9a-f]{40}/);
+  assert.doesNotMatch(workflow, /pnpm\/action-setup@[0-9a-f]{40}[^\n]*\n\s*with:\s*\n\s*version:/);
   assert.match(workflow, /github\.event_name == 'push'/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /deploy\/package-web-release\.sh/);
-  assert.match(workflow, /actions\/upload-artifact@v7/);
+  assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(workflow, /retention-days: 14/);
+});
+
+test('all third-party GitHub Actions are pinned to immutable commit SHAs', () => {
+  const workflowRoot = join(repoRoot, '.github/workflows');
+  const workflowFiles = readdirSync(workflowRoot).filter((name) => name.endsWith('.yml'));
+  let actionCount = 0;
+
+  for (const workflowFile of workflowFiles) {
+    const workflow = readRequired(join(workflowRoot, workflowFile));
+    for (const match of workflow.matchAll(/^\s*uses:\s*([^@\s]+)@([^\s#]+)/gm)) {
+      actionCount += 1;
+      assert.match(
+        match[2],
+        /^[0-9a-f]{40}$/,
+        `${workflowFile}: ${match[1]} must use a full commit SHA`,
+      );
+    }
+  }
+
+  assert.ok(actionCount > 0, 'at least one third-party action must be checked');
 });
 
 test('the production build does not generate inline stylesheet event handlers', () => {
@@ -169,8 +189,8 @@ test('production deployment requires a successful main push workflow', () => {
   assert.match(workflow, /github\.event\.workflow_run\.head_branch == 'main'/);
   assert.match(workflow, /environment:\s*\n\s*name: production/);
   assert.match(workflow, /cancel-in-progress: false/);
-  assert.match(workflow, /actions\/checkout@v7/);
-  assert.match(workflow, /actions\/download-artifact@v8/);
+  assert.match(workflow, /actions\/checkout@[0-9a-f]{40}/);
+  assert.match(workflow, /actions\/download-artifact@[0-9a-f]{40}/);
   assert.match(workflow, /DEPLOY_KNOWN_HOSTS/);
   assert.doesNotMatch(workflow, /root@/);
 });
