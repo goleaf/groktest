@@ -137,8 +137,8 @@ overflow, and zero console errors or warnings.
 - [x] Move create/return/due-date/repayment mutations into `RecordsCommandService`.
 - [ ] Move record/home/history/search/detail reads into `RecordsQueryService`.
 - [ ] Move people list/person overview reads into `PeopleQueryService`.
-- [ ] Keep settings, draft, backup and current-day responsibilities temporarily compatible; they
-      move in their dedicated later stages rather than growing the new services.
+- [x] Move settings, draft, backup and current-day responsibilities into their dedicated small
+      services rather than growing the command/query services.
 - [ ] Update feature injection one page at a time and keep every intermediate commit green.
 
 **Task 4 command-only partial evidence (2026-08-21):** `RecordsCommandService` now owns creation,
@@ -148,6 +148,14 @@ domain/Dexie integration tests, Angular DI tests and the complete 47-file/269-te
 `1a5a9b8`; typecheck, lint and production build also pass. Query services, feature injection,
 live-query state and revision removal remain unstarted by this slice, so Task 4 as a whole is only
 partially complete.
+
+**Task 4 non-record partial evidence (2026-08-21):** `SettingsService`, `RecordDraftService`,
+`BackupService` and `CurrentDayService` now own their narrow application concerns behind
+`BorrowedStore`/`CLOCK`; components inject those services directly and keep localization and
+document/download manipulation in the UI. `BorrowedApp` no longer publishes those extracted APIs,
+but remains the temporary facade for record commands and all still-unmigrated queries. This does
+not complete Task 4: query-service extraction, feature query migration, live-query state and
+revision removal remain unstarted.
 
 ### Task 5: Add the Dexie live-query bridge
 

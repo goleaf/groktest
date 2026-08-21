@@ -2,6 +2,10 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
+import { BackupService } from '../application/backup-service';
+import { CurrentDayService } from '../application/current-day-service';
+import { RecordDraftService } from '../application/record-draft-service';
+import { SettingsService } from '../application/settings-service';
 import { changeLoanDueDate, type DomainClock } from '../domain/commands';
 import { outstandingMinorUnits } from '../domain/loan-rules';
 import type { Repayment, SyncMutation } from '../domain/types';
@@ -16,11 +20,22 @@ const clock: DomainClock = {
 async function session(
   name: string,
   sessionClock: DomainClock = clock,
-): Promise<{ app: BorrowedApp; store: DexieBorrowedStore }> {
+): Promise<{
+  app: BorrowedApp;
+  backups: BackupService;
+  currentDay: CurrentDayService;
+  drafts: RecordDraftService;
+  settings: SettingsService;
+  store: DexieBorrowedStore;
+}> {
   const store = new DexieBorrowedStore(name);
+  const settings = new SettingsService(store, sessionClock);
+  const drafts = new RecordDraftService(store, sessionClock);
+  const backups = new BackupService(store, sessionClock);
+  const currentDay = new CurrentDayService(sessionClock);
   const app = new BorrowedApp(store, sessionClock);
-  await app.initialize();
-  return { app, store };
+  await settings.initialize();
+  return { app, backups, currentDay, drafts, settings, store };
 }
 
 async function tombstoneRepayment(
@@ -141,7 +156,7 @@ describe('local persistence', () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     let now = new Date('2026-08-20T12:00:00.000Z');
     const movingClock: DomainClock = { now: () => now, timeZone: () => 'UTC' };
-    const { app, store } = await session(dbName, movingClock);
+    const { app, currentDay, store } = await session(dbName, movingClock);
     const loan = await app.createRecord({
       direction: 'lent',
       kind: 'money',
@@ -151,13 +166,13 @@ describe('local persistence', () => {
       dueOn: '2026-08-21',
     });
 
-    expect(app.daysUntilDue(loan)).toBe(1);
+    expect(currentDay.daysUntilDue(loan)).toBe(1);
     now = new Date('2026-08-21T12:00:00.000Z');
-    app.refreshCurrentDay();
-    expect(app.daysUntilDue(loan)).toBe(0);
+    currentDay.refresh();
+    expect(currentDay.daysUntilDue(loan)).toBe(0);
     now = new Date('2026-08-22T12:00:00.000Z');
-    app.refreshCurrentDay();
-    expect(app.daysUntilDue(loan)).toBe(-1);
+    currentDay.refresh();
+    expect(currentDay.daysUntilDue(loan)).toBe(-1);
 
     await store.close();
     indexedDB.deleteDatabase(dbName);
@@ -286,7 +301,7 @@ describe('local persistence', () => {
 
   it('keeps tombstoned repayments out of balances, summaries, detail, lists, and export', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
-    const { app, store } = await session(dbName);
+    const { app, backups, store } = await session(dbName);
     const loan = await app.createRecord({
       direction: 'lent',
       kind: 'money',
@@ -309,7 +324,7 @@ describe('local persistence', () => {
     expect(person.owedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 10000n }]);
     expect(person.remainingMinorUnitsByLoan.get(loan.id)).toBe(10000n);
 
-    const exported: unknown = JSON.parse(await app.exportJson());
+    const exported: unknown = JSON.parse(await backups.exportJson());
     expect(exported).toMatchObject({ repayments: [] });
 
     await store.close();
@@ -603,16 +618,14 @@ describe('local persistence', () => {
 
   it('queues settings changes but keeps form drafts local to the device', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
-    const { app, store } = await session(dbName);
+    const { app, drafts, settings, store } = await session(dbName);
     const initialMutations = await app.pendingMutations();
-    await app.setPreferredCurrency('GBP');
-    const revisionBeforeLanguage = app.revision();
-    await app.setPreferredLanguage('ru');
-    expect(app.revision()).toBe(revisionBeforeLanguage);
-    expect((await app.settings()).preferredLanguage).toBe('ru');
+    await settings.setPreferredCurrency('GBP');
+    await settings.setPreferredLanguage('ru');
+    expect((await settings.get()).preferredLanguage).toBe('ru');
     expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
 
-    await app.saveRecordDraft({
+    await drafts.save({
       direction: 'borrowed',
       kind: 'money',
       personName: 'Anna',
@@ -623,10 +636,10 @@ describe('local persistence', () => {
       dueOn: '',
       note: '',
     });
-    expect((await app.recordDraft())?.amount).toBe('25');
+    expect((await drafts.load())?.amount).toBe('25');
     expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
-    await app.clearRecordDraft();
-    expect(await app.recordDraft()).toBeUndefined();
+    await drafts.clear();
+    expect(await drafts.load()).toBeUndefined();
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });
@@ -654,11 +667,11 @@ describe('local persistence', () => {
     legacy.close();
 
     const migrated = await session(dbName);
-    expect((await migrated.app.settings()).preferredCurrency).toBe('GBP');
-    expect((await migrated.app.settings()).preferredLanguage).toBe('en');
-    expect((await migrated.app.settings()).schemaVersion).toBe(3);
-    expect((await migrated.app.settings()).version).toBe(1);
-    await migrated.app.saveRecordDraft({
+    expect((await migrated.settings.get()).preferredCurrency).toBe('GBP');
+    expect((await migrated.settings.get()).preferredLanguage).toBe('en');
+    expect((await migrated.settings.get()).schemaVersion).toBe(3);
+    expect((await migrated.settings.get()).version).toBe(1);
+    await migrated.drafts.save({
       direction: 'lent',
       kind: 'physical_item',
       personName: 'Mom',
@@ -669,7 +682,7 @@ describe('local persistence', () => {
       dueOn: '',
       note: '',
     });
-    expect((await migrated.app.recordDraft())?.itemName).toBe('keys');
+    expect((await migrated.drafts.load())?.itemName).toBe('keys');
     await migrated.store.close();
     indexedDB.deleteDatabase(dbName);
   });

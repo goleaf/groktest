@@ -1,12 +1,9 @@
-import { Inject, Injectable, signal, type Signal } from '@angular/core';
-import { BackupService } from '../application/backup-service';
+import { Inject, Injectable, signal } from '@angular/core';
 import { CurrentDayService } from '../application/current-day-service';
-import { RecordDraftService } from '../application/record-draft-service';
 import {
   RecordsCommandService,
   type CreateRecordInput,
 } from '../application/records-command-service';
-import { SettingsService } from '../application/settings-service';
 import type { CalendarDate } from '../domain/calendar-date';
 import type { DomainClock } from '../domain/commands';
 import { summarizeHome } from '../domain/home-summary';
@@ -17,16 +14,7 @@ import {
 } from '../domain/person-summary';
 import type { ListFilter } from '../domain/query';
 import { visibleLoans } from '../domain/query';
-import type {
-  HomeSummary,
-  Loan,
-  LocalSettings,
-  Person,
-  RecordDraft,
-  Repayment,
-  SyncMutation,
-  SupportedLanguage,
-} from '../domain/types';
+import type { HomeSummary, Loan, Person, Repayment, SyncMutation } from '../domain/types';
 import { CLOCK } from './clock';
 import { DexieBorrowedStore } from './dexie-store';
 import { BorrowedStore } from './store';
@@ -48,7 +36,6 @@ export interface PersonOverview extends PersonRelationshipSummary {
 @Injectable({ providedIn: 'root' })
 export class BorrowedApp {
   readonly revision = signal(0);
-  readonly currentDay: Signal<CalendarDate>;
 
   constructor(
     private readonly store: BorrowedStore,
@@ -57,34 +44,11 @@ export class BorrowedApp {
       store,
       clock,
     ),
-    private readonly settingsService: SettingsService = new SettingsService(store, clock),
-    private readonly recordDraftService: RecordDraftService = new RecordDraftService(store, clock),
-    private readonly backupService: BackupService = new BackupService(store, clock),
     private readonly currentDayService: CurrentDayService = new CurrentDayService(clock),
-  ) {
-    this.currentDay = this.currentDayService.currentDay;
-  }
+  ) {}
 
   private touch(): void {
     this.revision.update((value) => value + 1);
-  }
-
-  async initialize(): Promise<LocalSettings> {
-    return this.settingsService.initialize();
-  }
-
-  async settings(): Promise<LocalSettings> {
-    return this.settingsService.get();
-  }
-
-  async setPreferredCurrency(currency: string): Promise<LocalSettings> {
-    const next = await this.settingsService.setPreferredCurrency(currency);
-    this.touch();
-    return next;
-  }
-
-  async setPreferredLanguage(language: SupportedLanguage): Promise<LocalSettings> {
-    return this.settingsService.setPreferredLanguage(language);
   }
 
   async people(): Promise<Person[]> {
@@ -157,28 +121,8 @@ export class BorrowedApp {
     return loan;
   }
 
-  async recordDraft(): Promise<RecordDraft | undefined> {
-    return this.recordDraftService.load();
-  }
-
-  async saveRecordDraft(draft: Omit<RecordDraft, 'id' | 'updatedAt'>): Promise<RecordDraft> {
-    return this.recordDraftService.save(draft);
-  }
-
-  async clearRecordDraft(): Promise<void> {
-    await this.recordDraftService.clear();
-  }
-
   async pendingMutations(): Promise<SyncMutation[]> {
     return this.store.listPendingMutations();
-  }
-
-  daysUntilDue(loan: Loan): number | null {
-    return this.currentDayService.daysUntilDue(loan);
-  }
-
-  refreshCurrentDay(): CalendarDate {
-    return this.currentDayService.refresh();
   }
 
   async peopleWithCounts(): Promise<PersonListRow[]> {
@@ -209,7 +153,7 @@ export class BorrowedApp {
     return this.store.listLoansForPerson(personId);
   }
 
-  today(): CalendarDate {
+  private today(): CalendarDate {
     return this.currentDayService.today();
   }
 
@@ -258,14 +202,6 @@ export class BorrowedApp {
       person,
       ...summary,
     };
-  }
-
-  async exportJson(): Promise<string> {
-    return this.backupService.exportJson();
-  }
-
-  async exportRawRecoveryJson(): Promise<string> {
-    return this.backupService.exportRawRecoveryJson();
   }
 
   private async repaymentsByLoan(): Promise<Map<string, Repayment[]>> {

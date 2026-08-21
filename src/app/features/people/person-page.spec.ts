@@ -3,10 +3,16 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan, Person } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { PersonPage } from './person-page';
+
+const currentDayProvider = {
+  provide: CurrentDayService,
+  useValue: { daysUntilDue: () => null },
+};
 
 interface Deferred<T> {
   readonly promise: Promise<T>;
@@ -114,13 +120,12 @@ describe('PersonPage', () => {
       imports: [PersonPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         route.provider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
-            daysUntilDue: () => null,
             personOverview: async () => ({
               ...overview(person('p1', 'Andrei'), [lent, borrowed, completed]),
               lentItemCount: 1,
@@ -156,13 +161,12 @@ describe('PersonPage', () => {
       imports: [PersonPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         route.provider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
-            daysUntilDue: () => null,
             personOverview: () => pending.promise,
           },
         },
@@ -191,13 +195,12 @@ describe('PersonPage', () => {
       imports: [PersonPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         route.provider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
-            daysUntilDue: () => null,
             personOverview,
           },
         },
@@ -229,13 +232,12 @@ describe('PersonPage', () => {
       imports: [PersonPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         route.provider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
-            daysUntilDue: () => null,
             personOverview,
           },
         },
@@ -278,13 +280,12 @@ describe('PersonPage', () => {
       imports: [PersonPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         route.provider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
-            daysUntilDue: () => null,
             personOverview,
           },
         },

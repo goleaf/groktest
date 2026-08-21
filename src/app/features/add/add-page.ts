@@ -368,9 +368,7 @@ export class AddPage {
           draft.dueOn ||
           draft.note.trim(),
         );
-        const persistence = hasUserContent
-          ? this.drafts.save(draft)
-          : this.drafts.clear();
+        const persistence = hasUserContent ? this.drafts.save(draft) : this.drafts.clear();
         this.draftStatus.set('saving');
         this.latestDraftPersistence = persistence;
         void persistence.then(

@@ -5,6 +5,7 @@ import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { LoanRecord } from '../../data/store';
 import { DetailPage } from './detail-page';
@@ -104,12 +105,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => record,
-            daysUntilDue: () => -2,
             markReturned: async () => record.loan,
           },
         },
@@ -149,12 +150,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => borrowedRecord,
-            daysUntilDue: () => 2,
             markReturned: async () => borrowedRecord.loan,
           },
         },
@@ -186,12 +187,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => record,
-            daysUntilDue: () => -2,
             markReturned,
           },
         },
@@ -227,12 +228,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => lentMoneyRecord,
-            daysUntilDue: () => 2,
             repay: async () => lentMoneyRecord.loan,
           },
         },
@@ -265,12 +266,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => borrowedMoneyRecord,
-            daysUntilDue: () => 2,
             repay: async () => borrowedMoneyRecord.loan,
           },
         },
@@ -306,12 +307,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => moneyRecord('lent'),
-            daysUntilDue: () => 2,
             repay,
           },
         },
@@ -372,12 +373,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => recordWithChange,
-            daysUntilDue: () => -2,
             changeDueDate,
             markReturned: async () => record.loan,
           },
@@ -427,12 +428,12 @@ describe('DetailPage', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'missing' } } } },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => null } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail: async () => undefined,
-            daysUntilDue: () => null,
           },
         },
       ],
@@ -473,12 +474,12 @@ describe('DetailPage', () => {
           },
         },
         { provide: Location, useValue: { back: () => undefined } },
+        { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             loanDetail,
-            daysUntilDue: () => 2,
             markReturned: async () => record.loan,
           },
         },

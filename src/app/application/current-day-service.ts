@@ -1,10 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable, OnDestroy, signal } from '@angular/core';
-import {
-  calendarDaysBetween,
-  todayInTimeZone,
-  type CalendarDate,
-} from '../domain/calendar-date';
+import { calendarDaysBetween, todayInTimeZone, type CalendarDate } from '../domain/calendar-date';
 import type { DomainClock } from '../domain/commands';
 import type { Loan } from '../domain/types';
 import { CLOCK } from '../data/clock';

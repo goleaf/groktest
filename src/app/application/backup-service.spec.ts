@@ -17,8 +17,7 @@ describe('BackupService', () => {
     const store = new DexieBorrowedStore(dbName);
     const commands = new RecordsCommandService(store, clock);
     const backups = new BackupService(store, clock);
-    const importBackup = vi.fn(async (_contents: string): Promise<void> => undefined);
-    const futureImporter: BackupImportPort = { importBackup };
+    const futureImporter: BackupImportPort = { importBackup: vi.fn() };
 
     try {
       await store.initialize(clock);

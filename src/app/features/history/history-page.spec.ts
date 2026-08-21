@@ -2,10 +2,16 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
 import { deferred } from '../../testing/deferred-promise';
 import { HistoryPage } from './history-page';
+
+const currentDayProvider = {
+  provide: CurrentDayService,
+  useValue: { daysUntilDue: () => null },
+};
 
 function completedLoan(id: string, itemName: string): Loan {
   return {
@@ -38,6 +44,7 @@ describe('HistoryPage', () => {
       imports: [HistoryPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -71,13 +78,13 @@ describe('HistoryPage', () => {
       imports: [HistoryPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             history,
             filterLoans: (loans: readonly Loan[]) => [...loans],
-            daysUntilDue: () => null,
           },
         },
       ],
@@ -108,13 +115,13 @@ describe('HistoryPage', () => {
       imports: [HistoryPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
             revision,
             history,
             filterLoans: (loans: readonly Loan[]) => [...loans],
-            daysUntilDue: () => null,
           },
         },
       ],

@@ -16,10 +16,12 @@ they need; UI-only download creation and localization remain in components. `Bor
 `CurrentDayService` internally for date-sensitive queries but no longer implements or publishes the
 four extracted concerns.
 
-## Current reconciliation — 2026-08-21T16:43:53+03:00
+## Current reconciliation — 2026-08-21T17:01:00+03:00
 
-- **Current HEAD:** `5425e2540c1c622751ccc01288dea5c55ed41023` on `main`, matching
-  `origin/main`; the worktree and index are clean.
+- **Current HEAD:** `73771998fdf0f1145783d3cf264bfd6c9a2b6c11` on `main`, matching
+  `origin/main`. Another process published the first service/caller slice in `7377199` while this
+  task was running; the remaining Detail, Home, persistence-test and facade cleanup is an
+  attributable dirty continuation on top of that commit.
 - **Previous decomposition:** `RecordsCommandService` is complete and published in `5425e25`.
   `BorrowedApp` delegates create/return/due-date/repayment and retains the temporary global
   successful-write revision. Query architecture remains intentionally unsplit.
@@ -28,11 +30,10 @@ four extracted concerns.
 - **Recovery prerequisite:** local recovery and raw diagnostic export are published in `0342283`
   and included at current HEAD. There is no longer a foreign dirty recovery owner, so the root raw
   export caller and application initializer can migrate safely.
-- **Current direct ownership inside `BorrowedApp`:** initialization/settings mutation, draft row
-  construction, normal/raw export serialization, current-day signal/refresh and due-day distance.
-- **Existing lifecycle owner:** `CurrentDayTracker` currently owns midnight, focus and visibility
-  listeners but calls back into `BorrowedApp`; it will be replaced, not wrapped, so there is one day
-  state and one timer/listener owner.
+- **Reconciled ownership:** `SettingsService`, `RecordDraftService`, `BackupService` and
+  `CurrentDayService` now own the four concerns. `CurrentDayTracker` has been removed, and callers
+  no longer use the extracted `BorrowedApp` APIs. The facade retains record commands plus
+  still-unmigrated queries only.
 - **Backup constraint:** current `exportJson()` is an unversioned point-in-time export. Raw recovery
   export is a separate diagnostic envelope. Neither is a validated/restorable backup; this slice
   only defines a future importer port and implements no import/reset/restore behavior.
@@ -72,40 +73,40 @@ file belongs to this slice.
 
 ### SettingsService
 
-- [ ] `initialize()` owns stable local settings/identity initialization through the store.
-- [ ] `get()` returns decoded `LocalSettings`; `localIdentityId()` exposes only the stable identity
+- [x] `initialize()` owns stable local settings/identity initialization through the store.
+- [x] `get()` returns decoded `LocalSettings`; `localIdentityId()` exposes only the stable identity
       identifier when that is all a caller needs.
-- [ ] `setPreferredCurrency()` validates with the existing domain currency rule, versions once and
+- [x] `setPreferredCurrency()` validates with the existing domain currency rule, versions once and
       persists transactionally through the store.
-- [ ] `setPreferredLanguage()` versions once and persists the supported language without importing
+- [x] `setPreferredLanguage()` versions once and persists the supported language without importing
       or mutating `I18n`.
-- [ ] `RecordsCommandService` obtains the default creation currency through this service rather
+- [x] `RecordsCommandService` obtains the default creation currency through this service rather
       than owning a settings read.
 
 ### RecordDraftService
 
-- [ ] Publish `RecordDraftInput` and `DraftPersistenceStatus` application contracts.
-- [ ] `load()`, `save()` and `clear()` are the complete API; `save()` alone creates the stable
+- [x] Publish `RecordDraftInput` and `DraftPersistenceStatus` application contracts.
+- [x] `load()`, `save()` and `clear()` are the complete API; `save()` alone creates the stable
       `add-record` id and timestamp.
-- [ ] Keep debouncing, stale-write presentation status and localization in Add; the service owns no
+- [x] Keep debouncing, stale-write presentation status and localization in Add; the service owns no
       timer, translated copy or component state.
 
 ### BackupService
 
-- [ ] Preserve the exact existing normal export JSON shape and bigint decimal serialization.
-- [ ] Preserve the separate raw diagnostic export through the existing store boundary.
-- [ ] Define a minimal unimplemented `BackupImportPort`; do not pretend the current export is
+- [x] Preserve the exact existing normal export JSON shape and bigint decimal serialization.
+- [x] Preserve the separate raw diagnostic export through the existing store boundary.
+- [x] Define a minimal unimplemented `BackupImportPort`; do not pretend the current export is
       restorable and do not add reset/import UI.
-- [ ] Return strings only. Blob, object URL, anchor/document interaction and localized feedback stay
+- [x] Return strings only. Blob, object URL, anchor/document interaction and localized feedback stay
       in the Settings/root components.
 
 ### CurrentDayService
 
-- [ ] Expose one readonly reactive `currentDay`, `today()`, `refresh()` and `daysUntilDue()`.
-- [ ] Own one idempotent lifecycle for local-midnight scheduling, window focus and visible-page
+- [x] Expose one readonly reactive `currentDay`, `today()`, `refresh()` and `daysUntilDue()`.
+- [x] Own one idempotent lifecycle for local-midnight scheduling, window focus and visible-page
       refresh; clean listeners/timer on destroy.
-- [ ] Replace `CurrentDayTracker` and migrate direct day consumers without changing query methods.
-- [ ] `BorrowedApp` delegates date-sensitive query calculations to the same injected service and
+- [x] Replace `CurrentDayTracker` and migrate direct day consumers without changing query methods.
+- [x] `BorrowedApp` delegates date-sensitive query calculations to the same injected service and
       no longer owns a second day signal.
 
 ## Red -> green -> caller migration
@@ -138,4 +139,26 @@ file belongs to this slice.
 
 ## Completion evidence
 
-Pending RED/GREEN implementation and fresh verification.
+Completed on the working tree based on HEAD
+`73771998fdf0f1145783d3cf264bfd6c9a2b6c11` (`main == origin/main` at verification time).
+
+- **RED evidence:** the four service specs first failed because their modules did not exist. Caller
+  specs then failed against the old facade paths: Settings/LanguageSwitcher (4 failures), Add
+  (10), LoanRow (2), Shell (4), Home (5) and Detail (8). The first full run exposed four remaining
+  transitive `LoanRow` test fixtures without `CurrentDayService` (4 files / 12 failures); those
+  fixtures were migrated rather than restoring removed facade fields.
+- **Focused GREEN:** core persistence/command integration passes 4 files / 25 tests; the complete
+  service/initialization/root/Add/Settings/Home/Detail/Shell/shared-UI caller matrix passes 13 files
+  / 51 tests; the four transitive page fixtures pass 4 files / 17 tests.
+- **Full GREEN:** `pnpm test` passes 50 files / 272 tests; `pnpm lint` passes Angular ESLint and
+  repository-wide Prettier; `pnpm typecheck` passes; `pnpm build` passes.
+- **Build evidence:** production initial bundle is 509.78 kB (136.54 kB estimated transfer). The
+  existing warning budget remains exceeded by 9.78 kB; no dependency or bundle-scope change was
+  introduced to disguise it.
+- **Diff/architecture evidence:** `git diff --check` passes. Changed-diff scans find no `any`,
+  `$any`, double assertion, TypeScript suppression or blanket ESLint escape. Feature/UI code has no
+  new Dexie imports, and settings/draft/backup services contain no localization or DOM/download
+  manipulation. No schema, store port, domain rule, i18n catalog, style, package or lockfile was
+  changed.
+- **Remaining Stage 1 work:** query-service extraction, feature query injection, Dexie live-query
+  state and removal of `BorrowedApp.revision` remain deliberately unstarted.

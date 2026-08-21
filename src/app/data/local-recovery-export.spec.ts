@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
 import { expect, it, vi } from 'vitest';
+import { BackupService } from '../application/backup-service';
 import type { DomainClock } from '../domain/commands';
-import { BorrowedApp } from './borrowed-app';
 import { DexieBorrowedStore } from './dexie-store';
 
 const STORES = {
@@ -44,10 +44,10 @@ it('exports raw recoverable rows without decoding, deleting, or resetting the da
   });
   rawDatabase.close();
   const store = new DexieBorrowedStore(dbName);
-  const app = new BorrowedApp(store, clock);
+  const backups = new BackupService(store, clock);
   const deleteDatabase = vi.spyOn(indexedDB, 'deleteDatabase');
 
-  const exported: unknown = JSON.parse(await app.exportRawRecoveryJson());
+  const exported: unknown = JSON.parse(await backups.exportRawRecoveryJson());
 
   expect(exported).toMatchObject({
     kind: 'borrowed-local-recovery-diagnostic',

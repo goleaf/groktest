@@ -57,7 +57,7 @@ Core create, view, search, return, repay, deadline tracking/change, history and 
 
 People remain local domain records rather than authenticated identities. The list performs one bounded people read and one bounded loans read for recent ordering/counts. A detail route performs one Person lookup, one indexed `personId` Loan read and at most one batched Repayment read, then the pure `summarizePersonRelationships()` function derives direction groups, physical-item counts, per-currency balances, remaining amounts and history.
 
-`dueOn` remains date-only source data. `calendarDaysBetween()` derives exact relative distance from the user's local today, and the shared `DueStatus` component renders the same EN/RU/LT reminder on Home, lists and Details. `CurrentDayTracker` advances a single reactive day signal at local midnight and refreshes it on window focus or restored page visibility, so an open screen does not keep yesterday's reminder. No stale overdue flag is stored.
+`dueOn` remains date-only source data. `calendarDaysBetween()` derives exact relative distance from the user's local today, and the shared `DueStatus` component renders the same EN/RU/LT reminder on Home, lists and Details. `CurrentDayService` owns the single reactive day signal, advances it at local midnight and refreshes it on window focus or restored page visibility, so an open screen does not keep yesterday's reminder. No stale overdue flag is stored.
 
 ## Backend and remote database
 

@@ -182,9 +182,7 @@ describe('application initialization corruption boundary', () => {
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
     const settings = new SettingsService(store, clock);
-    const initialize = vi
-      .spyOn(settings, 'initialize')
-      .mockRejectedValue(unavailablePersistence());
+    const initialize = vi.spyOn(settings, 'initialize').mockRejectedValue(unavailablePersistence());
     const state = new ApplicationInitializationState();
 
     await initializeBorrowedApplication({

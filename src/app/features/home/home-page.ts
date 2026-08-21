@@ -1,5 +1,6 @@
 import { Component, computed, inject, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
@@ -189,10 +190,11 @@ import { PageHeading } from '../../ui/page-heading';
 export class HomePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly currentDay = inject(CurrentDayService);
   private readonly summaryResource = resource({
     params: () => ({
       revision: this.app.revision(),
-      currentDay: this.app.currentDay(),
+      currentDay: this.currentDay.currentDay(),
       locale: this.i18n.locale(),
     }),
     loader: ({ params }) => this.app.home(params.locale),

@@ -2,10 +2,16 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { SearchPage } from './search-page';
+
+const currentDayProvider = {
+  provide: CurrentDayService,
+  useValue: { daysUntilDue: () => null },
+};
 
 const loan: Loan = {
   id: 'drill',
@@ -43,6 +49,7 @@ describe('SearchPage', () => {
       imports: [SearchPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -76,6 +83,7 @@ describe('SearchPage', () => {
       imports: [SearchPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -117,6 +125,7 @@ describe('SearchPage', () => {
       imports: [SearchPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -166,13 +175,13 @@ describe('SearchPage', () => {
       imports: [SearchPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
             search,
             remainingMap,
-            daysUntilDue: () => null,
           },
         },
       ],

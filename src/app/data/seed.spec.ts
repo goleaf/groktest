@@ -1,6 +1,8 @@
 import 'fake-indexeddb/auto';
 import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
+import { BackupService } from '../application/backup-service';
+import { SettingsService } from '../application/settings-service';
 import type { DomainClock } from '../domain/commands';
 import { outstandingMinorUnits } from '../domain/loan-rules';
 import type { Loan } from '../domain/types';
@@ -25,8 +27,10 @@ describe('demo seed', () => {
   it('fills an empty database with 100 fully related and varied loans', async () => {
     const dbName = `borrowed-seed-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
+    const settings = new SettingsService(store, clock);
+    const backups = new BackupService(store, clock);
     const app = new BorrowedApp(store, clock);
-    await app.initialize();
+    await settings.initialize();
     await seedDemoIfEmpty(app, clock);
 
     const loans = await store.listLoans();
@@ -105,7 +109,7 @@ describe('demo seed', () => {
     expect(await store.listLoans()).toHaveLength(100);
     expect(await store.listPeople()).toHaveLength(24);
 
-    const json = await app.exportJson();
+    const json = await backups.exportJson();
     expect(json).toContain('"app": "borrowed"');
     expect(json).toContain('Cordless drill');
     const found = await app.search('drill');

@@ -2,10 +2,16 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { ListPage } from './list-page';
+
+const currentDayProvider = {
+  provide: CurrentDayService,
+  useValue: { daysUntilDue: () => null },
+};
 
 const loan: Loan = {
   id: '01900000-0000-7000-8000-000000000001',
@@ -43,6 +49,7 @@ describe('ListPage filters', () => {
       imports: [ListPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -87,6 +94,7 @@ describe('ListPage filters', () => {
       imports: [ListPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -127,6 +135,7 @@ describe('ListPage filters', () => {
       imports: [ListPage],
       providers: [
         provideRouter([{ path: 'records', component: ListPage }]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -208,6 +217,7 @@ describe('ListPage filters', () => {
       imports: [ListPage],
       providers: [
         provideRouter([{ path: 'records', component: ListPage }]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -267,6 +277,7 @@ describe('ListPage filters', () => {
       imports: [ListPage],
       providers: [
         provideRouter([]),
+        currentDayProvider,
         {
           provide: BorrowedApp,
           useValue: {
@@ -274,7 +285,6 @@ describe('ListPage filters', () => {
             activeLoans,
             remainingMap,
             filterLoans: (loans: readonly Loan[]) => [...loans],
-            daysUntilDue: () => null,
           },
         },
       ],

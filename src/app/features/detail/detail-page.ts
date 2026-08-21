@@ -4,6 +4,7 @@ import { FormField, form, required, submit, validate } from '@angular/forms/sign
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { LoanRecord } from '../../data/store';
 import { DomainError } from '../../domain/errors';
@@ -247,6 +248,7 @@ import { HandoffLine } from '../../ui/handoff-line';
 export class DetailPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly currentDay = inject(CurrentDayService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly routeParamMap = toSignal(
@@ -329,7 +331,7 @@ export class DetailPage {
   });
   protected readonly daysUntilDue = computed(() => {
     const record = this.record();
-    return record ? this.app.daysUntilDue(record.loan) : null;
+    return record ? this.currentDay.daysUntilDue(record.loan) : null;
   });
   protected readonly directionCopy = computed(() => {
     const loan = this.record()?.loan;
