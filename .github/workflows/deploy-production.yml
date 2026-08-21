@@ -21,12 +21,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  freshness:
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      release_is_current: ${{ steps.current_main.outputs.is_current }}
+    steps:
+      - name: Compare the successful release with live main
+        id: current_main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          current_main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)
+          [[ "$current_main_sha" =~ ^[0-9a-f]{40}$ ]]
+
+          if [[ "$RELEASE_SHA" == "$current_main_sha" ]]; then
+            echo 'is_current=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'is_current=false' >> "$GITHUB_OUTPUT"
+            echo "::notice title=Stale release skipped::${RELEASE_SHA} is not live main ${current_main_sha}"
+          fi
+
+  deploy:
+    needs: freshness
+    if: needs.freshness.outputs.release_is_current == 'true'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -90,7 +116,10 @@ jobs:
           ssh-keygen -F "$DEPLOY_HOST" -f "$ssh_directory/known_hosts" >/dev/null
 
       - name: Transfer and activate the tested release
+        id: activation
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
           artifact_root="$RUNNER_TEMP/borrowed-artifact"
@@ -127,14 +156,29 @@ jobs:
             "sha256sum '$remote_stage/activate-web-release.sh' | cut -d' ' -f1")
           test "$local_activator_hash" = "$remote_activator_hash"
 
+          current_main_sha=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)
+          [[ "$current_main_sha" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$RELEASE_SHA" != "$current_main_sha" ]]; then
+            echo "::notice title=Stale release skipped::${RELEASE_SHA} became stale before activation; live main is ${current_main_sha}"
+            ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+              "unlink '$remote_stage/$archive_name' && \
+                unlink '$remote_stage/${archive_name}.sha256' && \
+                unlink '$remote_stage/activate-web-release.sh' && \
+                rmdir '$remote_stage'"
+            echo 'activated=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "bash '$remote_stage/activate-web-release.sh' \
               --root '$DEPLOY_PATH' \
               --sha '$RELEASE_SHA' \
               --staging-dir '$remote_stage' \
               --url '$PRODUCTION_URL'"
+          echo 'activated=true' >> "$GITHUB_OUTPUT"
 
       - name: Verify the public release marker
+        if: steps.activation.outputs.activated == 'true'
         shell: bash
         run: |
           set -Eeuo pipefail

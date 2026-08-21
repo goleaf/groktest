@@ -175,6 +175,25 @@ test('production deployment requires a successful main push workflow', () => {
   assert.doesNotMatch(workflow, /root@/);
 });
 
+test('production deployment skips successful CI releases that are no longer main', () => {
+  const workflow = readRequired(join(repoRoot, '.github/workflows/deploy-production.yml'));
+  const liveMainLookups =
+    workflow.match(/gh api "repos\/\$\{GITHUB_REPOSITORY\}\/git\/ref\/heads\/main"/g) ?? [];
+
+  assert.match(workflow, /^  freshness:\n/m);
+  assert.match(
+    workflow,
+    /release_is_current: \$\{\{ steps\.current_main\.outputs\.is_current \}\}/,
+  );
+  assert.match(workflow, /needs: freshness/);
+  assert.match(workflow, /needs\.freshness\.outputs\.release_is_current == 'true'/);
+  assert.equal(liveMainLookups.length, 2);
+  assert.match(workflow, /echo 'is_current=false'/);
+  assert.match(workflow, /id: activation/);
+  assert.match(workflow, /activated=false/);
+  assert.match(workflow, /if: steps\.activation\.outputs\.activated == 'true'/);
+});
+
 test('the Nginx vhost preserves ACME and serves the atomic release', () => {
   const config = readRequired(join(deployRoot, 'nginx/borrowed.miniserver.fun.conf'));
 

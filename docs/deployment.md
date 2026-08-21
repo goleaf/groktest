@@ -11,13 +11,19 @@ origin-scoped IndexedDB database.
 2. `.github/workflows/ci.yml` runs the dependency audit, lint, deployment contracts, Angular tests,
    typecheck, production build, Capacitor sync, and Android build.
 3. A successful `main` push uploads `borrowed-web-<sha>.tar.gz` and its checksum.
-4. `.github/workflows/deploy-production.yml` downloads the artifact from that exact successful run,
-   verifies it, transfers it through pinned SSH, and activates it atomically.
-5. A failed CI run, checksum, transfer, validation, or health check cannot replace the last healthy
-   release.
+4. `.github/workflows/deploy-production.yml` first requires that the successful run's SHA is still
+   the live `main` SHA, then downloads that exact artifact, verifies it, transfers it through pinned
+   SSH, checks live `main` again, and activates it atomically.
+5. A stale successful run is a recorded no-op. A GitHub ref lookup failure, failed CI run, checksum,
+   transfer, validation, or health check cannot replace the last healthy release.
 
 An unpushed local commit is intentionally invisible to production. Pull requests and non-`main`
 branches run CI but never receive production credentials and never deploy.
+
+The two live-ref checks prevent out-of-order CI completion from rolling production backward. The
+first check runs without production secrets; the second runs immediately before the remote
+activator. Manual rollback is intentionally exempt because selecting an older retained release is
+its explicit operator-controlled purpose.
 
 ## GitHub production environment
 
