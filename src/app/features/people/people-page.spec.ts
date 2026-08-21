@@ -1,8 +1,17 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { PeoplePage } from './people-page';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 describe('PeoplePage', () => {
   it('renders searchable people with both active directions and history', async () => {
@@ -59,5 +68,32 @@ describe('PeoplePage', () => {
 
     expect(root.querySelectorAll('.loan-row')).toHaveLength(1);
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('Anna');
+  });
+
+  it('shows loading feedback before deciding that the people list is empty', async () => {
+    const pending = deferred<never[]>();
+    await TestBed.configureTestingModule({
+      imports: [PeoplePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            peopleWithCounts: () => pending.promise,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(PeoplePage);
+    const root = fixture.nativeElement as HTMLElement;
+    await vi.waitFor(() => expect(root.querySelector('[role="status"]')).toBeTruthy());
+
+    expect(root.querySelector('[role="status"]')?.textContent).toContain('Loading people');
+    expect(root.querySelector('app-empty-state')).toBeNull();
+
+    pending.resolve([]);
+    await vi.waitFor(() => expect(root.querySelector('app-empty-state')).toBeTruthy());
   });
 });

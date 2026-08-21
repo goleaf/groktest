@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { BorrowedApp, type PersonListRow } from '../../data/borrowed-app';
@@ -17,7 +17,13 @@ import { PageHeading } from '../../ui/page-heading';
         [title]="i18n.t('people.title')"
         [intro]="i18n.t('people.intro')"
       />
-      @if (rows().length === 0) {
+      @if (loadError(); as message) {
+        <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+      } @else if (loading()) {
+        <p class="loading-row icon-line" role="status">
+          <app-icon name="clock" /> {{ i18n.t('people.loading') }}
+        </p>
+      } @else if (rows().length === 0) {
         <app-empty-state icon="people" [message]="i18n.t('people.empty')" />
       } @else {
         <section class="people-overview" [attr.aria-label]="i18n.t('people.summary')">
@@ -104,7 +110,15 @@ import { PageHeading } from '../../ui/page-heading';
 export class PeoplePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
-  protected readonly rows = signal<PersonListRow[]>([]);
+  private readonly rowsResource = resource({
+    params: () => ({ revision: this.app.revision() }),
+    loader: () => this.app.peopleWithCounts(),
+  });
+  protected readonly rows = computed<PersonListRow[]>(() => this.rowsResource.value() ?? []);
+  protected readonly loading = this.rowsResource.isLoading;
+  protected readonly loadError = computed(() =>
+    this.rowsResource.error() ? this.i18n.t('people.loadError') : '',
+  );
   protected readonly query = signal('');
   protected readonly activeTotal = computed(() =>
     this.rows().reduce((total, row) => total + row.activeCount, 0),
@@ -124,11 +138,4 @@ export class PeoplePage {
       row.person.displayName.toLocaleLowerCase(this.i18n.locale()).includes(query),
     );
   });
-
-  constructor() {
-    effect(() => {
-      this.app.revision();
-      void this.app.peopleWithCounts().then((value) => this.rows.set(value));
-    });
-  }
 }

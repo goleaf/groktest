@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
@@ -32,6 +32,12 @@ import { PageHeading } from '../../ui/page-heading';
       </div>
       @if (!query().trim()) {
         <p class="search-guidance"><app-icon name="info" /> {{ i18n.t('search.hint') }}</p>
+      } @else if (loadError(); as message) {
+        <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+      } @else if (loading()) {
+        <p class="search-guidance icon-line" role="status">
+          <app-icon name="search" /> {{ i18n.t('search.loading') }}
+        </p>
       } @else if (results().length === 0) {
         <p class="search-guidance"><app-icon name="search" /> {{ i18n.t('search.none') }}</p>
       } @else {
@@ -52,20 +58,26 @@ export class SearchPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
   protected readonly query = signal('');
-  protected readonly results = signal<Loan[]>([]);
-  protected readonly remaining = signal<ReadonlyMap<string, string | null>>(new Map());
-
-  constructor() {
-    effect(() => {
-      this.app.revision();
+  private readonly searchResource = resource({
+    params: () => {
       const query = this.query();
+      const revision = this.app.revision();
       const locale = this.i18n.locale();
-      void this.app.search(query).then(async (loans) => {
-        this.results.set(loans);
-        this.remaining.set(await this.app.remainingMap(loans, locale));
-      });
-    });
-  }
+      return query.trim() ? { query, revision, locale } : undefined;
+    },
+    loader: async ({ params }) => {
+      const loans = await this.app.search(params.query);
+      return { loans, remaining: await this.app.remainingMap(loans, params.locale) };
+    },
+  });
+  protected readonly results = computed<Loan[]>(() => this.searchResource.value()?.loans ?? []);
+  protected readonly remaining = computed<ReadonlyMap<string, string | null>>(
+    () => this.searchResource.value()?.remaining ?? new Map(),
+  );
+  protected readonly loading = this.searchResource.isLoading;
+  protected readonly loadError = computed(() =>
+    this.searchResource.error() ? this.i18n.t('search.loadError') : '',
+  );
 
   protected remainingOf(id: string): string | null {
     return this.remaining().get(id) ?? null;

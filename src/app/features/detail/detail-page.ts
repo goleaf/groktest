@@ -158,6 +158,7 @@ import { HandoffLine } from '../../ui/handoff-line';
                 {{ error() }}
               </p>
             }
+            <p class="sr-only" role="status" aria-live="polite">{{ actionStatus() }}</p>
             <section class="section-block">
               <h2 class="section-heading">
                 <app-icon name="history" /> {{ i18n.t('detail.historyHeading') }}
@@ -179,9 +180,19 @@ import { HandoffLine } from '../../ui/handoff-line';
             <p class="section-kicker">{{ i18n.t('detail.actionsKicker') }}</p>
             <h2>{{ i18n.t('detail.nextStep') }}</h2>
             @if (data.loan.status === 'active' && data.loan.assetKind === 'physical_item') {
-              <button class="button primary-detail-action" type="button" (click)="markReturned()">
+              <button
+                class="button primary-detail-action"
+                type="button"
+                [disabled]="savingReturned()"
+                [attr.aria-busy]="savingReturned()"
+                (click)="markReturned()"
+              >
                 <app-icon name="check" />
-                {{ returnAction() }}
+                {{
+                  savingReturned()
+                    ? i18n.t('detail.savingReturned', { action: returnAction() })
+                    : returnAction()
+                }}
               </button>
             }
             @if (data.loan.status === 'active' && data.loan.assetKind === 'money') {
@@ -262,8 +273,10 @@ export class DetailPage {
     this.recordResource.error() ? this.i18n.t('detail.loadError') : '',
   );
   protected readonly error = signal('');
+  protected readonly actionStatus = signal('');
   protected readonly savingDueDate = signal(false);
   protected readonly savingRepayment = signal(false);
+  protected readonly savingReturned = signal(false);
   private readonly dueDateModel = signal({ dueOn: '' });
   protected readonly dueDateForm = form(this.dueDateModel, (dueDate) => {
     required(dueDate.dueOn, { message: this.i18n.t('detail.dueDateRequired') });
@@ -420,19 +433,28 @@ export class DetailPage {
   }
 
   protected async markReturned(): Promise<void> {
-    const id = this.record()?.loan.id;
-    if (!id) {
+    const loan = this.record()?.loan;
+    if (!loan || this.savingReturned()) {
       return;
     }
     this.error.set('');
+    this.actionStatus.set('');
+    this.savingReturned.set(true);
     try {
-      await this.app.markReturned(id);
+      await this.app.markReturned(loan.id);
+      this.actionStatus.set(
+        this.i18n.t('detail.returnedStatus', {
+          subject: formatLoanTitle(loan, this.i18n.locale()),
+        }),
+      );
     } catch (caught) {
       this.error.set(
         caught instanceof DomainError
           ? this.i18n.t(`errors.${caught.code}`)
-          : this.i18n.t('add.error'),
+          : this.i18n.t('detail.actionError'),
       );
+    } finally {
+      this.savingReturned.set(false);
     }
   }
 

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
-import type { HomeSummary } from '../../domain/types';
+import type { HomeAction, HomeSummary } from '../../domain/types';
 import { HomePage } from './home-page';
 
 const summary: HomeSummary = {
@@ -270,5 +270,80 @@ describe('HomePage', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('13 open records');
+  });
+
+  it('names return actions with record context and exposes their busy state', async () => {
+    const pending = deferred<void>();
+    const markReturned = vi.fn(() => pending.promise);
+    await TestBed.configureTestingModule({
+      imports: [HomePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            currentDay: signal('2026-08-20'),
+            home: async () => summary,
+            markReturned,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomePage);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector('.ledger-return-action') as HTMLButtonElement;
+
+    expect(button.getAttribute('aria-label')).toContain('cordless drill');
+    expect(button.getAttribute('aria-label')).toContain('Peter');
+
+    button.click();
+    button.click();
+    await vi.waitFor(() => expect(markReturned).toHaveBeenCalledTimes(1));
+    await fixture.whenStable();
+
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.getAttribute('aria-label')).toContain('Marking');
+
+    pending.resolve();
+    await vi.waitFor(() => {
+      expect(root.querySelector('[role="status"]')?.textContent).toContain('cordless drill');
+    });
+  });
+
+  it('shows a recoverable error when a quick return action fails', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HomePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            currentDay: signal('2026-08-20'),
+            home: async () => summary,
+            markReturned: async () => Promise.reject(new Error('disk unavailable')),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomePage);
+    await fixture.whenStable();
+    await (
+      fixture.componentInstance as unknown as {
+        markReturned(action: HomeAction): Promise<void>;
+      }
+    )
+      .markReturned(summary.actions[0]!)
+      .catch(() => undefined);
+    await fixture.whenStable();
+    const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
+
+    expect(alert?.textContent).toContain('cordless drill');
+    expect(alert?.textContent).toContain('Try again');
   });
 });

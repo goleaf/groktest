@@ -80,4 +80,26 @@ describe('design system contract', () => {
     expect(styles).toContain('scroll-padding-bottom: calc(76px + var(--safe-bottom))');
     expect(styles).toContain('.field-error');
   });
+
+  it('keeps the mobile add action in document flow above the bottom navigation', () => {
+    const submitRule = styles.match(/\.add-page \.button\[type='submit'\]\s*\{([^}]*)\}/)?.[1];
+
+    expect(submitRule).toBeDefined();
+    expect(submitRule).not.toContain('position: sticky');
+    expect(submitRule).not.toContain('bottom:');
+  });
+
+  it('gives mobile record identities a full row before rendering status metadata', () => {
+    const mobileLedger = styles.match(
+      /@media \(max-width:\s*47\.49rem\)\s*\{([\s\S]*?)\n\}\n\n\.results-bar/,
+    )?.[1];
+
+    expect(mobileLedger).toBeDefined();
+    expect(mobileLedger).toMatch(
+      /\.loan-row\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*44px minmax\(0, 1fr\) 26px/s,
+    );
+    expect(mobileLedger).toMatch(/\.loan-row \.meta\s*\{[^}]*max-width:\s*none/s);
+    expect(mobileLedger).toMatch(/\.loan-row \.meta\s*\{[^}]*grid-column:\s*2/s);
+    expect(mobileLedger).toMatch(/\.loan-row \.meta\s*\{[^}]*text-align:\s*left/s);
+  });
 });

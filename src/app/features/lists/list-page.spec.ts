@@ -166,6 +166,7 @@ describe('ListPage filters', () => {
     fixture.detectChanges();
 
     const search = root.querySelector('input[type="search"]') as HTMLInputElement;
+    const navigate = vi.spyOn(router, 'navigate');
     search.value = '  Peter   drill  ';
     search.dispatchEvent(new Event('input'));
     await vi.waitFor(() =>
@@ -173,6 +174,7 @@ describe('ListPage filters', () => {
         '/records?campaign=local&scope=borrowed&filter=overdue&q=Peter%20drill',
       ),
     );
+    expect(navigate).toHaveBeenLastCalledWith([], expect.objectContaining({ replaceUrl: true }));
 
     await router.navigateByUrl('/records?campaign=local&scope=borrowed&filter=overdue');
     fixture.detectChanges();

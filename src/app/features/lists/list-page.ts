@@ -156,13 +156,14 @@ export class ListPage {
   }
 
   protected setQuery(query: string): void {
-    this.navigateWithState({ ...this.urlState(), query });
+    this.navigateWithState({ ...this.urlState(), query }, true);
   }
 
-  private navigateWithState(state: RecordListState): void {
+  private navigateWithState(state: RecordListState, replaceUrl = false): void {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: recordListQueryParams(state, this.direction(), this.route.snapshot.queryParams),
+      replaceUrl,
     });
   }
 }

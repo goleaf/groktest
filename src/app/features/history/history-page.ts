@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
@@ -18,7 +18,13 @@ import { PageHeading } from '../../ui/page-heading';
         [title]="i18n.t('history.title')"
         [intro]="i18n.t('history.intro')"
       />
-      @if (all().length === 0) {
+      @if (loadError(); as message) {
+        <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+      } @else if (loading()) {
+        <p class="loading-row icon-line" role="status">
+          <app-icon name="clock" /> {{ i18n.t('history.loading') }}
+        </p>
+      } @else if (all().length === 0) {
         <app-empty-state icon="history" [message]="i18n.t('history.empty')" />
       } @else {
         <label class="search-field">
@@ -48,14 +54,15 @@ import { PageHeading } from '../../ui/page-heading';
 export class HistoryPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
-  protected readonly all = signal<Loan[]>([]);
+  private readonly historyResource = resource({
+    params: () => ({ revision: this.app.revision() }),
+    loader: () => this.app.history(),
+  });
+  protected readonly all = computed<Loan[]>(() => this.historyResource.value() ?? []);
+  protected readonly loading = this.historyResource.isLoading;
+  protected readonly loadError = computed(() =>
+    this.historyResource.error() ? this.i18n.t('history.loadError') : '',
+  );
   protected readonly query = signal('');
   protected readonly shown = computed(() => this.app.filterLoans(this.all(), this.query(), 'all'));
-
-  constructor() {
-    effect(() => {
-      this.app.revision();
-      void this.app.history().then((value) => this.all.set(value));
-    });
-  }
 }

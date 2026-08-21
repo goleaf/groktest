@@ -11,4 +11,10 @@ describe('application routes', () => {
       expect.objectContaining({ path: '**', redirectTo: '', pathMatch: 'full' }),
     );
   });
+
+  it('gives every feature route a localized page-title key', () => {
+    const featureRoutes = (routes[0]?.children ?? []).filter((route) => route.path !== '**');
+
+    expect(featureRoutes.every((route) => typeof route.data?.['titleKey'] === 'string')).toBe(true);
+  });
 });

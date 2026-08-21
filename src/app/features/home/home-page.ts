@@ -20,6 +20,10 @@ import { PageHeading } from '../../ui/page-heading';
         [title]="i18n.t('home.heading')"
         [intro]="i18n.t('home.intro')"
       />
+      <p class="sr-only" role="status" aria-live="polite">{{ actionStatus() }}</p>
+      @if (actionError(); as message) {
+        <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+      }
       @if (loadError(); as message) {
         <p class="error" role="alert">{{ message }}</p>
       } @else if (summary(); as data) {
@@ -95,7 +99,15 @@ import { PageHeading } from '../../ui/page-heading';
                       <button
                         class="ledger-return-action"
                         type="button"
-                        [attr.aria-label]="i18n.t('home.markReturned')"
+                        [attr.aria-label]="
+                          i18n.t(
+                            busyLoanId() === action.loanId
+                              ? 'home.markingReturnedFor'
+                              : 'home.markReturnedFor',
+                            { subject: action.subject, person: action.personName }
+                          )
+                        "
+                        [attr.aria-busy]="busyLoanId() === action.loanId"
                         [disabled]="busyLoanId() === action.loanId"
                         (click)="markReturned(action)"
                       >
@@ -106,7 +118,12 @@ import { PageHeading } from '../../ui/page-heading';
                       <a
                         class="ledger-open-action"
                         [routerLink]="['/loans', action.loanId]"
-                        [attr.aria-label]="i18n.t('home.openRecord')"
+                        [attr.aria-label]="
+                          i18n.t('home.openRecordFor', {
+                            subject: action.subject,
+                            person: action.personName,
+                          })
+                        "
                       >
                         <app-icon name="chevron" />
                       </a>
@@ -185,6 +202,8 @@ export class HomePage {
     this.summaryResource.error() ? this.i18n.t('home.loadError') : '',
   );
   protected readonly busyLoanId = signal<string | null>(null);
+  protected readonly actionError = signal('');
+  protected readonly actionStatus = signal('');
   protected readonly iconForAction = iconForAction;
 
   protected openCount(summary: HomeSummary): number {
@@ -195,9 +214,16 @@ export class HomePage {
     if (action.assetKind !== 'physical_item' || this.busyLoanId()) {
       return;
     }
+    this.actionError.set('');
+    this.actionStatus.set('');
     this.busyLoanId.set(action.loanId);
     try {
       await this.app.markReturned(action.loanId);
+      this.actionStatus.set(
+        this.i18n.t('home.returnedStatus', { subject: action.subject, person: action.personName }),
+      );
+    } catch {
+      this.actionError.set(this.i18n.t('home.returnError', { subject: action.subject }));
     } finally {
       this.busyLoanId.set(null);
     }

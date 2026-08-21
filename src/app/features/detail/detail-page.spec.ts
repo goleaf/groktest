@@ -171,6 +171,54 @@ describe('DetailPage', () => {
     ).toContain('I returned it');
   });
 
+  it('prevents duplicate item returns and announces successful completion', async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const markReturned = vi.fn(async () => {
+      await pending;
+      return record.loan;
+    });
+    await TestBed.configureTestingModule({
+      imports: [DetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
+        { provide: Location, useValue: { back: () => undefined } },
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            loanDetail: async () => record,
+            daysUntilDue: () => -2,
+            markReturned,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DetailPage);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector('.primary-detail-action') as HTMLButtonElement;
+
+    button.click();
+    button.click();
+    await vi.waitFor(() => expect(markReturned).toHaveBeenCalledTimes(1));
+    await fixture.whenStable();
+
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.textContent).toContain('Returned to me');
+    expect(button.textContent).toContain('saving');
+
+    finish();
+    await vi.waitFor(() => {
+      expect(root.querySelector('[role="status"]')?.textContent).toContain('Cordless drill');
+    });
+  });
+
   it('shows original, returned and remaining money with the repayment amount in history', async () => {
     const lentMoneyRecord = moneyRecord('lent');
     await TestBed.configureTestingModule({

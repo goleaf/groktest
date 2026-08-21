@@ -164,6 +164,37 @@
   background: var(--surface);
 }
 
+@media (max-width: 47.49rem) {
+  .loan-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 26px;
+    column-gap: 13px;
+    row-gap: 8px;
+  }
+
+  .loan-row .row-leading,
+  .loan-row .row-chevron {
+    grid-row: 1 / span 2;
+  }
+
+  .loan-row .body {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .loan-row .meta {
+    max-width: none;
+    grid-column: 2;
+    grid-row: 2;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .loan-row .row-chevron {
+    grid-column: 3;
+  }
+}
+
 .results-bar {
   display: flex;
   min-height: 36px;
