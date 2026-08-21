@@ -159,6 +159,7 @@ export const lt = {
     intro: 'Grąžinti daiktai ir sumokėtos sumos lieka čia.',
     loading: 'Įkeliama istorija…',
     loadError: 'Nepavyko įkelti istorijos šiame įrenginyje. Bandykite dar kartą.',
+    retry: 'Bandyti dar kartą',
     empty: 'Užbaigti įrašai bus rodomi čia.',
     itemCreatedLent: 'Paskolinta {item} žmogui {person}',
     itemCreatedBorrowed: 'Pasiskolinta {item} iš {person}',

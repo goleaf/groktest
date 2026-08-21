@@ -124,6 +124,7 @@ export const en = {
     intro: 'Returned and repaid records stay here.',
     loading: 'Loading history…',
     loadError: 'History could not be loaded on this device. Try again.',
+    retry: 'Retry',
     empty: 'Returned items will appear here.',
     itemCreatedLent: 'Lent {item} to {person}',
     itemCreatedBorrowed: 'Borrowed {item} from {person}',

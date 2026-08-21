@@ -12,14 +12,19 @@ import { PageHeading } from '../../ui/page-heading';
   selector: 'app-history-page',
   imports: [EmptyState, LoanRow, Icon, FormsModule, PageHeading],
   template: `
-    <section class="page">
+    <section class="page" [attr.aria-busy]="loading() ? 'true' : null">
       <app-page-heading
         icon="history"
         [title]="i18n.t('history.title')"
         [intro]="i18n.t('history.intro')"
       />
       @if (loadError(); as message) {
-        <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+        <div class="stack history-load-error">
+          <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+          <button class="button" type="button" (click)="retry()">
+            {{ i18n.t('history.retry') }}
+          </button>
+        </div>
       } @else if (loading()) {
         <p class="loading-row icon-line" role="status">
           <app-icon name="clock" /> {{ i18n.t('history.loading') }}
@@ -65,4 +70,8 @@ export class HistoryPage {
   );
   protected readonly query = signal('');
   protected readonly shown = computed(() => this.app.filterLoans(this.all(), this.query(), 'all'));
+
+  protected retry(): void {
+    this.historyResource.reload();
+  }
 }
