@@ -392,7 +392,7 @@ Run:
 git diff main...HEAD --check
 git diff main...HEAD --stat
 git log --oneline main..HEAD
-git grep -n 'BEGIN OPENSSH PRIVATE KEY' main..HEAD -- .
+git grep -nE 'BEGIN .* PRIVATE KEY' main..HEAD -- .
 ```
 
 Expected: no secret match, no unrelated source behavior changes, and only the mapped files differ.
