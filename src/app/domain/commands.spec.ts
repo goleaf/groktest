@@ -239,6 +239,22 @@ describe('return and repayment', () => {
     expect(loan.status).toBe('active');
   });
 
+  it('rejects returning an item before its handoff date', () => {
+    const { loan } = createLoan(
+      {
+        kind: 'physical_item',
+        direction: 'lent',
+        personId: 'p',
+        personName: 'Peter',
+        itemName: 'drill',
+        occurredOn: '2026-08-21',
+      },
+      clock,
+    );
+
+    expect(() => markItemReturned(loan, clock)).toThrowError('date_order_invalid');
+  });
+
   it('adds partial repayments and computes remaining from history', () => {
     const { loan } = createLoan(
       {

@@ -191,8 +191,11 @@ export function markItemReturned(loan: Loan, clock: DomainClock): { loan: Loan; 
   if (loan.status !== 'active' || loan.deletedAt !== null) {
     throw new DomainError('loan_not_active');
   }
-  const at = instantFrom(clock.now());
   const returnedOn = today(clock);
+  if (returnedOn < loan.occurredOn) {
+    throw new DomainError('date_order_invalid');
+  }
+  const at = instantFrom(clock.now());
   const next: Loan = {
     ...loan,
     status: 'completed',
