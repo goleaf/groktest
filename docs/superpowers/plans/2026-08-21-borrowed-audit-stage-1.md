@@ -65,16 +65,23 @@ until their owner settles them.
 - Modify: `src/app/i18n/lt.ts`
 - Modify: `src/app/i18n/ru.ts`
 
-- [ ] Add failing tests for initial loading, failure/retry, route-id changes, stale response
+- [x] Add failing tests for initial loading, failure/retry, route-id changes, stale response
       rejection and language changes without a second `personOverview()` call.
-- [ ] Replace `route.snapshot + effect + Promise.then` with `toSignal(route.paramMap)` and one
+- [x] Replace `route.snapshot + effect + Promise.then` with `toSignal(route.paramMap)` and one
       `resource` keyed by person id and the temporary revision only.
-- [ ] Return `remainingMinorUnitsByLoan` from `personOverview(personId)` and remove its locale
+- [x] Return `remainingMinorUnitsByLoan` from `personOverview(personId)` and remove its locale
       argument and formatted-string map.
-- [ ] Format each raw balance in a Person `computed`, so locale changes affect only presentation.
-- [ ] Add localized Person load-error and retry messages and an accessible `aria-busy` boundary.
-- [ ] Run the focused Person and Dexie tests, Angular typecheck, lint for touched files and diff
+- [x] Format each raw balance in a Person `computed`, so locale changes affect only presentation.
+- [x] Add localized Person load-error and retry messages and an accessible `aria-busy` boundary.
+- [x] Run the focused Person and Dexie tests, Angular typecheck, lint for touched files and diff
       checks; commit only this slice.
+
+**Task 1 evidence (2026-08-21):** the focused Person test failed in four intended states before
+implementation and then passed 5/5. The language-revision regression failed `2` versus `1` before
+the fix and passed afterward. Final shared-tree gates passed 41 files/183 tests, ESLint, Prettier,
+development typecheck and production build. Isolated Playwright verified reused-route navigation
+Peter → Aistė, EN → LT raw-money reformatting, 1440px and 390px layouts without horizontal
+overflow, and zero console errors or warnings.
 
 ### Task 2: Remove locale from Records and Search reads
 

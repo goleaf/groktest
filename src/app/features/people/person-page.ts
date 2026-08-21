@@ -1,6 +1,8 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, resource } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { of } from 'rxjs';
+import { BorrowedApp, type PersonOverview } from '../../data/borrowed-app';
 import type { Loan, MoneyTotal, Person } from '../../domain/types';
 import { formatMinorUnits } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
@@ -11,9 +13,16 @@ import { LoanRow } from '../../ui/loan-row';
   selector: 'app-person-page',
   imports: [LoanRow, RouterLink, Icon],
   template: `
-    <section class="page">
+    <section class="page" [attr.aria-busy]="loading() ? 'true' : null">
       <a routerLink="/people" class="back"><app-icon name="back" /> {{ i18n.t('nav.back') }}</a>
-      @if (missing()) {
+      @if (loadError(); as message) {
+        <div class="stack person-load-error">
+          <p class="error icon-line" role="alert"><app-icon name="warning" /> {{ message }}</p>
+          <button class="button" type="button" (click)="retry()">
+            {{ i18n.t('person.retry') }}
+          </button>
+        </div>
+      } @else if (missing()) {
         <div class="missing-state">
           <app-icon name="info" />
           <h1>{{ i18n.t('person.missingTitle') }}</h1>
@@ -127,44 +136,64 @@ export class PersonPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
   private readonly route = inject(ActivatedRoute);
-  protected readonly person = signal<Person | null>(null);
-  protected readonly activeLent = signal<readonly Loan[]>([]);
-  protected readonly activeBorrowed = signal<readonly Loan[]>([]);
-  protected readonly history = signal<Loan[]>([]);
-  protected readonly lentItemCount = signal(0);
-  protected readonly borrowedItemCount = signal(0);
-  protected readonly owedToMe = signal<MoneyTotal[]>([]);
-  protected readonly iOwe = signal<MoneyTotal[]>([]);
-  protected readonly remaining = signal<ReadonlyMap<string, string | null>>(new Map());
-  protected readonly missing = signal(false);
-  protected readonly loading = signal(true);
-
-  constructor() {
-    effect(() => {
-      this.app.revision();
-      const id = this.route.snapshot.paramMap.get('id');
-      const locale = this.i18n.locale();
-      if (!id) {
-        this.missing.set(true);
-        this.loading.set(false);
-        return;
+  private readonly routeParamMap = toSignal(
+    this.route.paramMap || of(this.route.snapshot.paramMap),
+    { initialValue: this.route.snapshot.paramMap },
+  );
+  private readonly personResource = resource({
+    params: () => {
+      const id = this.routeParamMap().get('id');
+      return id ? { id, revision: this.app.revision() } : undefined;
+    },
+    loader: ({ params }) => this.app.personOverview(params.id),
+  });
+  private readonly overview = computed<PersonOverview | null>(() =>
+    this.personResource.hasValue() ? this.personResource.value() : null,
+  );
+  protected readonly person = computed<Person | null>(() => this.overview()?.person ?? null);
+  protected readonly activeLent = computed<readonly Loan[]>(
+    () => this.overview()?.activeLent ?? [],
+  );
+  protected readonly activeBorrowed = computed<readonly Loan[]>(
+    () => this.overview()?.activeBorrowed ?? [],
+  );
+  protected readonly history = computed<readonly Loan[]>(() => this.overview()?.history ?? []);
+  protected readonly lentItemCount = computed(() => this.overview()?.lentItemCount ?? 0);
+  protected readonly borrowedItemCount = computed(() => this.overview()?.borrowedItemCount ?? 0);
+  protected readonly owedToMe = computed<readonly MoneyTotal[]>(
+    () => this.overview()?.owedToMe ?? [],
+  );
+  protected readonly iOwe = computed<readonly MoneyTotal[]>(() => this.overview()?.iOwe ?? []);
+  protected readonly remaining = computed<ReadonlyMap<string, string | null>>(() => {
+    const locale = this.i18n.locale();
+    const data = this.overview();
+    const formatted = new Map<string, string | null>();
+    if (!data) {
+      return formatted;
+    }
+    for (const loan of [...data.activeLent, ...data.activeBorrowed]) {
+      const minorUnits = data.remainingMinorUnitsByLoan.get(loan.id);
+      if (
+        minorUnits === undefined ||
+        !loan.currencyCode ||
+        minorUnits === loan.originalMinorUnits
+      ) {
+        formatted.set(loan.id, null);
+        continue;
       }
-      this.loading.set(true);
-      void this.app.personOverview(id, locale).then((overview) => {
-        this.person.set(overview.person ?? null);
-        this.activeLent.set(overview.activeLent);
-        this.activeBorrowed.set(overview.activeBorrowed);
-        this.history.set(overview.history);
-        this.lentItemCount.set(overview.lentItemCount);
-        this.borrowedItemCount.set(overview.borrowedItemCount);
-        this.owedToMe.set([...overview.owedToMe]);
-        this.iOwe.set([...overview.iOwe]);
-        this.missing.set(!overview.person);
-        this.remaining.set(overview.remainingByLoan);
-        this.loading.set(false);
-      });
-    });
-  }
+      formatted.set(loan.id, formatMinorUnits(minorUnits, loan.currencyCode, locale));
+    }
+    return formatted;
+  });
+  protected readonly missing = computed(
+    () =>
+      !this.routeParamMap().get('id') ||
+      (this.personResource.status() === 'resolved' && this.person() === null),
+  );
+  protected readonly loading = this.personResource.isLoading;
+  protected readonly loadError = computed(() =>
+    this.personResource.error() ? this.i18n.t('person.loadError') : '',
+  );
 
   protected remainingOf(id: string): string | null {
     return this.remaining().get(id) ?? null;
@@ -178,5 +207,9 @@ export class PersonPage {
     return totals.length
       ? totals.map((total) => this.money(total)).join(' · ')
       : this.i18n.t('person.none');
+  }
+
+  protected retry(): void {
+    this.personResource.reload();
   }
 }

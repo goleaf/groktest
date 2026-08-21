@@ -323,6 +323,8 @@ export const lt = {
     fromPerson: 'Iš {person}',
     noActive: 'Aktyvių įrašų su {person} nėra.',
     loading: 'Įkeliami žmogaus duomenys…',
+    loadError: 'Nepavyko įkelti šio žmogaus duomenų iš įrenginio. Bandykite dar kartą.',
+    retry: 'Bandyti dar kartą',
   },
   more: {
     title: 'Daugiau',

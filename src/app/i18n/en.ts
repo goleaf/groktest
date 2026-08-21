@@ -268,6 +268,8 @@ export const en = {
     fromPerson: 'From {person}',
     noActive: 'No active records with {person}.',
     loading: 'Loading this person…',
+    loadError: 'This person could not be loaded on this device. Try again.',
+    retry: 'Retry',
   },
   more: {
     title: 'More',

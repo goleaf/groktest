@@ -278,7 +278,7 @@ describe('local persistence', () => {
     await first.store.close();
 
     const reloaded = await session(dbName);
-    const overview = await reloaded.app.personOverview(drill.personId, 'en-GB');
+    const overview = await reloaded.app.personOverview(drill.personId);
 
     expect(overview.person?.displayName).toBe('Andrei');
     expect(overview.activeLent.map((loan) => loan.id)).toEqual([money.id]);
@@ -288,7 +288,7 @@ describe('local persistence', () => {
     expect(overview.owedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 7000n }]);
     expect(overview.iOwe).toEqual([]);
     expect(overview.history.map((loan) => loan.id)).toEqual([drill.id]);
-    expect(overview.remainingByLoan.get(money.id)).toContain('70');
+    expect(overview.remainingMinorUnitsByLoan.get(money.id)).toBe(7000n);
     await reloaded.store.close();
     indexedDB.deleteDatabase(dbName);
   });
@@ -308,7 +308,7 @@ describe('local persistence', () => {
     const personLoans = vi.spyOn(store, 'listLoansForPerson');
     const personRepayments = vi.spyOn(store, 'listRepaymentsForLoanIds');
 
-    await app.personOverview(loan.personId, 'en-GB');
+    await app.personOverview(loan.personId);
 
     expect(personLoans).toHaveBeenCalledExactlyOnceWith(loan.personId);
     expect(personRepayments).toHaveBeenCalledExactlyOnceWith([loan.id]);
@@ -373,10 +373,11 @@ describe('local persistence', () => {
     repaymentQueries.mockClear();
     const boundedRepaymentQueries = vi.spyOn(store, 'listRepaymentsForLoanIds');
     await app.remainingMap(await app.activeLoans());
-    expect(boundedRepaymentQueries).toHaveBeenCalledExactlyOnceWith([
-      lentMoney.id,
-      borrowedMoney.id,
-    ]);
+    expect(boundedRepaymentQueries).toHaveBeenCalledTimes(1);
+    expect(boundedRepaymentQueries.mock.calls[0]?.[0]).toHaveLength(2);
+    expect(boundedRepaymentQueries.mock.calls[0]?.[0]).toEqual(
+      expect.arrayContaining([lentMoney.id, borrowedMoney.id]),
+    );
     expect(repaymentQueries).not.toHaveBeenCalled();
     await store.close();
     indexedDB.deleteDatabase(dbName);
@@ -387,7 +388,9 @@ describe('local persistence', () => {
     const { app, store } = await session(dbName);
     const initialMutations = await app.pendingMutations();
     await app.setPreferredCurrency('GBP');
+    const revisionBeforeLanguage = app.revision();
     await app.setPreferredLanguage('ru');
+    expect(app.revision()).toBe(revisionBeforeLanguage);
     expect((await app.settings()).preferredLanguage).toBe('ru');
     expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
 

@@ -18,7 +18,10 @@ import { summarizeHome } from '../domain/home-summary';
 import { DomainError } from '../domain/errors';
 import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
 import { formatMinorUnits, requireCurrency } from '../domain/money';
-import { summarizePersonRelationships } from '../domain/person-summary';
+import {
+  summarizePersonRelationships,
+  type PersonRelationshipSummary,
+} from '../domain/person-summary';
 import type { ListFilter } from '../domain/query';
 import { visibleLoans } from '../domain/query';
 import type {
@@ -55,6 +58,10 @@ export interface PersonListRow {
   readonly lentActiveCount: number;
   readonly borrowedActiveCount: number;
   readonly historyCount: number;
+}
+
+export interface PersonOverview extends PersonRelationshipSummary {
+  readonly person: Person | undefined;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -105,7 +112,6 @@ export class BorrowedApp {
       version: current.version + 1,
     };
     await this.store.saveSettings(next, this.clock);
-    this.touch();
     return next;
   }
 
@@ -328,7 +334,7 @@ export class BorrowedApp {
     );
   }
 
-  async personOverview(personId: string, locale = 'en-GB') {
+  async personOverview(personId: string): Promise<PersonOverview> {
     const [person, loans] = await Promise.all([
       this.store.findPersonById(personId),
       this.store.listLoansForPerson(personId),
@@ -336,21 +342,9 @@ export class BorrowedApp {
     const repayments = await this.store.listRepaymentsForLoanIds(loans.map((loan) => loan.id));
     const repaymentsByLoan = this.groupRepayments(repayments);
     const summary = summarizePersonRelationships(loans, repaymentsByLoan, this.today());
-    const remainingByLoan = new Map<string, string | null>();
-    for (const loan of [...summary.activeLent, ...summary.activeBorrowed]) {
-      const remaining = summary.remainingMinorUnitsByLoan.get(loan.id);
-      if (remaining === undefined || !loan.currencyCode || remaining === loan.originalMinorUnits) {
-        remainingByLoan.set(loan.id, null);
-        continue;
-      }
-      remainingByLoan.set(loan.id, formatMinorUnits(remaining, loan.currencyCode, locale));
-    }
     return {
       person,
       ...summary,
-      active: [...summary.activeLent, ...summary.activeBorrowed],
-      history: [...summary.history],
-      remainingByLoan,
     };
   }
 
