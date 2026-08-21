@@ -4,6 +4,16 @@ import { BorrowedApp } from '../../data/borrowed-app';
 import { AddPage } from './add-page';
 import { vi } from 'vitest';
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('AddPage', () => {
   it('marks required conditional fields after submit without starting a write', async () => {
     const createRecord = vi.fn(async () => ({ id: 'unexpected' }));
@@ -152,6 +162,142 @@ describe('AddPage', () => {
     expect(createRecord).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'physical_item', itemName: 'Drill', personName: 'Peter' }),
     );
+  });
+
+  it('does not mount the form until settings, people, and draft initialization completes', async () => {
+    const settings = deferred<{ preferredCurrency: 'EUR' }>();
+    const people = deferred<never[]>();
+    const savedDraft = {
+      direction: 'borrowed',
+      kind: 'money',
+      personName: 'Anna',
+      personId: null,
+      itemName: '',
+      amount: '25',
+      currency: 'GBP',
+      dueOn: '2026-08-30',
+      note: 'Lunch',
+    } as const;
+    const recordDraft = deferred<typeof savedDraft | undefined>();
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings: () => settings.promise,
+            people: () => people.promise,
+            recordDraft: () => recordDraft.promise,
+            saveRecordDraft: async () => undefined,
+            clearRecordDraft: async () => undefined,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const initialStatus = root.querySelector('[role="status"]')?.textContent;
+    const initiallyMountedForm = root.querySelector('form');
+    const initialAriaBusy = root.querySelector('.add-page')?.getAttribute('aria-busy');
+
+    settings.resolve({ preferredCurrency: 'EUR' });
+    people.resolve([]);
+    recordDraft.resolve(savedDraft);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect((root.querySelector('#person') as HTMLInputElement).value).toBe('Anna');
+    });
+
+    expect(initialStatus).toContain('Loading your saved draft');
+    expect(initiallyMountedForm).toBeNull();
+    expect(initialAriaBusy).toBe('true');
+    expect(root.querySelector('.add-page')?.hasAttribute('aria-busy')).toBe(false);
+    expect((root.querySelector('#amount') as HTMLInputElement).value).toBe('25');
+  });
+
+  it('shows an initialization error and retries loading the form', async () => {
+    const settings = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('indexeddb unavailable'))
+      .mockResolvedValue({ preferredCurrency: 'EUR' });
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings,
+            people: async () => [],
+            recordDraft: async () => undefined,
+            saveRecordDraft: async () => undefined,
+            clearRecordDraft: async () => undefined,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('.add-initialization-error[role="alert"]')?.textContent).toContain(
+        'Couldn’t load this form',
+      );
+    });
+    expect(root.querySelector('form')).toBeNull();
+
+    (root.querySelector('.add-initialization-error button') as HTMLButtonElement).click();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('form')).toBeTruthy();
+    });
+    expect(settings).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps form data visible when draft persistence fails', async () => {
+    const saveRecordDraft = vi.fn(async () => {
+      throw new Error('quota exceeded');
+    });
+    const createRecord = vi.fn(async () => ({ id: 'unexpected' }));
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings: async () => ({ preferredCurrency: 'EUR' }),
+            people: async () => [],
+            recordDraft: async () => undefined,
+            saveRecordDraft,
+            clearRecordDraft: async () => undefined,
+            createRecord,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const person = root.querySelector('#person') as HTMLInputElement;
+
+    person.value = 'Peter';
+    person.dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    fixture.detectChanges();
+
+    expect(root.querySelector('.draft-status[role="alert"]')?.textContent).toContain('draft');
+    expect((root.querySelector('#person') as HTMLInputElement).value).toBe('Peter');
+    expect(createRecord).not.toHaveBeenCalled();
   });
 
   it('presents one accessible fast create form', async () => {
@@ -326,13 +472,13 @@ describe('AddPage', () => {
     const fixture = TestBed.createComponent(AddPage);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    const input = root.querySelector('#person') as HTMLInputElement;
 
     await vi.waitFor(() => {
       fixture.detectChanges();
       expect(root.querySelectorAll('.chips button')).toHaveLength(8);
     });
 
+    const input = root.querySelector('#person') as HTMLInputElement;
     input.value = 'ann';
     input.dispatchEvent(new Event('input'));
 
