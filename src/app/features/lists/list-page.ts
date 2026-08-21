@@ -86,10 +86,7 @@ import {
           <ul class="loan-list">
             @for (loan of shown(); track loan.id) {
               <li>
-                <app-loan-row
-                  [loan]="loan"
-                  [remainingMinorUnits]="remainingOf(loan.id)"
-                />
+                <app-loan-row [loan]="loan" [remainingMinorUnits]="remainingOf(loan.id)" />
               </li>
             }
           </ul>

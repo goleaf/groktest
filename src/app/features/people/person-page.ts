@@ -92,10 +92,7 @@ import { LoanRow } from '../../ui/loan-row';
             <ul class="loan-list">
               @for (loan of activeLent(); track loan.id) {
                 <li>
-                  <app-loan-row
-                    [loan]="loan"
-                    [remainingMinorUnits]="remainingOf(loan.id)"
-                  />
+                  <app-loan-row [loan]="loan" [remainingMinorUnits]="remainingOf(loan.id)" />
                 </li>
               }
             </ul>
@@ -110,10 +107,7 @@ import { LoanRow } from '../../ui/loan-row';
             <ul class="loan-list">
               @for (loan of activeBorrowed(); track loan.id) {
                 <li>
-                  <app-loan-row
-                    [loan]="loan"
-                    [remainingMinorUnits]="remainingOf(loan.id)"
-                  />
+                  <app-loan-row [loan]="loan" [remainingMinorUnits]="remainingOf(loan.id)" />
                 </li>
               }
             </ul>
