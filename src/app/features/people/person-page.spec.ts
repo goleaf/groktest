@@ -1,10 +1,9 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 import { CurrentDayService } from '../../application/current-day-service';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { PeopleQueryService } from '../../application/people-query-service';
 import type { Loan, Person } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { PersonPage } from './person-page';
@@ -123,9 +122,8 @@ describe('PersonPage', () => {
         currentDayProvider,
         route.provider,
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             personOverview: async () => ({
               ...overview(person('p1', 'Andrei'), [lent, borrowed, completed]),
               lentItemCount: 1,
@@ -164,9 +162,8 @@ describe('PersonPage', () => {
         currentDayProvider,
         route.provider,
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             personOverview: () => pending.promise,
           },
         },
@@ -198,9 +195,8 @@ describe('PersonPage', () => {
         currentDayProvider,
         route.provider,
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             personOverview,
           },
         },
@@ -235,9 +231,8 @@ describe('PersonPage', () => {
         currentDayProvider,
         route.provider,
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             personOverview,
           },
         },
@@ -283,9 +278,8 @@ describe('PersonPage', () => {
         currentDayProvider,
         route.provider,
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             personOverview,
           },
         },

@@ -1,5 +1,4 @@
 import { calendarDaysBetween, type CalendarDate } from './calendar-date';
-import { formatMinorUnits } from './money';
 import {
   compareLoansByAttention,
   isLoanDueSoon,
@@ -33,12 +32,7 @@ export function groupOutstandingMoney(
   }));
 }
 
-function actionFor(
-  loan: Loan,
-  today: CalendarDate,
-  repayments: readonly Repayment[],
-  locale: string,
-): HomeAction {
+function actionFor(loan: Loan, today: CalendarDate, repayments: readonly Repayment[]): HomeAction {
   const overdue = isLoanOverdue(loan, today);
   const urgency: HomeAction['urgency'] = overdue
     ? 'overdue'
@@ -46,41 +40,27 @@ function actionFor(
       ? 'due_soon'
       : 'open';
   if (loan.assetKind === 'physical_item') {
-    const key =
-      loan.direction === 'lent'
-        ? overdue
-          ? 'home.action.lentItemOverdue'
-          : 'home.action.lentItem'
-        : overdue
-          ? 'home.action.borrowedItemOverdue'
-          : 'home.action.borrowedItem';
     return {
       loanId: loan.id,
       direction: loan.direction,
       assetKind: loan.assetKind,
       personName: loan.personNameSnapshot,
-      subject: loan.itemName ?? '',
+      itemName: loan.itemName ?? '',
       urgency,
       dueOn: loan.dueOn,
       daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
-      messageKey: key,
-      params: { person: loan.personNameSnapshot, item: loan.itemName ?? '' },
     };
   }
   const remaining = outstandingMinorUnits(loan, repayments);
-  const amount = loan.currencyCode ? formatMinorUnits(remaining, loan.currencyCode, locale) : '';
-  const key = loan.direction === 'lent' ? 'home.action.lentMoney' : 'home.action.borrowedMoney';
   return {
     loanId: loan.id,
     direction: loan.direction,
     assetKind: loan.assetKind,
     personName: loan.personNameSnapshot,
-    subject: amount,
+    money: loan.currencyCode ? { currencyCode: loan.currencyCode, minorUnits: remaining } : null,
     urgency,
     dueOn: loan.dueOn,
     daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
-    messageKey: key,
-    params: { person: loan.personNameSnapshot, amount },
   };
 }
 
@@ -88,20 +68,19 @@ export function summarizeHome(
   loans: readonly Loan[],
   repaymentsByLoan: ReadonlyMap<string, readonly Repayment[]>,
   today: CalendarDate,
-  locale: string,
 ): HomeSummary {
   const visible = loans.filter((loan) => loan.deletedAt === null);
   const active = visible.filter((loan) => loan.status === 'active');
   const ranked = [...active].sort((left, right) => compareLoansByAttention(left, right, today));
   const actions = ranked
     .slice(0, 5)
-    .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
+    .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? []));
   const actionIds = new Set(actions.map((action) => action.loanId));
   const dueNext = active
     .filter((loan) => loan.dueOn !== null && !isLoanOverdue(loan, today) && !actionIds.has(loan.id))
     .sort((left, right) => compareLoansByAttention(left, right, today))
     .slice(0, 4)
-    .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
+    .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? []));
   const people = new Map<
     string,
     {

@@ -89,4 +89,36 @@ describe('LanguageSwitcher', () => {
       'Switch language to Lietuvių (LT)',
     ]);
   });
+
+  it('restores the previous language and exposes an alert when persistence fails', async () => {
+    const setPreferredLanguage = vi.fn().mockRejectedValue(new Error('quota exceeded'));
+    await TestBed.configureTestingModule({
+      imports: [LanguageSwitcher],
+      providers: [{ provide: SettingsService, useValue: { setPreferredLanguage } }],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LanguageSwitcher);
+    fixture.componentRef.setInput('compact', true);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const select = root.querySelector<HTMLSelectElement>('select.language-select');
+
+    expect(select).toBeTruthy();
+    if (!select) {
+      throw new Error('language_select_missing');
+    }
+    select.value = 'ru';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('[role="alert"]')?.textContent).toContain(
+        'Couldn’t save the language choice.',
+      );
+    });
+    expect(setPreferredLanguage).toHaveBeenCalledWith('ru');
+    expect(select?.disabled).toBe(false);
+    expect(select?.value).toBe('en');
+    expect(document.documentElement.lang).toBe('en');
+  });
 });

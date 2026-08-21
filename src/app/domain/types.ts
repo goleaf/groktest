@@ -117,18 +117,26 @@ export interface MoneyTotal {
   readonly minorUnits: bigint;
 }
 
-export interface HomeAction {
+interface HomeActionBase {
   readonly loanId: string;
   readonly direction: LoanDirection;
-  readonly assetKind: AssetKind;
   readonly personName: string;
-  readonly subject: string;
   readonly urgency: 'overdue' | 'due_soon' | 'open';
   readonly dueOn: CalendarDate | null;
   readonly daysUntilDue: number | null;
-  readonly messageKey: string;
-  readonly params: Readonly<Record<string, string>>;
 }
+
+export interface HomeItemAction extends HomeActionBase {
+  readonly assetKind: 'physical_item';
+  readonly itemName: string;
+}
+
+export interface HomeMoneyAction extends HomeActionBase {
+  readonly assetKind: 'money';
+  readonly money: MoneyTotal | null;
+}
+
+export type HomeAction = HomeItemAction | HomeMoneyAction;
 
 export interface HomePersonSummary {
   readonly personId: string;

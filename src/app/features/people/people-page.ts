@@ -1,7 +1,8 @@
 import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BorrowedApp, type PersonListRow } from '../../data/borrowed-app';
+import { ApplicationRevision } from '../../application/application-revision';
+import { PeopleQueryService, type PersonListRow } from '../../application/people-query-service';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon } from '../../ui/icon';
@@ -109,10 +110,11 @@ import { PageHeading } from '../../ui/page-heading';
 })
 export class PeoplePage {
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(PeopleQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly rowsResource = resource({
-    params: () => ({ revision: this.app.revision() }),
-    loader: () => this.app.peopleWithCounts(),
+    params: () => ({ revision: this.revision.value() }),
+    loader: () => this.queries.peopleWithCounts(),
   });
   protected readonly rows = computed<PersonListRow[]>(() => this.rowsResource.value() ?? []);
   protected readonly loading = this.rowsResource.isLoading;

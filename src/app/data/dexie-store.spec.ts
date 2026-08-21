@@ -2,9 +2,11 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
+import { ApplicationRevision } from '../application/application-revision';
 import { BackupService } from '../application/backup-service';
 import { CurrentDayService } from '../application/current-day-service';
 import { RecordDraftService } from '../application/record-draft-service';
+import { RecordsCommandService } from '../application/records-command-service';
 import { SettingsService } from '../application/settings-service';
 import { changeLoanDueDate, type DomainClock } from '../domain/commands';
 import { outstandingMinorUnits } from '../domain/loan-rules';
@@ -29,11 +31,13 @@ async function session(
   store: DexieBorrowedStore;
 }> {
   const store = new DexieBorrowedStore(name);
-  const settings = new SettingsService(store, sessionClock);
+  const revision = new ApplicationRevision();
+  const settings = new SettingsService(store, sessionClock, revision);
+  const commands = new RecordsCommandService(store, sessionClock, settings);
   const drafts = new RecordDraftService(store, sessionClock);
   const backups = new BackupService(store, sessionClock);
   const currentDay = new CurrentDayService(sessionClock);
-  const app = new BorrowedApp(store, sessionClock);
+  const app = new BorrowedApp(store, sessionClock, commands, currentDay, revision);
   await settings.initialize();
   return { app, backups, currentDay, drafts, settings, store };
 }
@@ -167,12 +171,15 @@ describe('local persistence', () => {
     });
 
     expect(currentDay.daysUntilDue(loan)).toBe(1);
+    expect((await app.home()).overdueCount).toBe(0);
     now = new Date('2026-08-21T12:00:00.000Z');
     currentDay.refresh();
     expect(currentDay.daysUntilDue(loan)).toBe(0);
+    expect((await app.home()).overdueCount).toBe(0);
     now = new Date('2026-08-22T12:00:00.000Z');
     currentDay.refresh();
     expect(currentDay.daysUntilDue(loan)).toBe(-1);
+    expect((await app.home()).overdueCount).toBe(1);
 
     await store.close();
     indexedDB.deleteDatabase(dbName);
@@ -316,9 +323,12 @@ describe('local persistence', () => {
     expect((await app.remainingMap([loan])).get(loan.id)).toBeNull();
     expect((await app.loanDetail(loan.id))?.repayments).toEqual([]);
 
-    const home = await app.home('en-GB');
+    const home = await app.home();
     expect(home.moneyOwedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 10000n }]);
-    expect(home.actions.find((action) => action.loanId === loan.id)?.subject).toBe('€100.00');
+    expect(home.actions.find((action) => action.loanId === loan.id)).toMatchObject({
+      assetKind: 'money',
+      money: { currencyCode: 'EUR', minorUnits: 10000n },
+    });
 
     const person = await app.personOverview(loan.personId);
     expect(person.owedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 10000n }]);
@@ -620,8 +630,12 @@ describe('local persistence', () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const { app, drafts, settings, store } = await session(dbName);
     const initialMutations = await app.pendingMutations();
+    const revisionBeforeCurrency = app.revision();
     await settings.setPreferredCurrency('GBP');
+    expect(app.revision()).toBe(revisionBeforeCurrency + 1);
+    const revisionBeforeLanguage = app.revision();
     await settings.setPreferredLanguage('ru');
+    expect(app.revision()).toBe(revisionBeforeLanguage);
     expect((await settings.get()).preferredLanguage).toBe('ru');
     expect(await app.pendingMutations()).toHaveLength(initialMutations.length + 2);
 

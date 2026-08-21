@@ -1,6 +1,7 @@
 import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { ApplicationRevision } from '../../application/application-revision';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { Icon } from '../../ui/icon';
@@ -58,17 +59,18 @@ import { PageHeading } from '../../ui/page-heading';
 })
 export class SearchPage {
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(RecordsQueryService);
+  private readonly revision = inject(ApplicationRevision);
   protected readonly query = signal('');
   private readonly searchResource = resource({
     params: () => {
       const query = this.query();
-      const revision = this.app.revision();
+      const revision = this.revision.value();
       return query.trim() ? { query, revision } : undefined;
     },
     loader: async ({ params }) => {
-      const loans = await this.app.search(params.query);
-      return { loans, remaining: await this.app.remainingMap(loans) };
+      const loans = await this.queries.search(params.query);
+      return { loans, remaining: await this.queries.remainingMap(loans) };
     },
   });
   protected readonly results = computed<Loan[]>(() => this.searchResource.value()?.loans ?? []);

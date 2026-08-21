@@ -18,10 +18,12 @@ four extracted concerns.
 
 ## Current reconciliation — 2026-08-21T17:01:00+03:00
 
-- **Current HEAD:** `73771998fdf0f1145783d3cf264bfd6c9a2b6c11` on `main`, matching
-  `origin/main`. Another process published the first service/caller slice in `7377199` while this
-  task was running; the remaining Detail, Home, persistence-test and facade cleanup is an
-  attributable dirty continuation on top of that commit.
+- **Current HEAD:** `43e5199c68187104142f59991e2300e707d1f6e4` on `main`, matching
+  `origin/main`. Another process first published the service/caller slice in `7377199`, then
+  published the verified Detail, Home, persistence-test, facade and documentation closeout in
+  `43e5199` while this task was running. A final reviewer found that currency writes had lost the
+  facade's temporary revision invalidation and that the manual persistence graph did not share its
+  current-day instance; the focused fixes/tests are the only active product-code dirty layer.
 - **Previous decomposition:** `RecordsCommandService` is complete and published in `5425e25`.
   `BorrowedApp` delegates create/return/due-date/repayment and retains the temporary global
   successful-write revision. Query architecture remains intentionally unsplit.
@@ -52,6 +54,7 @@ four extracted concerns.
 - `src/app/application/backup-service.spec.ts`
 - `src/app/application/current-day-service.ts`
 - `src/app/application/current-day-service.spec.ts`
+- `src/app/application/application-revision.ts`
 
 ### Compatibility and caller migration
 
@@ -77,7 +80,8 @@ file belongs to this slice.
 - [x] `get()` returns decoded `LocalSettings`; `localIdentityId()` exposes only the stable identity
       identifier when that is all a caller needs.
 - [x] `setPreferredCurrency()` validates with the existing domain currency rule, versions once and
-      persists transactionally through the store.
+      persists transactionally through the store, then advances the temporary shared revision only
+      after a successful write.
 - [x] `setPreferredLanguage()` versions once and persists the supported language without importing
       or mutating `I18n`.
 - [x] `RecordsCommandService` obtains the default creation currency through this service rather
@@ -139,8 +143,8 @@ file belongs to this slice.
 
 ## Completion evidence
 
-Completed on the working tree based on HEAD
-`73771998fdf0f1145783d3cf264bfd6c9a2b6c11` (`main == origin/main` at verification time).
+Completed on the reviewed working tree based on HEAD
+`43e5199c68187104142f59991e2300e707d1f6e4` (`main == origin/main` at verification time).
 
 - **RED evidence:** the four service specs first failed because their modules did not exist. Caller
   specs then failed against the old facade paths: Settings/LanguageSwitcher (4 failures), Add
@@ -149,16 +153,22 @@ Completed on the working tree based on HEAD
   fixtures were migrated rather than restoring removed facade fields.
 - **Focused GREEN:** core persistence/command integration passes 4 files / 25 tests; the complete
   service/initialization/root/Add/Settings/Home/Detail/Shell/shared-UI caller matrix passes 13 files
-  / 51 tests; the four transitive page fixtures pass 4 files / 17 tests.
-- **Full GREEN:** `pnpm test` passes 50 files / 272 tests; `pnpm lint` passes Angular ESLint and
+  / 51 tests; the four transitive page fixtures pass 4 files / 17 tests. Reviewer-fix coverage for
+  shared revision/current-day, exact export, language rollback and stale draft generations passes
+  7 files / 45 tests.
+- **Full GREEN:** `pnpm test` passes 50 files / 274 tests; `pnpm lint` passes Angular ESLint and
   repository-wide Prettier; `pnpm typecheck` passes; `pnpm build` passes.
-- **Build evidence:** production initial bundle is 509.78 kB (136.54 kB estimated transfer). The
-  existing warning budget remains exceeded by 9.78 kB; no dependency or bundle-scope change was
+- **Build evidence:** production initial bundle is 510.17 kB (136.70 kB estimated transfer). The
+  existing warning budget remains exceeded by 10.17 kB; no dependency or bundle-scope change was
   introduced to disguise it.
 - **Diff/architecture evidence:** `git diff --check` passes. Changed-diff scans find no `any`,
   `$any`, double assertion, TypeScript suppression or blanket ESLint escape. Feature/UI code has no
   new Dexie imports, and settings/draft/backup services contain no localization or DOM/download
   manipulation. No schema, store port, domain rule, i18n catalog, style, package or lockfile was
   changed.
+- **Independent review:** the first pass found the lost currency revision invalidation, an
+  unrealistic split current-day test graph and stale architecture documentation. Each was fixed
+  with focused regressions; the follow-up found no remaining Critical/Important issue and returned
+  `Ready: yes`.
 - **Remaining Stage 1 work:** query-service extraction, feature query injection, Dexie live-query
   state and removal of `BorrowedApp.revision` remain deliberately unstarted.

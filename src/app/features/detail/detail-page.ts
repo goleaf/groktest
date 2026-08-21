@@ -4,9 +4,10 @@ import { FormField, form, required, submit, validate } from '@angular/forms/sign
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
+import { ApplicationRevision } from '../../application/application-revision';
 import { CurrentDayService } from '../../application/current-day-service';
+import { RecordsQueryService, type RecordDetail } from '../../application/records-query-service';
 import { BorrowedApp } from '../../data/borrowed-app';
-import type { LoanRecord } from '../../data/store';
 import { DomainError } from '../../domain/errors';
 import { outstandingMinorUnits, repaidMinorUnits } from '../../domain/loan-rules';
 import { formatMinorUnits, isCurrencyCode } from '../../domain/money';
@@ -248,6 +249,8 @@ import { HandoffLine } from '../../ui/handoff-line';
 export class DetailPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(RecordsQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly currentDay = inject(CurrentDayService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
@@ -258,12 +261,12 @@ export class DetailPage {
   private readonly recordResource = resource({
     params: () => ({
       id: this.routeParamMap().get('id'),
-      revision: this.app.revision(),
+      revision: this.revision.value(),
     }),
     loader: ({ params }) =>
-      params.id ? this.app.loanDetail(params.id) : Promise.resolve(undefined),
+      params.id ? this.queries.loanDetail(params.id) : Promise.resolve(undefined),
   });
-  protected readonly record = computed<LoanRecord | null>(() =>
+  protected readonly record = computed<RecordDetail | null>(() =>
     this.recordResource.hasValue() ? (this.recordResource.value() ?? null) : null,
   );
   protected readonly missing = computed(

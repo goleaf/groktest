@@ -1,9 +1,8 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { CurrentDayService } from '../../application/current-day-service';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { SearchPage } from './search-page';
@@ -51,9 +50,8 @@ describe('SearchPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             search: async () => [],
             remainingMap: async () => new Map(),
           },
@@ -85,9 +83,8 @@ describe('SearchPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             search,
             remainingMap: async () => new Map(),
           },
@@ -127,9 +124,8 @@ describe('SearchPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             search,
             remainingMap: async () => new Map(),
           },
@@ -177,9 +173,8 @@ describe('SearchPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             search,
             remainingMap,
           },

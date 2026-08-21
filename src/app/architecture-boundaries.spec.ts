@@ -107,14 +107,12 @@ describe('architecture import boundaries', () => {
     expect(forbidden).toEqual([]);
   });
 
-  it('does not broaden the one known Detail-to-data-port type dependency before Stage 1 removes it', () => {
+  it('keeps presentation layers independent from the data-layer store contract', () => {
     const presentationStoreImports = matchingImports(
       ['src/app/features', 'src/app/i18n', 'src/app/layout', 'src/app/ui'],
       (specifier) => /\/data\/store(?:$|\/)/.test(specifier),
     );
 
-    expect(presentationStoreImports).toEqual([
-      'src/app/features/detail/detail-page.ts -> ../../data/store',
-    ]);
+    expect(presentationStoreImports).toEqual([]);
   });
 });

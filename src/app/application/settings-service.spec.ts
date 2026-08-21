@@ -1,8 +1,9 @@
 import 'fake-indexeddb/auto';
 import { indexedDB } from 'fake-indexeddb';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DomainClock } from '../domain/commands';
 import { DexieBorrowedStore } from '../data/dexie-store';
+import { ApplicationRevision } from './application-revision';
 import { SettingsService } from './settings-service';
 
 const clock: DomainClock = {
@@ -14,12 +15,19 @@ describe('SettingsService', () => {
   it('owns stable local identity access and versioned preference changes', async () => {
     const dbName = `borrowed-settings-service-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
-    const settings = new SettingsService(store, clock);
+    const revision = new ApplicationRevision();
+    const settings = new SettingsService(store, clock, revision);
 
     try {
       const initialized = await settings.initialize();
+      expect(revision.value()).toBe(0);
       const currency = await settings.setPreferredCurrency('GBP');
+      expect(revision.value()).toBe(1);
       const language = await settings.setPreferredLanguage('lt');
+      expect(revision.value()).toBe(1);
+      vi.spyOn(store, 'saveSettings').mockRejectedValueOnce(new Error('quota exceeded'));
+      await expect(settings.setPreferredCurrency('USD')).rejects.toThrow('quota exceeded');
+      expect(revision.value()).toBe(1);
 
       expect(await settings.localIdentityId()).toBe(initialized.localIdentityId);
       expect(currency.preferredCurrency).toBe('GBP');
@@ -30,7 +38,7 @@ describe('SettingsService', () => {
 
       await store.close();
       const reloadedStore = new DexieBorrowedStore(dbName);
-      const reloaded = new SettingsService(reloadedStore, clock);
+      const reloaded = new SettingsService(reloadedStore, clock, revision);
       expect((await reloaded.initialize()).localIdentityId).toBe(initialized.localIdentityId);
       expect((await reloaded.get()).preferredLanguage).toBe('lt');
       await reloadedStore.close();

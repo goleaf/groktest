@@ -52,7 +52,7 @@ describe('demo seed', () => {
     ).toEqual(new Set(['EUR', 'USD', 'GBP']));
     expect(home.overdueCount).toBeGreaterThan(0);
     expect(home.dueSoonCount).toBeGreaterThan(0);
-    expect(home.actions[0]?.params['person']).toBeTruthy();
+    expect(home.actions[0]?.personName).toBeTruthy();
 
     const peopleIds = new Set(people.map((person) => person.id));
     const loansById = new Map(loans.map((loan) => [loan.id, loan]));

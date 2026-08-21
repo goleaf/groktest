@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, PendingTasks, signal } from '@angular/core';
 import { FormField, form, hidden, maxLength, required, submit } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
+import { PeopleQueryService } from '../../application/people-query-service';
 import {
   RecordDraftService,
   type DraftPersistenceStatus,
@@ -263,6 +264,7 @@ interface AddRecordFormModel {
 export class AddPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly peopleQueries = inject(PeopleQueryService);
   private readonly settings = inject(SettingsService);
   private readonly drafts = inject(RecordDraftService);
   private readonly router = inject(Router);
@@ -404,7 +406,7 @@ export class AddPage {
     try {
       const [settings, people, draft] = await Promise.all([
         this.settings.get(),
-        this.app.people(),
+        this.peopleQueries.people(),
         this.drafts.load(),
       ]);
       if (version !== this.initializationVersion) {

@@ -2,9 +2,12 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { ApplicationRevision } from '../../application/application-revision';
 import { CurrentDayService } from '../../application/current-day-service';
+import { HomeQueryService } from '../../application/home-query-service';
 import { BorrowedApp } from '../../data/borrowed-app';
-import type { HomeAction, HomeSummary } from '../../domain/types';
+import type { HomeSummary } from '../../domain/types';
+import { I18n } from '../../i18n/i18n';
 import { HomePage } from './home-page';
 
 const summary: HomeSummary = {
@@ -36,36 +39,30 @@ const summary: HomeSummary = {
       direction: 'lent',
       assetKind: 'physical_item',
       personName: 'Peter',
-      subject: 'cordless drill',
+      itemName: 'cordless drill',
       urgency: 'overdue',
       dueOn: '2026-08-18',
       daysUntilDue: -2,
-      messageKey: 'home.action.lentItemOverdue',
-      params: { person: 'Peter', item: 'cordless drill' },
     },
     {
       loanId: 'pump',
       direction: 'borrowed',
       assetKind: 'physical_item',
       personName: 'Maya',
-      subject: 'bike pump',
+      itemName: 'bike pump',
       urgency: 'overdue',
       dueOn: '2026-08-15',
       daysUntilDue: -5,
-      messageKey: 'home.action.borrowedItemOverdue',
-      params: { person: 'Maya', item: 'bike pump' },
     },
     {
       loanId: 'ladder',
       direction: 'borrowed',
       assetKind: 'physical_item',
       personName: 'Anna',
-      subject: 'ladder',
+      itemName: 'ladder',
       urgency: 'open',
       dueOn: null,
       daysUntilDue: null,
-      messageKey: 'home.action.borrowedItem',
-      params: { person: 'Anna', item: 'ladder' },
     },
   ],
   dueNext: [
@@ -74,12 +71,10 @@ const summary: HomeSummary = {
       direction: 'lent',
       assetKind: 'physical_item',
       personName: 'Sergey',
-      subject: 'camera',
+      itemName: 'camera',
       urgency: 'open',
       dueOn: '2026-08-25',
       daysUntilDue: 5,
-      messageKey: 'home.action.lentItem',
-      params: { person: 'Sergey', item: 'camera' },
     },
   ],
 };
@@ -99,11 +94,10 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: HomeQueryService, useValue: { home: async () => summary } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            home: async () => summary,
             markReturned,
           },
         },
@@ -148,24 +142,20 @@ describe('HomePage', () => {
           direction: 'borrowed',
           assetKind: 'physical_item',
           personName: 'Anna',
-          subject: 'ladder',
+          itemName: 'ladder',
           urgency: 'open',
           dueOn: null,
           daysUntilDue: null,
-          messageKey: 'home.action.borrowedItem',
-          params: { person: 'Anna', item: 'ladder' },
         },
         {
           loanId: 'book',
           direction: 'lent',
           assetKind: 'physical_item',
           personName: 'Maya',
-          subject: 'book',
+          itemName: 'book',
           urgency: 'open',
           dueOn: null,
           daysUntilDue: null,
-          messageKey: 'home.action.lentItem',
-          params: { person: 'Maya', item: 'book' },
         },
       ],
       dueNext: [],
@@ -175,11 +165,10 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: HomeQueryService, useValue: { home: async () => ordinarySummary } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            home: async () => ordinarySummary,
             markReturned: async () => undefined,
           },
         },
@@ -206,11 +195,10 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: HomeQueryService, useValue: { home } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            home,
             markReturned: async () => undefined,
           },
         },
@@ -229,6 +217,51 @@ describe('HomePage', () => {
     expect(home).toHaveBeenCalledTimes(2);
   });
 
+  it('reformats raw money actions without repeating the Home query when language changes', async () => {
+    const home = vi.fn(async (): Promise<HomeSummary> => ({
+      ...summary,
+      actions: [
+        {
+          loanId: 'money',
+          direction: 'lent',
+          assetKind: 'money',
+          personName: 'Peter',
+          money: { currencyCode: 'EUR', minorUnits: 5000n },
+          urgency: 'open',
+          dueOn: null,
+          daysUntilDue: null,
+        },
+      ],
+      dueNext: [],
+    }));
+    await TestBed.configureTestingModule({
+      imports: [HomePage],
+      providers: [
+        provideRouter([]),
+        { provide: HomeQueryService, useValue: { home } },
+        {
+          provide: BorrowedApp,
+          useValue: {
+            markReturned: async () => undefined,
+          },
+        },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomePage);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('€50.00');
+
+    TestBed.inject(I18n).setLanguage('lt');
+    await vi.waitFor(() =>
+      expect(root.querySelector('.home-ledger')?.textContent).toContain('50,00 €'),
+    );
+
+    expect(home).toHaveBeenCalledTimes(1);
+  });
+
   it('does not let an older summary replace a newer revision', async () => {
     const revision = signal(0);
     const older = deferred<HomeSummary>();
@@ -242,11 +275,11 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: ApplicationRevision, useValue: { value: revision } },
+        { provide: HomeQueryService, useValue: { home } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision,
-            home,
             markReturned: async () => undefined,
           },
         },
@@ -280,11 +313,10 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: HomeQueryService, useValue: { home: async () => summary } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            home: async () => summary,
             markReturned,
           },
         },
@@ -320,11 +352,10 @@ describe('HomePage', () => {
       imports: [HomePage],
       providers: [
         provideRouter([]),
+        { provide: HomeQueryService, useValue: { home: async () => summary } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            home: async () => summary,
             markReturned: async () => Promise.reject(new Error('disk unavailable')),
           },
         },
@@ -334,15 +365,10 @@ describe('HomePage', () => {
 
     const fixture = TestBed.createComponent(HomePage);
     await fixture.whenStable();
-    await (
-      fixture.componentInstance as unknown as {
-        markReturned(action: HomeAction): Promise<void>;
-      }
-    )
-      .markReturned(summary.actions[0]!)
-      .catch(() => undefined);
-    await fixture.whenStable();
-    const alert = (fixture.nativeElement as HTMLElement).querySelector('[role="alert"]');
+    const root = fixture.nativeElement as HTMLElement;
+    (root.querySelector('.ledger-return-action') as HTMLButtonElement).click();
+    await vi.waitFor(() => expect(root.querySelector('[role="alert"]')).toBeTruthy());
+    const alert = root.querySelector('[role="alert"]');
 
     expect(alert?.textContent).toContain('cordless drill');
     expect(alert?.textContent).toContain('Try again');

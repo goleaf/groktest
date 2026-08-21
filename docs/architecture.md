@@ -13,8 +13,12 @@ flowchart LR
   Web --> App
   Native --> App
   Desktop --> App
-  App[BorrowedApp use cases] --> Domain[Pure domain rules]
-  App --> Store[BorrowedStore]
+  App[Features / UI] --> Services[Focused command / support services]
+  App --> Queries[Records / People / Home query services]
+  Services --> Domain[Pure domain rules]
+  Services --> Store[BorrowedStore]
+  Queries --> Domain
+  Queries --> Store
   Store --> IDB[(Dexie / IndexedDB v3)]
   Store --> Queue[(Mutation queue)]
   Queue -. future HTTPS sync .-> API[Versioned modular-monolith API]
@@ -23,10 +27,18 @@ flowchart LR
 ## Runtime layers
 
 1. `src/app/features`, `layout`, `ui`, `i18n`: routes, components, accessible interaction and localizable copy. They do not calculate balances or write Dexie directly.
-2. `src/app/data/borrowed-app.ts`: application use cases and presentation-shaped reads.
-3. `src/app/domain`: pure TypeScript types, commands, money/date/status/query rules and IDs.
-4. `src/app/data`: `BorrowedStore`, Dexie adapter, rows/mappers and schema migrations.
-5. `capacitor.config.ts`, `android/`, `ios/`, `electron/`: delivery shells. Native APIs must be wrapped at this boundary before features use them.
+2. `src/app/application`: focused record-command, settings, draft, backup/export, current-day and
+   Records/People/Home query services. They depend on the store port and pure domain contracts,
+   never Dexie or UI. Query services return raw values and preserve indexed/batched reads; feature
+   components own localized formatting. A small shared revision marker temporarily preserves
+   existing invalidation semantics until Stage 1 replaces global revision reads.
+3. `src/app/data/borrowed-app.ts`: temporary compatibility facade. Its legacy read methods delegate
+   to the focused query services, and Add/Home/Detail still use it for record commands until a
+   dedicated caller migration. It no longer implements query composition or owns settings, drafts,
+   backup/export or current-day state.
+4. `src/app/domain`: pure TypeScript types, commands, money/date/status/query rules and IDs.
+5. `src/app/data`: `BorrowedStore`, Dexie adapter, rows/mappers and schema migrations.
+6. `capacitor.config.ts`, `android/`, `ios/`, `electron/`: delivery shells. Native APIs must be wrapped at this boundary before features use them.
 
 Dependencies point inward. Domain code has no Angular, Dexie, Capacitor or Electron import.
 
@@ -35,7 +47,8 @@ Dependencies point inward. Domain code has no Angular, Dexie, Capacitor or Elect
 - Angular 22 standalone components, signals and zoneless change detection. `tsconfig.json`
   enforces `strictTemplates` and `strictStandalone`, so normal application compilation checks
   template bindings and rejects non-standalone declarations.
-- No NgRx: local persisted state is authoritative; signals hold screen state and the application revision marker.
+- No NgRx: local persisted state is authoritative; signals hold screen state and the temporary
+  application revision marker.
 - Feature routes are lazy loaded. The shell is eager so navigation and the first landmark appear quickly.
 - One flow is used at all widths. Mobile uses a five-item bottom navigation; desktop uses a horizontal header and wider ledger workspace.
 - User text comes from self-contained EN/RU/LT locale files. `catalog.ts` derives supported languages and selector metadata; English is the fallback and structural reference. Named parameters and `Intl.PluralRules` handle grammar without concatenating translated fragments. See `docs/i18n.md`.
@@ -55,7 +68,11 @@ The production web build registers Angular’s service worker and prefetches the
 
 Core create, view, search, return, repay, deadline tracking/change, history and settings operations perform no HTTP request. The PWA can reload its cached shell offline after one successful online production load.
 
-People remain local domain records rather than authenticated identities. The list performs one bounded people read and one bounded loans read for recent ordering/counts. A detail route performs one Person lookup, one indexed `personId` Loan read and at most one batched Repayment read, then the pure `summarizePersonRelationships()` function derives direction groups, physical-item counts, per-currency balances, remaining amounts and history.
+People remain local domain records rather than authenticated identities. `PeopleQueryService`
+performs one bounded people read and one bounded loans read for recent ordering/counts. A detail
+route performs one Person lookup, one indexed `personId` Loan read and at most one batched Repayment
+read, then the pure `summarizePersonRelationships()` function derives direction groups,
+physical-item counts, per-currency balances, remaining amounts and history.
 
 `dueOn` remains date-only source data. `calendarDaysBetween()` derives exact relative distance from the user's local today, and the shared `DueStatus` component renders the same EN/RU/LT reminder on Home, lists and Details. `CurrentDayService` owns the single reactive day signal, advances it at local midnight and refreshes it on window focus or restored page visibility, so an open screen does not keep yesterday's reminder. No stale overdue flag is stored.
 

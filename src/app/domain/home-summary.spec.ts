@@ -27,13 +27,23 @@ function moneyLoan(overrides: Partial<Loan> = {}): Loan {
   };
 }
 
+function itemLoan(overrides: Partial<Loan> = {}): Loan {
+  return moneyLoan({
+    assetKind: 'physical_item',
+    itemName: 'cordless drill',
+    quantity: 1,
+    currencyCode: null,
+    originalMinorUnits: null,
+    ...overrides,
+  });
+}
+
 describe('home action urgency', () => {
   it('classifies overdue money independently of translated copy', () => {
     const summary = summarizeHome(
       [moneyLoan(), moneyLoan({ id: 'open-money', dueOn: null })],
       new Map(),
       '2026-08-20',
-      'en',
     );
 
     expect(summary.actions[0]).toMatchObject({
@@ -44,13 +54,29 @@ describe('home action urgency', () => {
       dueOn: '2026-08-19',
       daysUntilDue: -1,
       personName: 'Peter',
-      subject: '€50.00',
+      money: { currencyCode: 'EUR', minorUnits: 5000n },
     });
+    expect(summary.actions[0]).not.toHaveProperty('subject');
+    expect(summary.actions[0]).not.toHaveProperty('messageKey');
+    expect(summary.actions[0]).not.toHaveProperty('params');
     expect(summary.actions[1]).toMatchObject({
       loanId: 'open-money',
       urgency: 'open',
       daysUntilDue: null,
     });
+  });
+
+  it('returns raw item names without translation metadata', () => {
+    const summary = summarizeHome([itemLoan()], new Map(), '2026-08-20');
+
+    expect(summary.actions[0]).toMatchObject({
+      loanId: '01900000-0000-7000-8000-000000000001',
+      assetKind: 'physical_item',
+      itemName: 'cordless drill',
+    });
+    expect(summary.actions[0]).not.toHaveProperty('subject');
+    expect(summary.actions[0]).not.toHaveProperty('messageKey');
+    expect(summary.actions[0]).not.toHaveProperty('params');
   });
 
   it('summarizes the busiest people and preserves both handoff directions', () => {
@@ -62,7 +88,6 @@ describe('home action urgency', () => {
       ],
       new Map(),
       '2026-08-20',
-      'en',
     );
 
     expect(summary.recentPeople).toEqual([
@@ -91,7 +116,6 @@ describe('home action urgency', () => {
       ],
       new Map(),
       '2026-08-20',
-      'en',
     );
 
     expect(summary.actions.find((action) => action.loanId === 'tomorrow')).toMatchObject({
@@ -112,7 +136,6 @@ describe('home action urgency', () => {
       ],
       new Map(),
       '2026-08-20',
-      'en',
     );
 
     expect(summary.actions.map((action) => action.loanId)).toEqual(['a', 'b']);
@@ -129,7 +152,7 @@ describe('home action urgency', () => {
       }),
     );
 
-    const summary = summarizeHome(loans, new Map(), '2026-08-20', 'en');
+    const summary = summarizeHome(loans, new Map(), '2026-08-20');
     const actionIds = new Set(summary.actions.map((action) => action.loanId));
 
     expect(summary.actions).toHaveLength(5);

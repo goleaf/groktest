@@ -5,12 +5,14 @@ import { requireCurrency } from '../domain/money';
 import type { LocalSettings, SupportedLanguage } from '../domain/types';
 import { CLOCK } from '../data/clock';
 import { BorrowedStore } from '../data/store';
+import { ApplicationRevision } from './application-revision';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   constructor(
     private readonly store: BorrowedStore,
     @Inject(CLOCK) private readonly clock: DomainClock,
+    private readonly revision: ApplicationRevision = new ApplicationRevision(),
   ) {}
 
   initialize(): Promise<LocalSettings> {
@@ -34,6 +36,7 @@ export class SettingsService {
       version: current.version + 1,
     };
     await this.store.saveSettings(next, this.clock);
+    this.revision.touch();
     return next;
   }
 

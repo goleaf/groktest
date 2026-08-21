@@ -1,9 +1,8 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { vi } from 'vitest';
 import { CurrentDayService } from '../../application/current-day-service';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { ListPage } from './list-page';
@@ -51,9 +50,8 @@ describe('ListPage filters', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             activeLoans: async () => [loan],
             remainingMap: async () => new Map(),
             filterLoans: (loans: readonly Loan[]) => [...loans],
@@ -96,9 +94,8 @@ describe('ListPage filters', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             activeLoans: async (direction?: 'lent' | 'borrowed') => {
               directions.push(direction);
               return [loan];
@@ -137,9 +134,8 @@ describe('ListPage filters', () => {
         provideRouter([{ path: 'records', component: ListPage }]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             activeLoans: async () => [loan],
             remainingMap: async () => new Map(),
             filterLoans: (loans: readonly Loan[]) => [...loans],
@@ -219,9 +215,8 @@ describe('ListPage filters', () => {
         provideRouter([{ path: 'records', component: ListPage }]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             activeLoans: (direction?: 'lent' | 'borrowed') => {
               directions.push(direction);
               return direction === 'borrowed' ? borrowedResult.promise : allResult.promise;
@@ -279,9 +274,8 @@ describe('ListPage filters', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             activeLoans,
             remainingMap,
             filterLoans: (loans: readonly Loan[]) => [...loans],

@@ -2,7 +2,8 @@ import { Component, computed, inject, input, resource } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { ApplicationRevision } from '../../application/application-revision';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { ListFilter } from '../../domain/query';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
@@ -103,7 +104,8 @@ export class ListPage {
   readonly icon = input.required<IconName>();
 
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(RecordsQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly queryParamMap = toSignal(this.route.queryParamMap, {
@@ -119,14 +121,16 @@ export class ListPage {
   protected readonly filters: ListFilter[] = ['all', 'items', 'money', 'overdue', 'due_soon'];
   private readonly recordsResource = resource({
     params: () => ({
-      revision: this.app.revision(),
+      revision: this.revision.value(),
       scope: this.scope(),
     }),
     loader: async ({ params }) => {
-      const loans = await this.app.activeLoans(params.scope === 'all' ? undefined : params.scope);
+      const loans = await this.queries.activeLoans(
+        params.scope === 'all' ? undefined : params.scope,
+      );
       return {
         loans,
-        remaining: await this.app.remainingMap(loans),
+        remaining: await this.queries.remainingMap(loans),
       };
     },
   });
@@ -139,7 +143,7 @@ export class ListPage {
     this.recordsResource.error() ? this.i18n.t('records.loadError') : '',
   );
   protected readonly shown = computed(() =>
-    this.app.filterLoans(this.all(), this.query(), this.filter()),
+    this.queries.filterLoans(this.all(), this.query(), this.filter()),
   );
   protected readonly iconForScope = iconForScope;
   protected readonly iconForFilter = iconForFilter;

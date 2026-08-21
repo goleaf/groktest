@@ -1,8 +1,7 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { PeopleQueryService } from '../../application/people-query-service';
 import { PeoplePage } from './people-page';
 
 function deferred<T>() {
@@ -20,9 +19,8 @@ describe('PeoplePage', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             peopleWithCounts: async () => [
               {
                 person: { id: 'p1', displayName: 'Peter' },
@@ -77,9 +75,8 @@ describe('PeoplePage', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
-            revision: signal(0),
             peopleWithCounts: () => pending.promise,
           },
         },

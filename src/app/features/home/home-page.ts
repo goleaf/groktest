@@ -1,8 +1,11 @@
 import { Component, computed, inject, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ApplicationRevision } from '../../application/application-revision';
 import { CurrentDayService } from '../../application/current-day-service';
+import { HomeQueryService } from '../../application/home-query-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
+import { formatMinorUnits } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
 import { DueStatus } from '../../ui/due-status';
 import { EmptyState } from '../../ui/empty-state';
@@ -10,6 +13,17 @@ import { HandoffLine } from '../../ui/handoff-line';
 import { Icon } from '../../ui/icon';
 import { iconForAction } from '../../ui/icon-for';
 import { PageHeading } from '../../ui/page-heading';
+
+type HomeActionView = HomeAction & {
+  readonly subject: string;
+  readonly messageKey: string;
+  readonly params: Readonly<Record<string, string>>;
+};
+
+type HomeSummaryView = Omit<HomeSummary, 'actions' | 'dueNext'> & {
+  readonly actions: readonly HomeActionView[];
+  readonly dueNext: readonly HomeActionView[];
+};
 
 @Component({
   selector: 'app-home-page',
@@ -190,16 +204,27 @@ import { PageHeading } from '../../ui/page-heading';
 export class HomePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(HomeQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly currentDay = inject(CurrentDayService);
   private readonly summaryResource = resource({
     params: () => ({
-      revision: this.app.revision(),
+      revision: this.revision.value(),
       currentDay: this.currentDay.currentDay(),
-      locale: this.i18n.locale(),
     }),
-    loader: ({ params }) => this.app.home(params.locale),
+    loader: () => this.queries.home(),
   });
-  protected readonly summary = computed(() => this.summaryResource.value() ?? null);
+  protected readonly summary = computed<HomeSummaryView | null>(() => {
+    const summary = this.summaryResource.value();
+    if (!summary) {
+      return null;
+    }
+    return {
+      ...summary,
+      actions: summary.actions.map((action) => this.presentAction(action)),
+      dueNext: summary.dueNext.map((action) => this.presentAction(action)),
+    };
+  });
   protected readonly loadError = computed(() =>
     this.summaryResource.error() ? this.i18n.t('home.loadError') : '',
   );
@@ -212,7 +237,7 @@ export class HomePage {
     return summary.activeLentCount + summary.activeBorrowedCount;
   }
 
-  protected async markReturned(action: HomeAction): Promise<void> {
+  protected async markReturned(action: HomeActionView): Promise<void> {
     if (action.assetKind !== 'physical_item' || this.busyLoanId()) {
       return;
     }
@@ -229,5 +254,35 @@ export class HomePage {
     } finally {
       this.busyLoanId.set(null);
     }
+  }
+
+  private presentAction(action: HomeAction): HomeActionView {
+    if (action.assetKind === 'money') {
+      const subject = action.money
+        ? formatMinorUnits(action.money.minorUnits, action.money.currencyCode, this.i18n.locale())
+        : '';
+      return {
+        ...action,
+        subject,
+        messageKey:
+          action.direction === 'lent' ? 'home.action.lentMoney' : 'home.action.borrowedMoney',
+        params: { person: action.personName, amount: subject },
+      };
+    }
+
+    const messageKey =
+      action.direction === 'lent'
+        ? action.urgency === 'overdue'
+          ? 'home.action.lentItemOverdue'
+          : 'home.action.lentItem'
+        : action.urgency === 'overdue'
+          ? 'home.action.borrowedItemOverdue'
+          : 'home.action.borrowedItem';
+    return {
+      ...action,
+      subject: action.itemName,
+      messageKey,
+      params: { person: action.personName, item: action.itemName },
+    };
   }
 }

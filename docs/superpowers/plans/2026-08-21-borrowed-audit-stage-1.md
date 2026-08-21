@@ -24,21 +24,27 @@ with `effect`.
 
 ## Current reconciliation
 
-Stage 0 is complete in commits `6d8f951` through `329bdac`. The current implementation differs
-from the original audit in these material ways:
+At reconciliation on 2026-08-21, HEAD is
+`43e5199c68187104142f59991e2300e707d1f6e4` on `main`. Stage 0 is complete in commits `6d8f951`
+through `329bdac`; command and non-record service slices are also present. The active working tree
+now differs from the original audit in these material ways:
 
-- Home, Records, Detail, History, People and Search already use Angular `resource`.
-- Person is the only feature page still loading through `effect` plus an unguarded Promise.
-- History, People and Search still depend on the global revision even though their async state is
-  resource-based.
-- Home, Records, Search and Person still include locale in read parameters because
-  `BorrowedApp` returns formatted money strings.
-- Every successful record/settings mutation calls `touch()`, invalidating unrelated screens only
-  in the current tab.
+- Home, Records, Detail, History, People, Person and Search use Angular `resource`; the earlier
+  Person `effect + Promise` implementation is gone.
+- Records/Search/Person balances and Home actions are presentation-neutral. Locale changes format
+  raw bigint/currency values in component/UI computed state without entering persistence queries.
+- `RecordsQueryService`, `PeopleQueryService` and `HomeQueryService` own the existing read use
+  cases over `BorrowedStore`; feature pages inject those boundaries directly.
+- Legacy `BorrowedApp` read methods are one-line compatibility delegates. Add/Home/Detail still use
+  that facade only for record commands; seed and persistence integration tests also use it as a
+  compatibility surface.
+- `ApplicationRevision` still invalidates resource reads after successful writes in the current
+  tab. Dexie `liveQuery`, relevant-table invalidation, second-tab propagation and revision removal
+  have not been implemented and remain Tasks 5-6.
 
-The shared tree currently contains unrelated staged changes in Add, History, the deferred test
-helper and a Stage 0 verification document. Stage 1 must not edit, restage or commit those paths
-until their owner settles them.
+The working tree also contains reviewed non-record correction paths. Preserve their shared
+`ApplicationRevision`, settings, backup, draft and test-graph behavior; do not treat them as query
+decomposition work or overwrite them during later Stage 1 slices.
 
 ## Completion criteria
 
@@ -95,11 +101,11 @@ overflow, and zero console errors or warnings.
 - Modify: `src/app/ui/loan-row.spec.ts`
 - Modify: `src/app/ui/loan-row.ts`
 
-- [ ] Add tests proving language changes re-render remaining balances without calling
+- [x] Add tests proving language changes re-render remaining balances without calling
       `remainingMap()` or `search()` again.
-- [ ] Change the remaining-balance query to return raw minor units keyed by loan id.
-- [ ] Make `LoanRow` accept raw remaining minor units and format with its current locale.
-- [ ] Remove locale from Records/Search resource params while retaining query/scope params.
+- [x] Change the remaining-balance query to return raw minor units keyed by loan id.
+- [x] Make `LoanRow` accept raw remaining minor units and format with its current locale.
+- [x] Remove locale from Records/Search resource params while retaining query/scope params.
 - [ ] Verify empty global search performs no IndexedDB read and stale search generations remain
       protected.
 - [ ] Run focused feature/UI tests, typecheck and diff checks; commit only this slice.
@@ -115,11 +121,11 @@ overflow, and zero console errors or warnings.
 - Modify: `src/app/features/home/home-page.spec.ts`
 - Modify: `src/app/features/home/home-page.ts`
 
-- [ ] Add a failing test proving locale changes update money text with no second `home()` call.
-- [ ] Replace localized Home action subjects/params with raw money metadata in the domain summary.
-- [ ] Keep domain summary construction free of `Intl`, locale and translation concerns.
-- [ ] Derive localized Home action labels and formatted totals in component computed state.
-- [ ] Remove locale from the Home resource params and `BorrowedApp.home()` signature.
+- [x] Add a failing test proving locale changes update money text with no second `home()` call.
+- [x] Replace localized Home action subjects/params with raw money metadata in the domain summary.
+- [x] Keep domain summary construction free of `Intl`, locale and translation concerns.
+- [x] Derive localized Home action labels and formatted totals in component computed state.
+- [x] Remove locale from the Home resource params and `BorrowedApp.home()` signature.
 - [ ] Run Home/domain tests, typecheck and diff checks; commit only this slice.
 
 ### Task 4: Introduce explicit command and query services
@@ -129,17 +135,20 @@ overflow, and zero console errors or warnings.
 - Create: `src/app/application/records-command-service.ts`
 - Create: `src/app/application/records-query-service.ts`
 - Create: `src/app/application/people-query-service.ts`
+- Create: `src/app/application/home-query-service.ts`
 - Create: `src/app/application/query-state.ts`
 - Modify: feature pages and their tests under `src/app/features/`
 - Modify: `src/app/data/borrowed-app.ts`
 
-- [ ] Characterize current public methods with focused service tests before moving behavior.
+- [x] Characterize current public methods with focused service tests before moving behavior.
 - [x] Move create/return/due-date/repayment mutations into `RecordsCommandService`.
-- [ ] Move record/home/history/search/detail reads into `RecordsQueryService`.
-- [ ] Move people list/person overview reads into `PeopleQueryService`.
+- [x] Move record/history/search/detail reads into `RecordsQueryService` and the cohesive raw Home
+      summary read into `HomeQueryService`.
+- [x] Move people list/person overview reads into `PeopleQueryService`.
 - [x] Move settings, draft, backup and current-day responsibilities into their dedicated small
       services rather than growing the command/query services.
-- [ ] Update feature injection one page at a time and keep every intermediate commit green.
+- [x] Update feature injection one page at a time and keep every intermediate test checkpoint
+      green.
 
 **Task 4 command-only partial evidence (2026-08-21):** `RecordsCommandService` now owns creation,
 return, due-date and repayment orchestration behind `BorrowedStore`; `BorrowedApp` remains the
@@ -153,9 +162,19 @@ partially complete.
 `BackupService` and `CurrentDayService` now own their narrow application concerns behind
 `BorrowedStore`/`CLOCK`; components inject those services directly and keep localization and
 document/download manipulation in the UI. `BorrowedApp` no longer publishes those extracted APIs,
-but remains the temporary facade for record commands and all still-unmigrated queries. This does
-not complete Task 4: query-service extraction, feature query migration, live-query state and
-revision removal remain unstarted.
+but remained the temporary facade for record commands and all then-unmigrated queries. That slice
+did not complete Task 4; the later query-service evidence below supersedes its then-current query
+status. Live-query state and revision removal remain unstarted.
+
+**Task 4 query-service partial evidence (2026-08-21):** the active working tree adds
+`RecordsQueryService`, `PeopleQueryService` and `HomeQueryService`, backed by real fake-indexeddb
+tests. Records keeps one batched repayment read for a visible set; Person keeps one indexed loan
+read plus one batched repayment read; Home keeps one loan read plus one active-repayment read.
+Add/Home/Records/History/Search/People/Person/Detail inject the cohesive query boundary directly,
+and the architecture guard now permits zero feature/UI imports of `data/store`. `BorrowedApp`
+contains only compatibility delegations for reads and retains the temporary command/revision
+surface. Task 4 remains partial because typed observable query state belongs to Task 5, while
+revision removal and live-query caller migration belong to Task 6.
 
 ### Task 5: Add the Dexie live-query bridge
 

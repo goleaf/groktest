@@ -32,12 +32,29 @@ describe('BackupService', () => {
 
       const exported: unknown = JSON.parse(await backups.exportJson());
       const raw: unknown = JSON.parse(await backups.exportRawRecoveryJson());
+      const [people, loans, settings, repayments] = await Promise.all([
+        store.listPeople(),
+        store.listLoans(),
+        store.getSettings(),
+        store.listRepayments(),
+      ]);
 
-      expect(exported).toMatchObject({
+      expect(exported).toEqual({
         app: 'borrowed',
         exportedAt: '2026-08-20T12:00:00.000Z',
-        loans: [{ id: loan.id, originalMinorUnits: '10000' }],
-        repayments: [{ loanId: loan.id, minorUnits: '2500' }],
+        settings: {
+          preferredCurrency: settings.preferredCurrency,
+          schemaVersion: settings.schemaVersion,
+        },
+        people,
+        loans: loans.map((record) => ({
+          ...record,
+          originalMinorUnits: record.originalMinorUnits?.toString() ?? null,
+        })),
+        repayments: repayments.map((repayment) => ({
+          ...repayment,
+          minorUnits: repayment.minorUnits.toString(),
+        })),
       });
       expect(raw).toMatchObject({
         kind: 'borrowed-local-recovery-diagnostic',

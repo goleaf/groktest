@@ -1,11 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { PeopleQueryService } from '../../application/people-query-service';
 import { RecordDraftService } from '../../application/record-draft-service';
 import { SettingsService } from '../../application/settings-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { deferred } from '../../testing/deferred-promise';
 import { AddPage } from './add-page';
+
+const emptyPeopleQueryProvider = {
+  provide: PeopleQueryService,
+  useValue: { people: async () => [] },
+};
 
 describe('AddPage', () => {
   it('marks required conditional fields after submit without starting a write', async () => {
@@ -14,10 +20,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
           useValue: {
-            people: async () => [],
             createRecord,
           },
         },
@@ -67,10 +73,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
           useValue: {
-            people: async () => [],
             createRecord,
           },
         },
@@ -122,10 +128,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
           useValue: {
-            people: async () => [],
             createRecord,
           },
         },
@@ -192,11 +198,12 @@ describe('AddPage', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
             people: () => people.promise,
           },
         },
+        { provide: BorrowedApp, useValue: {} },
         { provide: SettingsService, useValue: { get: () => settings.promise } },
         {
           provide: RecordDraftService,
@@ -240,11 +247,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
-          useValue: {
-            people: async () => [],
-          },
+          useValue: {},
         },
         { provide: SettingsService, useValue: { get: settings } },
         {
@@ -287,10 +293,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
           useValue: {
-            people: async () => [],
             createRecord,
           },
         },
@@ -325,16 +331,60 @@ describe('AddPage', () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  it('ignores an older draft failure after a newer persistence generation starts', async () => {
+    const older = deferred<void>();
+    const newer = deferred<void>();
+    const save = vi.fn().mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        emptyPeopleQueryProvider,
+        { provide: BorrowedApp, useValue: {} },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: { load: async () => undefined, save, clear: async () => undefined },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const person = root.querySelector('#person') as HTMLInputElement;
+
+    person.value = 'Peter';
+    person.dispatchEvent(new Event('input'));
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+
+    person.value = 'Peter updated';
+    person.dispatchEvent(new Event('input'));
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+
+    older.reject(new Error('older write failed'));
+    await Promise.resolve();
+    fixture.detectChanges();
+    expect(root.querySelector('.draft-status[role="alert"]')).toBeNull();
+    expect(root.querySelector('.draft-status[role="status"]')?.textContent).toContain('Saving');
+
+    newer.resolve();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('.draft-status[role="status"]')?.textContent).toContain('saved');
+    });
+  });
+
   it('presents one accessible fast create form', async () => {
     await TestBed.configureTestingModule({
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
-          useValue: {
-            people: async () => [],
-          },
+          useValue: {},
         },
         { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
         {
@@ -394,10 +444,10 @@ describe('AddPage', () => {
       imports: [AddPage],
       providers: [
         provideRouter([]),
+        emptyPeopleQueryProvider,
         {
           provide: BorrowedApp,
           useValue: {
-            people: async () => [],
             createRecord,
           },
         },
@@ -453,7 +503,7 @@ describe('AddPage', () => {
           },
         },
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
             people: async () => [
               { id: 'person-peter', displayName: 'Peter' },
@@ -461,6 +511,7 @@ describe('AddPage', () => {
             ],
           },
         },
+        { provide: BorrowedApp, useValue: {} },
         { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
         {
           provide: RecordDraftService,
@@ -497,11 +548,12 @@ describe('AddPage', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: PeopleQueryService,
           useValue: {
             people: async () => people,
           },
         },
+        { provide: BorrowedApp, useValue: {} },
         { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
         {
           provide: RecordDraftService,

@@ -1,16 +1,15 @@
 import { Location } from '@angular/common';
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 import { CurrentDayService } from '../../application/current-day-service';
+import { RecordsQueryService, type RecordDetail } from '../../application/records-query-service';
 import { BorrowedApp } from '../../data/borrowed-app';
-import type { LoanRecord } from '../../data/store';
 import { DetailPage } from './detail-page';
 
-const record: LoanRecord = {
+const record: RecordDetail = {
   person: {
     id: 'peter',
     displayName: 'Peter',
@@ -57,7 +56,7 @@ const record: LoanRecord = {
   ],
 };
 
-function moneyRecord(direction: 'lent' | 'borrowed'): LoanRecord {
+function moneyRecord(direction: 'lent' | 'borrowed'): RecordDetail {
   return {
     ...record,
     loan: {
@@ -106,11 +105,10 @@ describe('DetailPage', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
+        { provide: RecordsQueryService, useValue: { loanDetail: async () => record } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => record,
             markReturned: async () => record.loan,
           },
         },
@@ -137,7 +135,7 @@ describe('DetailPage', () => {
   });
 
   it('uses the correct return wording for an item the user borrowed', async () => {
-    const borrowedRecord: LoanRecord = {
+    const borrowedRecord: RecordDetail = {
       ...record,
       loan: {
         ...record.loan,
@@ -152,10 +150,12 @@ describe('DetailPage', () => {
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
+          provide: RecordsQueryService,
+          useValue: { loanDetail: async () => borrowedRecord },
+        },
+        {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => borrowedRecord,
             markReturned: async () => borrowedRecord.loan,
           },
         },
@@ -188,11 +188,10 @@ describe('DetailPage', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
+        { provide: RecordsQueryService, useValue: { loanDetail: async () => record } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => record,
             markReturned,
           },
         },
@@ -230,10 +229,12 @@ describe('DetailPage', () => {
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
+          provide: RecordsQueryService,
+          useValue: { loanDetail: async () => lentMoneyRecord },
+        },
+        {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => lentMoneyRecord,
             repay: async () => lentMoneyRecord.loan,
           },
         },
@@ -268,10 +269,12 @@ describe('DetailPage', () => {
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
+          provide: RecordsQueryService,
+          useValue: { loanDetail: async () => borrowedMoneyRecord },
+        },
+        {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => borrowedMoneyRecord,
             repay: async () => borrowedMoneyRecord.loan,
           },
         },
@@ -309,10 +312,12 @@ describe('DetailPage', () => {
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
         {
+          provide: RecordsQueryService,
+          useValue: { loanDetail: async () => moneyRecord('lent') },
+        },
+        {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => moneyRecord('lent'),
             repay,
           },
         },
@@ -352,7 +357,7 @@ describe('DetailPage', () => {
 
   it('moves the return date and renders the localized change in history', async () => {
     const changeDueDate = vi.fn(async () => record.loan);
-    const recordWithChange: LoanRecord = {
+    const recordWithChange: RecordDetail = {
       ...record,
       events: [
         ...record.events,
@@ -375,10 +380,12 @@ describe('DetailPage', () => {
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => -2 } },
         {
+          provide: RecordsQueryService,
+          useValue: { loanDetail: async () => recordWithChange },
+        },
+        {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail: async () => recordWithChange,
             changeDueDate,
             markReturned: async () => record.loan,
           },
@@ -429,13 +436,8 @@ describe('DetailPage', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'missing' } } } },
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => null } },
-        {
-          provide: BorrowedApp,
-          useValue: {
-            revision: signal(0),
-            loanDetail: async () => undefined,
-          },
-        },
+        { provide: RecordsQueryService, useValue: { loanDetail: async () => undefined } },
+        { provide: BorrowedApp, useValue: {} },
       ],
     }).compileComponents();
 
@@ -456,7 +458,7 @@ describe('DetailPage', () => {
 
   it('loads a new record when only the route id changes', async () => {
     const params = new BehaviorSubject(convertToParamMap({ id: 'drill' }));
-    const sawRecord: LoanRecord = {
+    const sawRecord: RecordDetail = {
       ...record,
       loan: { ...record.loan, id: 'saw', itemName: 'Circular saw' },
     };
@@ -475,11 +477,10 @@ describe('DetailPage', () => {
         },
         { provide: Location, useValue: { back: () => undefined } },
         { provide: CurrentDayService, useValue: { daysUntilDue: () => 2 } },
+        { provide: RecordsQueryService, useValue: { loanDetail } },
         {
           provide: BorrowedApp,
           useValue: {
-            revision: signal(0),
-            loanDetail,
             markReturned: async () => record.loan,
           },
         },

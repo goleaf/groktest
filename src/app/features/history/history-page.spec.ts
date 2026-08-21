@@ -2,8 +2,9 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { ApplicationRevision } from '../../application/application-revision';
 import { CurrentDayService } from '../../application/current-day-service';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { Loan } from '../../domain/types';
 import { deferred } from '../../testing/deferred-promise';
 import { HistoryPage } from './history-page';
@@ -46,9 +47,8 @@ describe('HistoryPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             history: () => pending.promise,
             filterLoans: (loans: never[]) => loans,
           },
@@ -80,9 +80,8 @@ describe('HistoryPage', () => {
         provideRouter([]),
         currentDayProvider,
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision: signal(0),
             history,
             filterLoans: (loans: readonly Loan[]) => [...loans],
           },
@@ -116,10 +115,10 @@ describe('HistoryPage', () => {
       providers: [
         provideRouter([]),
         currentDayProvider,
+        { provide: ApplicationRevision, useValue: { value: revision } },
         {
-          provide: BorrowedApp,
+          provide: RecordsQueryService,
           useValue: {
-            revision,
             history,
             filterLoans: (loans: readonly Loan[]) => [...loans],
           },

@@ -1,6 +1,7 @@
 import { Component, computed, inject, resource, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { ApplicationRevision } from '../../application/application-revision';
+import { RecordsQueryService } from '../../application/records-query-service';
 import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
@@ -58,10 +59,11 @@ import { PageHeading } from '../../ui/page-heading';
 })
 export class HistoryPage {
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(RecordsQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly historyResource = resource({
-    params: () => ({ revision: this.app.revision() }),
-    loader: () => this.app.history(),
+    params: () => ({ revision: this.revision.value() }),
+    loader: () => this.queries.history(),
   });
   protected readonly all = computed<Loan[]>(() => this.historyResource.value() ?? []);
   protected readonly loading = this.historyResource.isLoading;
@@ -69,7 +71,9 @@ export class HistoryPage {
     this.historyResource.error() ? this.i18n.t('history.loadError') : '',
   );
   protected readonly query = signal('');
-  protected readonly shown = computed(() => this.app.filterLoans(this.all(), this.query(), 'all'));
+  protected readonly shown = computed(() =>
+    this.queries.filterLoans(this.all(), this.query(), 'all'),
+  );
 
   protected retry(): void {
     this.historyResource.reload();

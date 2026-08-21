@@ -8,12 +8,12 @@
 
 ## Current repository baseline
 
-Snapshot reconciled at **2026-08-21T17:05:00+03:00** (`Europe/Vilnius`).
+Snapshot reconciled at **2026-08-21T17:15:23+03:00** (`Europe/Vilnius`).
 
 | Item                             | Verified baseline                                                                           |
 | -------------------------------- | ------------------------------------------------------------------------------------------- |
 | Repository                       | `goleaf/groktest`                                                                           |
-| HEAD                             | `73771998fdf0f1145783d3cf264bfd6c9a2b6c11` (`7377199`)                                      |
+| HEAD                             | `43e5199c68187104142f59991e2300e707d1f6e4` (`43e5199`)                                      |
 | Branch                           | existing `main`, exactly matching `origin/main` at snapshot time                            |
 | Package manager                  | pnpm `10.33.0`                                                                              |
 | Angular                          | packages `22.1.3`; CLI/build `22.1.5`                                                       |
@@ -25,19 +25,19 @@ Snapshot reconciled at **2026-08-21T17:05:00+03:00** (`Europe/Vilnius`).
 | Electron                         | `43.4.1` development shell                                                                  |
 | Local schema                     | Dexie schema v3                                                                             |
 | Actual production IndexedDB name | `borrowed` in `provideBorrowedPersistence()`; see the critical documentation mismatch below |
-| Automated test inventory         | 50 `*.spec.ts` files / 272 tests                                                            |
+| Automated test inventory         | 50 `*.spec.ts` files / 274 tests                                                            |
 | Authored SCSS                    | 2,821 lines / 47,832 bytes across `src/styles.scss` and `src/styles/*.scss`                 |
 
 ### Fresh gate evidence at this snapshot
 
-- `5425e25` published `RecordsCommandService`; `7377199` then published the first non-record service
-  slice (`SettingsService`, `RecordDraftService`, `BackupService`, `CurrentDayService`) while its
-  remaining consumer cleanup was still being verified. Do not recreate either implementation.
-- On the current working tree based on `7377199`, `pnpm test` passes 50 files / 272 tests;
+- `5425e25` published `RecordsCommandService`; `7377199` published the first non-record service
+  slice; `43e5199` published its verified consumer/facade/test/documentation closeout. Do not
+  recreate or partially revert these implementations.
+- On the reviewed working tree based on `43e5199`, `pnpm test` passes 50 files / 274 tests;
   `pnpm lint` passes ESLint and repository-wide Prettier; `pnpm typecheck` passes; production
   `pnpm build` passes; and `git diff --check` passes.
-- Production initial bundle is 509.78 kB (136.54 kB estimated transfer). The existing warning
-  budget remains exceeded by 9.78 kB. This is not authorization for an unrelated optimization or
+- Production initial bundle is 510.17 kB (136.70 kB estimated transfer). The existing warning
+  budget remains exceeded by 10.17 kB. This is not authorization for an unrelated optimization or
   dependency change.
 - The active non-record slice changes no schema, store port, domain rule, translation catalog,
   style, package or lockfile. No browser, PWA offline, native package or physical-device claim was
@@ -45,11 +45,11 @@ Snapshot reconciled at **2026-08-21T17:05:00+03:00** (`Europe/Vilnius`).
 
 ### Current dirty/staged ownership snapshot
 
-`main` and `origin/main` both point to `7377199`. The active attributable dirty layer is the final
-non-record decomposition cleanup: `BorrowedApp`, Detail/Home callers, persistence/seed/recovery and
-transitive LoanRow page specs, four task-owned formatting fixes, `docs/architecture.md`, the Stage 1
-plan, the non-record plan and this coordination reconciliation. Do not stage, revert or absorb a
-subset without re-reading the complete diff and plan.
+`main` and `origin/main` both point to `43e5199`. A read-only final review found two contract gaps
+in that published closeout. The active dirty correction owns `ApplicationRevision`,
+`SettingsService`, `BorrowedApp`, the shared Dexie fixture, exact backup/language/draft regression
+specs, architecture/plan evidence and this coordination reconciliation. Do not absorb or revert a
+subset without re-reading the complete diff.
 
 No other active product owner is proven by Git state at this snapshot. A new worker must still
 recheck because another process already advanced HEAD twice during the decomposition sequence.
@@ -92,7 +92,7 @@ and staged diff are mandatory before acting.
 features / layout / ui / i18n
               |
               v
-BorrowedApp facade in data/ (current application boundary; scheduled to split in Stage 1)
+focused application command / support / query services
               |
        +------+------+
        |             |
@@ -102,18 +102,24 @@ BorrowedApp facade in data/ (current application boundary; scheduled to split in
                          v
                   DexieBorrowedStore / rows / mappers / schema
 
+BorrowedApp in data/ -> temporary compatibility delegation only; Add/Home/Detail still call its
+record commands, while legacy seed/integration callers may use its delegated read surface
+
 native platform shells -> bootstrap/delivery adapters only, never domain or feature branching
 ```
 
 - `src/app/domain/` owns framework-independent value semantics, commands, calendar/money rules,
   identity, summaries, filters, and deterministic ordering.
 - `src/app/application/` owns narrow use-case/lifecycle services: record commands, settings,
-  record drafts, backup/export and current local day. These depend on `BorrowedStore`/`CLOCK`, not
-  Dexie or feature components.
-- `src/app/data/borrowed-app.ts` is the temporary facade for still-unmigrated record command
-  compatibility, query composition and the current global `revision`. Committed Task 2 code makes
-  Records/Search remaining values presentation-neutral; Home still returns locale-shaped actions.
-  Stage 1 may split the remaining query surface only in reviewed, intermediate-green slices.
+  record drafts, backup/export, current local day, and the cohesive Records/People/Home query
+  boundaries. Query services depend on `BorrowedStore` plus pure domain projections, preserve
+  bounded/indexed reads, and return raw values rather than localized money. They never import
+  Dexie or feature components. `ApplicationRevision` remains a temporary shared invalidation owner
+  until the live-query migration.
+- `src/app/data/borrowed-app.ts` is a temporary compatibility facade. Its read methods contain no
+  query implementation and delegate to `RecordsQueryService`, `PeopleQueryService` or
+  `HomeQueryService`; it directly retains only pending-mutation access plus record-command and
+  revision compatibility. Do not add new behavior to this facade.
 - `src/app/data/store.ts` is the persistence port. `dexie-store.ts`, `database.ts`, `rows.ts`, and
   `mappers.ts` are the Dexie adapter and the only production Dexie boundary.
 - `src/app/features/` owns route-level loading/error/empty/success state and interaction wiring. It
@@ -128,11 +134,11 @@ native platform shells -> bootstrap/delivery adapters only, never domain or feat
 - `capacitor.config.ts`, `android/`, `ios/`, and `electron/` are delivery boundaries. A feature
   must consume a small application interface before using a platform implementation.
 
-The intended inward dependency rule is stricter than current code. Two exact production edges are
-temporary, guarded debt: `domain/types.ts` imports `SupportedLanguage` from `i18n/catalog.ts`, and
-`DetailPage` imports the `LoanRecord` type from `data/store.ts`. Do not broaden either exception.
-Stage 1's service split must remove the Detail-to-data-port type edge; Stage 3 must move the shared
-language type to an inward-neutral contract so domain no longer imports UI catalogs.
+The intended inward dependency rule is stricter than current code. One exact production edge is
+temporary, guarded debt: `domain/types.ts` imports `SupportedLanguage` from `i18n/catalog.ts`.
+Features/UI now have zero imports of `data/store`; `RecordsQueryService` exports the compatible
+detail result type. Stage 3 must move the shared language type to an inward-neutral contract so
+domain no longer imports UI catalogs.
 
 ### Domain and data invariants
 
@@ -164,17 +170,21 @@ language type to an inward-neutral contract so domain no longer imports UI catal
 ### Current async reality
 
 - Home, Records, Detail, History, People, Person and Search use Angular `resource`.
-- Person at HEAD uses route-reactive `resource` state, error/retry handling and
-  presentation-local remaining-money formatting from committed Task 1. It still keys reads by the
-  temporary global revision until Stage 1 Tasks 4-6 replace that invalidation boundary.
+- Person uses route-reactive `resource` state, error/retry handling and presentation-local
+  remaining-money formatting. All read pages inject a focused query service and still key reads by
+  the temporary shared `ApplicationRevision` until Stage 1 Tasks 5-6 replace that invalidation
+  boundary.
 - Add's effect is allowed only as the debounced imperative draft-persistence boundary after full
   initialization. It is not precedent for screen reads.
-- At HEAD, Records/Search resource parameters no longer include locale, and `remainingMap()` plus
+- Records/Search resource parameters no longer include locale, and `remainingMap()` plus
   `LoanRow` exchange raw minor units. The code is committed in `c7100bb`, but Task 2 remains
   acceptance-incomplete until formatting, zero-read characterization, plan evidence, full gates,
   and browser checks are closed.
-- The current global `BorrowedApp.revision` invalidates unrelated reads and does not propagate
-  cross-tab writes. Remove it only after typed query services/live-query coverage exists.
+- Home also receives raw money/item actions from `HomeQueryService`; locale-only formatting is a
+  component `computed` and does not re-read IndexedDB.
+- The current shared `ApplicationRevision` invalidates unrelated reads and does not propagate
+  cross-tab writes. `BorrowedApp.revision` is only a compatibility alias for that signal. Remove
+  both only after typed live-query coverage exists.
 
 ## Current active plans
 
@@ -378,15 +388,17 @@ Statuses describe the actual implementation and current evidence, not checkbox a
 ### `2026-08-21-borrowed-non-record-service-decomposition.md`
 
 - **PLAN:** Extract settings, record draft, backup/export and reactive current-day ownership.
-- **STATUS:** PARTIALLY COMPLETE at published HEAD; COMPLETE on the active verified working tree.
-- **PRIORITY:** Finish as one coherent handoff; do not recreate or split its dirty closeout.
+- **STATUS:** COMPLETE on the reviewed working tree based on `43e5199`.
+- **PRIORITY:** Settle the focused reviewer corrections as one handoff; do not recreate the service
+  implementation.
 - **DEPENDENCIES:** `RecordsCommandService` in `5425e25`; recovery/raw export in `0342283`.
-- **LIKELY FILE OWNERSHIP:** Exact dirty snapshot above. Query-side feature behavior is excluded.
+- **LIKELY FILE OWNERSHIP:** Exact dirty correction snapshot above. Query-side feature behavior is
+  excluded.
 - **OVERLAPS:** `BorrowedApp`, application initialization, Add, Settings, Home, Detail, shared
   LoanRow consumers, persistence tests and Stage 1 documentation.
 - **SUPERSEDES:** `CurrentDayTracker` and non-record methods previously published by `BorrowedApp`.
 - **SUPERSEDED BY:** None.
-- **NOTES:** Four focused services and direct callers exist. Full current gates pass 50 files / 272
+- **NOTES:** Four focused services and direct callers exist. Full current gates pass 50 files / 274
   tests, lint/format, typecheck, production build and diff check. Query services, liveQuery and
   revision removal remain outside this plan.
 
@@ -406,37 +418,37 @@ Statuses describe the actual implementation and current evidence, not checkbox a
 
 ## File ownership / conflict map
 
-The tree contains the active non-record closeout described above. Recheck Git immediately before
+The product tree is clean at the published non-record closeout. Recheck Git immediately before
 claiming a row because the remaining Stage 1 tasks share application contracts.
 
-| Path / area                                                | Current owner/task                                   | Safe for parallel work?                             | Notes                                                                  |
-| ---------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
-| `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` | Active non-record closeout                           | Documentation updates only                          | Current reconciliation; never replace wholesale                        |
-| `src/app/architecture-boundaries.spec.ts`                  | No active owner proven                               | Recheck before editing                              | Published no-dependency characterization guard                         |
-| Stage 0 final-verification plan                            | No active owner proven                               | Recheck before editing                              | Committed in `c7100bb`; historical evidence                            |
-| `src/app/testing/deferred-promise.ts`                      | No active owner proven                               | Tests only after fresh claim                        | Shared helper committed in `c7100bb`                                   |
-| `src/app/domain/`                                          | Stage 1 Tasks 3/6 planned; no active owner proven    | No during Stage 1                                   | `domain/types.ts` i18n dependency is known debt                        |
-| `src/app/application/`                                     | Active non-record closeout                           | **No**                                              | Four services are published; task-owned formatting/spec cleanup dirty  |
-| `src/app/data/`                                            | Active non-record closeout                           | **No**                                              | `BorrowedApp` facade and persistence-test migration are dirty           |
-| `src/app/features/add/`                                    | Active non-record closeout                           | **No**                                              | Only task-owned formatting remains dirty                               |
-| `src/app/features/detail/`                                 | Active non-record closeout                           | **No**                                              | CurrentDay consumer/spec migration is dirty                            |
-| `src/app/features/home/`                                   | Active non-record closeout; Task 3 follows           | **No**                                              | CurrentDay consumer is dirty; presentation-neutral work is separate    |
-| `src/app/features/history/`                                | Active non-record closeout (spec only)               | **No**                                              | CurrentDay test boundary only; production async behavior unchanged     |
-| `src/app/features/lists/`                                  | Active non-record closeout (spec only)               | **No**                                              | Preserve `scope/filter/q`; do not mix Task 2 closeout                  |
-| `src/app/features/people/`                                 | Active non-record closeout (spec only)               | **No**                                              | CurrentDay test boundary only; query contract unchanged                |
-| `src/app/features/search/`                                 | Active non-record closeout (spec only)               | **No**                                              | Missing Task 2 zero-read characterization remains separate             |
-| `src/app/features/more/`                                   | `UNKNOWN — RECHECK BEFORE EDITING`                   | Only after fresh check                              | No active plan-specific change currently proven                        |
-| `src/app/features/settings/`                               | Published non-record slice; no dirty owner           | Recheck before editing                              | Uses `SettingsService` and `BackupService` directly                    |
-| `src/app/ui/`                                              | Published non-record slice; no dirty owner           | Recheck before editing                              | `LoanRow` now uses `CurrentDayService`; raw balance contract remains   |
-| `src/app/i18n/`                                            | No active owner proven                               | Only after fresh check                              | Future EN/LT/RU edits must move together                               |
-| `src/app/layout/`                                          | Published non-record slice; no dirty owner           | Recheck before editing                              | Shell creates the root `CurrentDayService`; old tracker is removed     |
-| `src/styles/` and `src/styles.scss`                        | No active source owner proven; SCSS plans historical | Yes only for an explicitly isolated style-only task | Never re-run old dead-selector deletion; browser proof required        |
-| `angular.json`                                             | No active owner proven                               | Only after fresh check                              | Named styles budget is protected by tests                              |
-| `tsconfig.json`                                            | No active owner proven                               | Only after fresh check                              | Strict template/standalone flags are non-negotiable                    |
-| `package.json` / `pnpm-lock.yaml`                          | No active owner proven                               | No blanket changes                                  | New dependencies require explicit evidence and lockfile ownership      |
-| Android files                                              | Stage 4 future; no current owner proven              | No mutation without device/package gate             | Preserve app data; build output is not source ownership                |
-| iOS files                                                  | Stage 4 future; no current owner proven              | Only isolated native work after check               | No fresh Xcode/device evidence                                         |
-| `.github/workflows/ci.yml`                                 | Stage 4 future; no current owner proven              | Only isolated CI task after check                   | CI currently runs audit/lint/test/typecheck/build and Android build    |
+| Path / area                                                | Current owner/task                                   | Safe for parallel work?                             | Notes                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` | Active non-record closeout                           | Documentation updates only                          | Current reconciliation; never replace wholesale                      |
+| `src/app/architecture-boundaries.spec.ts`                  | No active owner proven                               | Recheck before editing                              | Published no-dependency characterization guard                       |
+| Stage 0 final-verification plan                            | No active owner proven                               | Recheck before editing                              | Committed in `c7100bb`; historical evidence                          |
+| `src/app/testing/deferred-promise.ts`                      | No active owner proven                               | Tests only after fresh claim                        | Shared helper committed in `c7100bb`                                 |
+| `src/app/domain/`                                          | Stage 1 Tasks 3/6 planned; no active owner proven    | No during Stage 1                                   | `domain/types.ts` i18n dependency is known debt                      |
+| `src/app/application/`                                     | Active reviewer correction                           | **No**                                              | Shared revision owner/settings tests are dirty                       |
+| `src/app/data/`                                            | Active reviewer correction                           | **No**                                              | `BorrowedApp`/shared manual graph corrections are dirty              |
+| `src/app/features/add/`                                    | Active reviewer correction (spec only)               | **No**                                              | Stale draft-generation characterization is dirty                     |
+| `src/app/features/detail/`                                 | No active owner; query-service work planned          | **No** without a plan                               | CurrentDay migration complete; type-only store edge remains debt     |
+| `src/app/features/home/`                                   | Stage 1 Task 3 planned; no active owner proven       | **No** without a plan                               | CurrentDay migration complete; presentation-neutral work is separate |
+| `src/app/features/history/`                                | No active owner; query-service work planned          | **No** without a plan                               | CurrentDay test boundary and async behavior are green                |
+| `src/app/features/lists/`                                  | No active owner; Task 2 evidence then query work     | **No** without a plan                               | Preserve `scope/filter/q`; raw balance contract is published         |
+| `src/app/features/people/`                                 | No active owner; query-service work planned          | **No** without a plan                               | Route-reactive/raw-balance/current-day contracts are published       |
+| `src/app/features/search/`                                 | Task 2 evidence follow-up; owner unknown             | **No** until Task 2 closes                          | Missing zero-read characterization remains separate                  |
+| `src/app/features/more/`                                   | `UNKNOWN — RECHECK BEFORE EDITING`                   | Only after fresh check                              | No active plan-specific change currently proven                      |
+| `src/app/features/settings/`                               | Published non-record slice; no dirty owner           | Recheck before editing                              | Uses `SettingsService` and `BackupService` directly                  |
+| `src/app/ui/`                                              | Active reviewer correction (spec only)               | **No**                                              | Language persistence rollback characterization is dirty              |
+| `src/app/i18n/`                                            | No active owner proven                               | Only after fresh check                              | Future EN/LT/RU edits must move together                             |
+| `src/app/layout/`                                          | Published non-record slice; no dirty owner           | Recheck before editing                              | Shell creates the root `CurrentDayService`; old tracker is removed   |
+| `src/styles/` and `src/styles.scss`                        | No active source owner proven; SCSS plans historical | Yes only for an explicitly isolated style-only task | Never re-run old dead-selector deletion; browser proof required      |
+| `angular.json`                                             | No active owner proven                               | Only after fresh check                              | Named styles budget is protected by tests                            |
+| `tsconfig.json`                                            | No active owner proven                               | Only after fresh check                              | Strict template/standalone flags are non-negotiable                  |
+| `package.json` / `pnpm-lock.yaml`                          | No active owner proven                               | No blanket changes                                  | New dependencies require explicit evidence and lockfile ownership    |
+| Android files                                              | Stage 4 future; no current owner proven              | No mutation without device/package gate             | Preserve app data; build output is not source ownership              |
+| iOS files                                                  | Stage 4 future; no current owner proven              | Only isolated native work after check               | No fresh Xcode/device evidence                                       |
+| `.github/workflows/ci.yml`                                 | Stage 4 future; no current owner proven              | Only isolated CI task after check                   | CI currently runs audit/lint/test/typecheck/build and Android build  |
 
 ## Cross-task contracts
 
@@ -682,7 +694,7 @@ another task. Update `package.json` and `pnpm-lock.yaml` together only with expl
 | **HIGH**     | Task 2 code is committed while its plan boxes, empty/whitespace zero-read characterization, clean-HEAD gates and browser acceptance remain incomplete.                                                                   | Close evidence with a dedicated minimal follow-up before Task 3. If the characterization exposes a defect, stop and claim the exact production fix rather than folding it into Home work. |
 | **HIGH**     | Stage 1 Tasks 3-6 all touch `BorrowedApp`; Tasks 4/6 touch most features.                                                                                                                                                | Execute serially with intermediate-green commits; do not parallelize product work inside Stage 1.                                                                                         |
 | **HIGH**     | Removing global revision while introducing liveQuery changes query invalidation and cross-tab behavior simultaneously.                                                                                                   | Establish typed query services and transaction-specific live-query tests before deleting revision/touch.                                                                                  |
-| **HIGH**     | Normal export is intentionally unversioned and no decoded transactional import exists.                                                                                                                                   | Use `BackupService` only for current export; keep `BackupImportPort` unimplemented until a separate versioned restore plan supplies validation, preview, atomicity and rollback.           |
+| **HIGH**     | Normal export is intentionally unversioned and no decoded transactional import exists.                                                                                                                                   | Use `BackupService` only for current export; keep `BackupImportPort` unimplemented until a separate versioned restore plan supplies validation, preview, atomicity and rollback.          |
 | **MEDIUM**   | Task 2's empty-search acceptance is structurally implemented through an undefined `resource` request, but no test observes the boundary and proves zero `search()`/`remainingMap()` calls for empty or whitespace input. | Add a focused spy-based characterization; keep the stale-generation test. Do not manufacture RED for pre-existing behavior.                                                               |
 | **MEDIUM**   | `domain/types.ts` imports the i18n catalog while Stage 1 makes summaries presentation-neutral and Stage 3 plans domain-purity repair.                                                                                    | Stage 1 removes locale-shaped query output first; Stage 3 then moves the language type inward without a second competing type.                                                            |
 | **MEDIUM**   | `DetailPage` imports the `LoanRecord` type from the data-layer store contract.                                                                                                                                           | Do not add more feature-to-store imports. Publish the detail view/query shape from the Stage 1 application service, migrate Detail, then remove the exact guard exception.                |
@@ -692,17 +704,17 @@ another task. Update `package.json` and `pnpm-lock.yaml` together only with expl
 
 ## Immediate executable plan for the current dirty baseline
 
-This sequence is valid only while HEAD remains `7377199` and the dirty paths still match the
+This sequence is valid only while HEAD remains `43e5199` and the dirty paths still match the
 snapshot above. Any new path or HEAD change requires a fresh status/diff/log reconciliation.
 
 ### Lane A — finish the non-record service handoff
 
 - **OWNER:** Current non-record decomposition task.
 - **FILES:** Only the dirty paths listed in the snapshot above.
-- **WORK:** Preserve published service implementations, finish direct Home/Detail/current-day and
-  persistence-test migration, remove extracted APIs from `BorrowedApp`, keep query behavior intact,
-  and record honest completion evidence.
-- **ACCEPTANCE:** Focused service/caller/persistence matrices and 50 files / 272 tests pass;
+- **WORK:** Preserve the published service implementation while restoring shared currency revision
+  semantics, proving one production-equivalent revision/current-day graph, and strengthening exact
+  export, language rollback, stale draft and architecture evidence.
+- **ACCEPTANCE:** Focused service/caller/persistence matrices and 50 files / 274 tests pass;
   ESLint/Prettier, typecheck, production build and diff check pass; no schema, store port, domain,
   i18n, style or dependency change enters the slice.
 - **HANDOFF:** Do not start query services, liveQuery or revision removal from this lane.
@@ -725,7 +737,7 @@ serial dependency remains Task 3 → services → live query → revision remova
 
 ## Recommended execution ordering
 
-1. **Non-record decomposition handoff:** settle the verified dirty continuation on `7377199` as one
+1. **Non-record decomposition handoff:** settle the reviewed dirty correction on `43e5199` as one
    coherent slice. Stage 0 and the four services must not be restarted.
 2. **Stage 1 Task 2 closeout:** add the missing empty/whitespace-search zero-read characterization,
    reconcile the published `c7100bb` scope in its plan, and run the required browser locale checks.

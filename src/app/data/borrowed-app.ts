@@ -1,41 +1,30 @@
-import { Inject, Injectable, signal } from '@angular/core';
+import { Inject, Injectable, type Signal } from '@angular/core';
+import { ApplicationRevision } from '../application/application-revision';
 import { CurrentDayService } from '../application/current-day-service';
+import { HomeQueryService } from '../application/home-query-service';
+import {
+  PeopleQueryService,
+  type PersonListRow,
+  type PersonOverview,
+} from '../application/people-query-service';
 import {
   RecordsCommandService,
   type CreateRecordInput,
 } from '../application/records-command-service';
-import type { CalendarDate } from '../domain/calendar-date';
+import { RecordsQueryService } from '../application/records-query-service';
 import type { DomainClock } from '../domain/commands';
-import { summarizeHome } from '../domain/home-summary';
-import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
-import {
-  summarizePersonRelationships,
-  type PersonRelationshipSummary,
-} from '../domain/person-summary';
 import type { ListFilter } from '../domain/query';
-import { visibleLoans } from '../domain/query';
-import type { HomeSummary, Loan, Person, Repayment, SyncMutation } from '../domain/types';
+import type { HomeSummary, Loan, Person, SyncMutation } from '../domain/types';
 import { CLOCK } from './clock';
 import { DexieBorrowedStore } from './dexie-store';
 import { BorrowedStore } from './store';
 
 export type { CreateRecordInput } from '../application/records-command-service';
-
-export interface PersonListRow {
-  readonly person: Person;
-  readonly activeCount: number;
-  readonly lentActiveCount: number;
-  readonly borrowedActiveCount: number;
-  readonly historyCount: number;
-}
-
-export interface PersonOverview extends PersonRelationshipSummary {
-  readonly person: Person | undefined;
-}
+export type { PersonListRow, PersonOverview } from '../application/people-query-service';
 
 @Injectable({ providedIn: 'root' })
 export class BorrowedApp {
-  readonly revision = signal(0);
+  readonly revision: Signal<number>;
 
   constructor(
     private readonly store: BorrowedStore,
@@ -45,28 +34,26 @@ export class BorrowedApp {
       clock,
     ),
     private readonly currentDayService: CurrentDayService = new CurrentDayService(clock),
-  ) {}
+    private readonly applicationRevision: ApplicationRevision = new ApplicationRevision(),
+    private readonly recordsQueries: RecordsQueryService = new RecordsQueryService(
+      store,
+      currentDayService,
+    ),
+    private readonly peopleQueries: PeopleQueryService = new PeopleQueryService(
+      store,
+      currentDayService,
+    ),
+    private readonly homeQueries: HomeQueryService = new HomeQueryService(store, currentDayService),
+  ) {
+    this.revision = this.applicationRevision.value;
+  }
 
   private touch(): void {
-    this.revision.update((value) => value + 1);
+    this.applicationRevision.touch();
   }
 
   async people(): Promise<Person[]> {
-    const [list, loans] = await Promise.all([this.store.listPeople(), this.store.listLoans()]);
-    return this.sortPeopleByRecent(list, loans);
-  }
-
-  private sortPeopleByRecent(list: readonly Person[], loans: readonly Loan[]): Person[] {
-    const recent = new Map<string, string>();
-    for (const loan of loans) {
-      const previous = recent.get(loan.personId);
-      if (!previous || loan.updatedAt > previous) {
-        recent.set(loan.personId, loan.updatedAt);
-      }
-    }
-    return [...list].sort((left, right) =>
-      (recent.get(right.id) ?? '').localeCompare(recent.get(left.id) ?? ''),
-    );
+    return this.peopleQueries.people();
   }
 
   async createRecord(input: CreateRecordInput): Promise<Loan> {
@@ -76,31 +63,23 @@ export class BorrowedApp {
   }
 
   async activeLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
-    const today = this.today();
-    const loans = await this.store.listActiveLoans(direction);
-    return loans.sort((left, right) => compareLoansByAttention(left, right, today));
+    return this.recordsQueries.activeLoans(direction);
   }
 
   async history(): Promise<Loan[]> {
-    const loans = await this.store.listCompletedLoans();
-    return loans.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    return this.recordsQueries.history();
   }
 
-  async home(locale = 'en-GB'): Promise<HomeSummary> {
-    const loans = await this.store.listLoans();
-    const repaymentsByLoan = await this.repaymentsByLoan();
-    return summarizeHome(loans, repaymentsByLoan, this.today(), locale);
+  async home(): Promise<HomeSummary> {
+    return this.homeQueries.home();
   }
 
   async loanDetail(id: string) {
-    return this.store.loadLoanRecord(id);
+    return this.recordsQueries.loanDetail(id);
   }
 
   async remainingFor(loan: Loan): Promise<bigint | null> {
-    if (loan.assetKind !== 'money') {
-      return null;
-    }
-    return outstandingMinorUnits(loan, await this.store.listRepayments(loan.id));
+    return this.recordsQueries.remainingFor(loan);
   }
 
   async markReturned(loanId: string): Promise<Loan> {
@@ -126,96 +105,27 @@ export class BorrowedApp {
   }
 
   async peopleWithCounts(): Promise<PersonListRow[]> {
-    const [people, loans] = await Promise.all([this.store.listPeople(), this.store.listLoans()]);
-    const activeCounts = new Map<string, number>();
-    const lentActiveCounts = new Map<string, number>();
-    const borrowedActiveCounts = new Map<string, number>();
-    const historyCounts = new Map<string, number>();
-    for (const loan of loans) {
-      if (loan.status === 'active') {
-        activeCounts.set(loan.personId, (activeCounts.get(loan.personId) ?? 0) + 1);
-        const directionCounts = loan.direction === 'lent' ? lentActiveCounts : borrowedActiveCounts;
-        directionCounts.set(loan.personId, (directionCounts.get(loan.personId) ?? 0) + 1);
-      } else if (loan.status === 'completed') {
-        historyCounts.set(loan.personId, (historyCounts.get(loan.personId) ?? 0) + 1);
-      }
-    }
-    return this.sortPeopleByRecent(people, loans).map((person) => ({
-      person,
-      activeCount: activeCounts.get(person.id) ?? 0,
-      lentActiveCount: lentActiveCounts.get(person.id) ?? 0,
-      borrowedActiveCount: borrowedActiveCounts.get(person.id) ?? 0,
-      historyCount: historyCounts.get(person.id) ?? 0,
-    }));
+    return this.peopleQueries.peopleWithCounts();
   }
 
   async loansForPerson(personId: string): Promise<Loan[]> {
-    return this.store.listLoansForPerson(personId);
-  }
-
-  private today(): CalendarDate {
-    return this.currentDayService.today();
+    return this.peopleQueries.loansForPerson(personId);
   }
 
   filterLoans(loans: readonly Loan[], query: string, filter: ListFilter): Loan[] {
-    return visibleLoans(loans, query, filter, this.today());
+    return this.recordsQueries.filterLoans(loans, query, filter);
   }
 
   async remainingMap(loans: readonly Loan[]): Promise<ReadonlyMap<string, bigint | null>> {
-    const map = new Map<string, bigint | null>();
-    const moneyLoanIds = loans.filter((loan) => loan.assetKind === 'money').map((loan) => loan.id);
-    const repaymentsByLoan = this.groupRepayments(
-      await this.store.listRepaymentsForLoanIds(moneyLoanIds),
-    );
-    for (const loan of loans) {
-      if (loan.assetKind !== 'money' || !loan.currencyCode || loan.originalMinorUnits === null) {
-        map.set(loan.id, null);
-        continue;
-      }
-      const remaining = outstandingMinorUnits(loan, repaymentsByLoan.get(loan.id) ?? []);
-      if (remaining === loan.originalMinorUnits) {
-        map.set(loan.id, null);
-        continue;
-      }
-      map.set(loan.id, remaining);
-    }
-    return map;
+    return this.recordsQueries.remainingMap(loans);
   }
 
   async search(query: string): Promise<Loan[]> {
-    const loans = await this.store.listLoans();
-    const today = this.today();
-    return visibleLoans(loans, query, 'all', today).sort((left, right) =>
-      compareLoansByAttention(left, right, today),
-    );
+    return this.recordsQueries.search(query);
   }
 
   async personOverview(personId: string): Promise<PersonOverview> {
-    const [person, loans] = await Promise.all([
-      this.store.findPersonById(personId),
-      this.store.listLoansForPerson(personId),
-    ]);
-    const repayments = await this.store.listRepaymentsForLoanIds(loans.map((loan) => loan.id));
-    const repaymentsByLoan = this.groupRepayments(repayments);
-    const summary = summarizePersonRelationships(loans, repaymentsByLoan, this.today());
-    return {
-      person,
-      ...summary,
-    };
-  }
-
-  private async repaymentsByLoan(): Promise<Map<string, Repayment[]>> {
-    return this.groupRepayments(await this.store.listRepayments());
-  }
-
-  private groupRepayments(repayments: readonly Repayment[]): Map<string, Repayment[]> {
-    const grouped = new Map<string, Repayment[]>();
-    for (const repayment of repayments) {
-      const loanRepayments = grouped.get(repayment.loanId) ?? [];
-      loanRepayments.push(repayment);
-      grouped.set(repayment.loanId, loanRepayments);
-    }
-    return grouped;
+    return this.peopleQueries.personOverview(personId);
   }
 }
 

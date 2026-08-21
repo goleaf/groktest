@@ -2,7 +2,8 @@ import { Component, computed, inject, resource } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
-import { BorrowedApp, type PersonOverview } from '../../data/borrowed-app';
+import { ApplicationRevision } from '../../application/application-revision';
+import { PeopleQueryService, type PersonOverview } from '../../application/people-query-service';
 import type { Loan, MoneyTotal, Person } from '../../domain/types';
 import { formatMinorUnits } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
@@ -138,7 +139,8 @@ import { LoanRow } from '../../ui/loan-row';
 })
 export class PersonPage {
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly queries = inject(PeopleQueryService);
+  private readonly revision = inject(ApplicationRevision);
   private readonly route = inject(ActivatedRoute);
   private readonly routeParamMap = toSignal(
     this.route.paramMap || of(this.route.snapshot.paramMap),
@@ -147,9 +149,9 @@ export class PersonPage {
   private readonly personResource = resource({
     params: () => {
       const id = this.routeParamMap().get('id');
-      return id ? { id, revision: this.app.revision() } : undefined;
+      return id ? { id, revision: this.revision.value() } : undefined;
     },
-    loader: ({ params }) => this.app.personOverview(params.id),
+    loader: ({ params }) => this.queries.personOverview(params.id),
   });
   private readonly overview = computed<PersonOverview | null>(() =>
     this.personResource.hasValue() ? this.personResource.value() : null,

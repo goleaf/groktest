@@ -9,6 +9,16 @@ export function activeRepayments(repayments: readonly Repayment[]): Repayment[] 
   return repayments.filter((repayment) => repayment.deletedAt === null);
 }
 
+export function groupRepaymentsByLoan(repayments: readonly Repayment[]): Map<string, Repayment[]> {
+  const grouped = new Map<string, Repayment[]>();
+  for (const repayment of repayments) {
+    const loanRepayments = grouped.get(repayment.loanId) ?? [];
+    loanRepayments.push(repayment);
+    grouped.set(repayment.loanId, loanRepayments);
+  }
+  return grouped;
+}
+
 export function outstandingMinorUnits(loan: Loan, repayments: readonly Repayment[]): bigint {
   if (loan.assetKind !== 'money' || loan.originalMinorUnits === null) {
     throw new DomainError('not_money_loan');
