@@ -63,9 +63,9 @@ State transitions last 160–200ms and only clarify selection, focus, hover, or 
 
 `src/styles.scss` is an import manifest, not a place for selectors. The emitted cascade has one owner per concern, in this order: tokens, document base, shell, shared primitives, ledger rows, Home, record creation/detail, and supporting screens. Modules never import another module that emits CSS.
 
-Canonical tokens use surface, teal, ink, muted, overdue, focus, geometry, safe-area, and z-index language. Compatibility aliases from the superseded interface are prohibited. Responsive boundaries use rem units; 70rem remains the single shell switch. Each media condition appears once per module, hover presentation stays capability-gated, and only the global reduced-motion override may use `!important`.
+Canonical tokens use surface, teal, ink, muted, overdue, focus, geometry, safe-area, and z-index language. Every declared token must have a runtime consumer; compatibility aliases from the superseded interface are prohibited. Responsive boundaries use rem units; 70rem remains the single shell switch. Each media condition appears once per module, hover presentation stays inside `@media (hover: hover)`, persistent active states remain capability-independent, and only the global reduced-motion override may use `!important`.
 
-The static SCSS contract rejects legacy selectors, repeated selector lists in the same cascade context, repeated properties inside a rule, pixel-based media boundaries, and source growth beyond the optimized budget. Production CSS size is measured before and after stylesheet changes, while browser screenshots protect the rendered contract.
+The static SCSS contract rejects legacy selectors, repeated selector lists, repeated properties, overwritten longhands, redundant type qualification, no-op media rules, symmetric physical inline pairs, and repeated multi-declaration bodies inside the same module and cascade context. Symmetric inline geometry uses logical properties; one-direction geometry remains explicit. Authored SCSS is capped at 47,900 bytes, and the named production `styles` bundle warns at 38.5 kB and fails at 39 kB. Raw and gzip CSS sizes are measured before and after stylesheet changes, while browser screenshots protect the rendered contract.
 
 ## Prohibited patterns
 

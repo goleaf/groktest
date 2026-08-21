@@ -43,17 +43,6 @@
     border-color 180ms var(--ease);
 }
 
-.language-option:hover:not(:disabled) {
-  color: var(--ink);
-  background: color-mix(in oklch, var(--surface) 70%, transparent);
-}
-
-.language-option.active {
-  color: var(--ink);
-  background: var(--surface);
-  border-color: var(--line);
-}
-
 .language-flag {
   font-size: 1.18rem;
   line-height: 1;
@@ -202,9 +191,7 @@ app-page-heading {
   height: 17px;
 }
 
-.button,
-button.button {
-  border-color: var(--teal);
+.button {
   display: inline-flex;
   min-height: 48px;
   align-items: center;
@@ -225,16 +212,6 @@ button.button {
     opacity 180ms var(--ease);
 }
 
-.button:hover:not(:disabled) {
-  background: var(--teal-hover);
-  border-color: var(--teal-hover);
-  transform: translateY(-1px);
-}
-
-.button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
 .back {
   display: inline-flex;
   min-height: 44px;
@@ -247,10 +224,6 @@ button.button {
   text-decoration: none;
   background: transparent;
   border: 0;
-}
-
-.back:hover {
-  color: var(--teal);
 }
 
 .stack {
@@ -370,22 +343,6 @@ button.button {
     transform 180ms var(--ease);
 }
 
-.scope-switch button:hover,
-.segmented button:hover {
-  color: var(--ink);
-}
-
-.scope-switch button.on,
-.segmented button.on {
-  color: var(--on-teal);
-  background: var(--teal-deep);
-}
-
-.scope-switch button:active,
-.segmented button:active {
-  transform: scale(0.99);
-}
-
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -412,13 +369,6 @@ button.button {
     color 180ms var(--ease),
     background-color 180ms var(--ease),
     border-color 180ms var(--ease);
-}
-
-.chips button:hover,
-.chips button.on {
-  color: var(--on-teal);
-  background: var(--teal);
-  border-color: var(--teal);
 }
 
 .empty {
@@ -560,10 +510,32 @@ button.button {
 }
 
 @media (hover: hover) {
+  .language-option:hover:not(:disabled) {
+    color: var(--ink);
+    background: color-mix(in oklch, var(--surface) 70%, transparent);
+  }
+
   .button:hover:not(:disabled) {
     background: var(--teal-hover);
     border-color: var(--teal-hover);
+    transform: translateY(-1px);
   }
+
+  .scope-switch button:hover,
+  .segmented button:hover {
+    color: var(--ink);
+  }
+
+  .back:hover {
+    color: var(--teal);
+  }
+
+  .chips button:hover {
+    color: var(--on-teal);
+    background: var(--teal);
+    border-color: var(--teal);
+  }
+
   .language-select-wrap:hover {
     color: var(--teal);
     background: var(--surface);
@@ -571,12 +543,31 @@ button.button {
   }
 }
 
-@media (min-width: 70rem) {
-  .page {
-    margin: 0;
-    margin-right: auto;
-    margin-left: auto;
-  }
+.language-option.active {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.scope-switch button.on,
+.segmented button.on {
+  color: var(--on-teal);
+  background: var(--teal-deep);
+}
+
+.scope-switch button:active,
+.segmented button:active {
+  transform: scale(0.99);
+}
+
+.chips button.on {
+  color: var(--on-teal);
+  background: var(--teal);
+  border-color: var(--teal);
 }
 
 @media (max-width: 38.75rem) {
@@ -611,8 +602,6 @@ button.button {
   width: 100%;
   margin: 0 auto;
   max-width: 1320px;
-  margin-right: auto;
-  margin-left: auto;
 }
 
 [aria-invalid='true'] {

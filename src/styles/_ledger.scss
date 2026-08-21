@@ -5,12 +5,13 @@
   border-bottom: 0;
 }
 
-.list-nav a:hover,
-.loan-row:hover {
-  color: var(--teal-hover);
-  background: var(--surface);
-  padding-right: 10px;
-  padding-left: 10px;
+@media (hover: hover) {
+  .list-nav a:hover,
+  .loan-row:hover {
+    color: var(--teal-hover);
+    background: var(--surface);
+    padding-inline: 10px;
+  }
 }
 
 .row-leading {
@@ -152,7 +153,7 @@
   min-height: 72px;
   align-items: center;
   gap: 13px;
-  padding: 12px 4px;
+  padding: 12px 14px;
   color: var(--ink);
   text-decoration: none;
   border-bottom: 1px solid var(--line);
@@ -161,8 +162,6 @@
     background-color 180ms var(--ease),
     padding 180ms var(--ease);
   background: var(--surface);
-  padding-right: 14px;
-  padding-left: 14px;
 }
 
 .results-bar {
@@ -230,8 +229,7 @@
   .records-page .chips {
     overflow-x: auto;
     flex-wrap: nowrap;
-    margin-right: calc(var(--content-pad) * -1);
-    margin-left: calc(var(--content-pad) * -1);
+    margin-inline: calc(var(--content-pad) * -1);
     padding: 2px var(--content-pad) 8px;
     overscroll-behavior-inline: contain;
     scroll-padding-inline: var(--content-pad);

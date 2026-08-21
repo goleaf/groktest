@@ -84,7 +84,6 @@
   height: 22px;
 }
 
-.mobile-nav a.add:hover .add-mark,
 .mobile-nav a.add.active .add-mark {
   background: var(--teal-hover);
   transform: translateY(-2px);
@@ -109,8 +108,7 @@
 
 @media (min-width: 90rem) {
   .main {
-    padding-right: 72px;
-    padding-left: 72px;
+    padding-inline: 72px;
   }
 }
 
@@ -246,8 +244,7 @@
   color: var(--muted);
 }
 
-.mobile-nav a.active,
-.mobile-nav a:hover {
+.mobile-nav a.active {
   color: var(--teal);
   background: var(--surface-muted);
 }
@@ -280,15 +277,19 @@
   text-decoration: none;
   background: var(--teal);
   border-radius: var(--radius-sm);
-  border-color: var(--teal);
 }
 
 @media (hover: hover) {
-  .header-add:hover {
+  .mobile-nav a.add:hover .add-mark {
     background: var(--teal-hover);
-    border-color: var(--teal-hover);
+    transform: translateY(-2px);
   }
 
+  .header-add:hover {
+    background: var(--teal-hover);
+  }
+
+  .mobile-nav a:hover,
   .desktop-nav a:hover,
   .header-tool-link:hover {
     color: var(--teal);
@@ -316,8 +317,7 @@
   .header-inner {
     max-width: 1320px;
     min-height: 76px;
-    padding-right: 24px;
-    padding-left: 24px;
+    padding-inline: 24px;
   }
 
   .desktop-nav {

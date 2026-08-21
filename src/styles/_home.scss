@@ -31,8 +31,7 @@
 
 .home-page {
   max-width: 1320px;
-  margin-right: auto;
-  margin-left: auto;
+  margin: 0 auto;
 }
 
 .overview-ribbon {
@@ -272,12 +271,15 @@
 }
 
 .due-rail a > span,
-.due-rail .due-status {
+.due-rail .due-status,
+.people-rail a small {
   color: var(--muted);
   font-size: 0.7rem;
 }
 
-.due-rail a > strong {
+.due-rail a > strong,
+.people-rail a strong,
+.people-rail a small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -304,18 +306,6 @@
 .people-rail a > span:nth-child(2) {
   display: grid;
   min-width: 0;
-}
-
-.people-rail a strong,
-.people-rail a small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.people-rail a small {
-  color: var(--muted);
-  font-size: 0.7rem;
 }
 
 .people-rail a > app-icon {

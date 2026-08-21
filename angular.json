@@ -43,6 +43,12 @@
                   "maximumError": "1MB"
                 },
                 {
+                  "type": "bundle",
+                  "name": "styles",
+                  "maximumWarning": "38.5kB",
+                  "maximumError": "39kB"
+                },
+                {
                   "type": "anyComponentStyle",
                   "maximumWarning": "4kB",
                   "maximumError": "8kB"

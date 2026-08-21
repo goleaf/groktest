@@ -2,8 +2,7 @@
 
 .detail-page,
 .add-page {
-  margin-right: auto;
-  margin-left: auto;
+  margin: 0 auto;
 }
 .add-page {
   max-width: 720px;
@@ -337,7 +336,8 @@
   padding-top: 0;
 }
 
-.add-preview {
+.add-preview,
+.detail-action-rail {
   align-self: start;
   padding: 22px;
 }
@@ -460,11 +460,6 @@
 .detail-main .detail-summary {
   background: var(--surface-muted);
   border: 1px solid var(--line);
-}
-
-.detail-action-rail {
-  align-self: start;
-  padding: 22px;
 }
 
 .detail-action-rail .primary-detail-action {

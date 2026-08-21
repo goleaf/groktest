@@ -119,10 +119,12 @@ select {
   min-height: 52px;
 }
 
-input:hover,
-select:hover,
-textarea:hover {
-  border-color: var(--teal-soft);
+@media (hover: hover) {
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--teal-soft);
+  }
 }
 
 input:focus,
