@@ -74,7 +74,7 @@ Clean and safe to edit:
 - Modify: `docs/architecture.md`
 - Modify: `docs/testing.md`
 
-- [ ] **Step 1: Prove the options are absent from normal configuration**
+- [x] **Step 1: Prove the options are absent from normal configuration**
 
 Run:
 
@@ -84,7 +84,7 @@ rg -n '"strictTemplates": true|"strictStandalone": true' tsconfig.json
 
 Expected: exit 1 with no matches.
 
-- [ ] **Step 2: Enable both Angular compiler options**
+- [x] **Step 2: Enable both Angular compiler options**
 
 Change the shared options to:
 
@@ -98,7 +98,7 @@ Change the shared options to:
 }
 ```
 
-- [ ] **Step 3: Align architecture and testing documentation**
+- [x] **Step 3: Align architecture and testing documentation**
 
 State explicitly in `docs/architecture.md` that both flags are configured in `tsconfig.json`.
 Add this normal gate to `docs/testing.md`:
@@ -110,7 +110,7 @@ pnpm typecheck
 Document that it compiles application templates with `strictTemplates` and rejects non-standalone
 declarations with `strictStandalone`.
 
-- [ ] **Step 4: Verify compiler and production build**
+- [x] **Step 4: Verify compiler and production build**
 
 Run:
 
@@ -122,7 +122,7 @@ git diff --check -- tsconfig.json docs/architecture.md docs/testing.md
 
 Expected: all commands exit 0; no `$any` is added as a compiler workaround.
 
-- [ ] **Step 5: Commit only the compiler contract**
+- [x] **Step 5: Commit only the compiler contract**
 
 ```bash
 git add -- tsconfig.json docs/architecture.md docs/testing.md
@@ -140,7 +140,7 @@ git commit --only -m "build(angular): enforce strict template checks" -- \
 - Modify: `src/app/domain/commands.spec.ts`
 - Modify: `src/app/domain/commands.ts`
 
-- [ ] **Step 1: Write the failing command regression**
+- [x] **Step 1: Write the failing command regression**
 
 Add under `describe('return and repayment')`:
 
@@ -162,7 +162,7 @@ it('rejects returning an item before its handoff date', () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and observe red**
+- [x] **Step 2: Run the focused test and observe red**
 
 ```bash
 pnpm exec ng test borrowed --watch=false --include src/app/domain/commands.spec.ts
@@ -170,7 +170,7 @@ pnpm exec ng test borrowed --watch=false --include src/app/domain/commands.spec.
 
 Expected: the new assertion fails because the current command completes the loan.
 
-- [ ] **Step 3: Add the domain invariant before constructing the update**
+- [x] **Step 3: Add the domain invariant before constructing the update**
 
 In `markItemReturned()` use:
 
@@ -184,7 +184,7 @@ const at = instantFrom(clock.now());
 
 Keep the existing asset-kind and active-loan guards before this check.
 
-- [ ] **Step 4: Verify command and transaction behavior**
+- [x] **Step 4: Verify command and transaction behavior**
 
 ```bash
 pnpm exec ng test borrowed --watch=false \
@@ -196,7 +196,7 @@ git diff --check -- src/app/domain/commands.ts src/app/domain/commands.spec.ts
 
 Expected: focused tests and typecheck exit 0.
 
-- [ ] **Step 5: Commit only the return invariant**
+- [x] **Step 5: Commit only the return invariant**
 
 ```bash
 git add -- src/app/domain/commands.ts src/app/domain/commands.spec.ts
@@ -218,7 +218,7 @@ git commit --only -m "fix(domain): reject returns before handoff" -- \
 - Modify: `src/app/domain/person-summary.spec.ts`
 - Modify: `src/app/data/borrowed-app.ts`
 
-- [ ] **Step 1: Write failing comparator tests**
+- [x] **Step 1: Write failing comparator tests**
 
 Import `compareLoansByAttention` in `loan-rules.spec.ts` and add:
 
@@ -259,7 +259,7 @@ describe('attention ordering', () => {
 });
 ```
 
-- [ ] **Step 2: Run the rules test and observe missing comparator failure**
+- [x] **Step 2: Run the rules test and observe missing comparator failure**
 
 ```bash
 pnpm exec ng test borrowed --watch=false --include src/app/domain/loan-rules.spec.ts
@@ -267,7 +267,7 @@ pnpm exec ng test borrowed --watch=false --include src/app/domain/loan-rules.spe
 
 Expected: compilation/test failure because `compareLoansByAttention` is not exported.
 
-- [ ] **Step 3: Implement the pure comparator**
+- [x] **Step 3: Implement the pure comparator**
 
 Add to `loan-rules.ts`:
 
@@ -300,7 +300,7 @@ export function compareLoansByAttention(left: Loan, right: Loan, today: Calendar
 }
 ```
 
-- [ ] **Step 4: Replace duplicated attention sorts**
+- [x] **Step 4: Replace duplicated attention sorts**
 
 Use this exact call in `BorrowedApp.activeLoans()`, `BorrowedApp.search()`, `summarizeHome()` and
 `summarizePersonRelationships()`:
@@ -312,14 +312,14 @@ Use this exact call in `BorrowedApp.activeLoans()`, `BorrowedApp.search()`, `sum
 Keep History/completed recency sorting unchanged. For Home `dueNext`, use the comparator after its
 existing non-overdue/date/action-id filter so the same date/update/id semantics apply.
 
-- [ ] **Step 5: Add integration assertions at the summary boundaries**
+- [x] **Step 5: Add integration assertions at the summary boundaries**
 
 In Home and Person summary specs, construct two active records with the same urgency band but
 different `dueOn` values and assert the nearer/longest-overdue record is first. Add one Search
 application assertion that an active undated record precedes a completed record with an old due
 date.
 
-- [ ] **Step 6: Verify all comparator consumers**
+- [x] **Step 6: Verify all comparator consumers**
 
 ```bash
 pnpm exec ng test borrowed --watch=false \
@@ -333,7 +333,7 @@ git diff --check -- src/app/domain src/app/data/borrowed-app.ts
 
 Expected: focused tests and typecheck exit 0.
 
-- [ ] **Step 7: Commit the shared ordering rule**
+- [x] **Step 7: Commit the shared ordering rule**
 
 ```bash
 git add -- \
@@ -357,7 +357,7 @@ git commit --only -m "fix(records): stabilize attention ordering" -- \
 - Modify: `src/app/features/add/add-page.spec.ts`
 - Modify: `src/app/features/add/add-page.ts`
 
-- [ ] **Step 1: Add two failing DOM regressions**
+- [x] **Step 1: Add two failing DOM regressions**
 
 Use the existing BorrowedApp test stub and native inputs. The money test must enter an overlong
 physical item, switch to money, enter a valid amount/person, submit and expect one create write:
@@ -377,13 +377,13 @@ expect(createRecord).toHaveBeenCalledWith(
 );
 ```
 
-- [ ] **Step 2: Observe both tests fail because hidden max-length rules remain active**
+- [x] **Step 2: Observe both tests fail because hidden max-length rules remain active**
 
 ```bash
 pnpm exec ng test borrowed --watch=false --include src/app/features/add/add-page.spec.ts
 ```
 
-- [ ] **Step 3: Make Signal Forms the source of conditional availability**
+- [x] **Step 3: Make Signal Forms the source of conditional availability**
 
 Import `hidden` and add:
 
@@ -399,14 +399,14 @@ hidden(record.amount, {
 Keep both `maxLength` rules. Render the conditional block from
 `!addForm.itemName().hidden()` instead of a separate `kind()` condition.
 
-- [ ] **Step 4: Verify Add behavior and strict templates**
+- [x] **Step 4: Verify Add behavior and strict templates**
 
 ```bash
 pnpm exec ng test borrowed --watch=false --include src/app/features/add/add-page.spec.ts
 pnpm typecheck
 ```
 
-- [ ] **Step 5: Commit the validation fix**
+- [x] **Step 5: Commit the validation fix**
 
 ```bash
 git add -- src/app/features/add/add-page.ts src/app/features/add/add-page.spec.ts
@@ -427,13 +427,13 @@ git commit --only -m "fix(add): ignore hidden field validation" -- \
 - Modify: `src/app/i18n/ru.ts`
 - Modify: `src/app/i18n/i18n.spec.ts`
 
-- [ ] **Step 1: Add failing initialization tests**
+- [x] **Step 1: Add failing initialization tests**
 
 Use deferred settings/people/draft Promises. Before resolution, assert the page contains a
 `role="status"` loading message and no `<form>`. After resolution, assert the form appears with the
 draft. Add a rejection/retry test whose second call resolves and mounts the form.
 
-- [ ] **Step 2: Add a failing draft-write error test**
+- [x] **Step 2: Add a failing draft-write error test**
 
 Reject `saveRecordDraft`, edit the person field, advance 250 ms, and assert:
 
@@ -443,7 +443,7 @@ expect((root.querySelector('#person') as HTMLInputElement).value).toBe('Peter');
 expect(createRecord).not.toHaveBeenCalled();
 ```
 
-- [ ] **Step 3: Add explicit initialization and draft states**
+- [x] **Step 3: Add explicit initialization and draft states**
 
 Use:
 
@@ -462,13 +462,13 @@ Wrap the editable workspace in loading/error/loaded template branches. `loadForm
 `draftReady` only after a complete result, and always clears `initializing` in `finally` for the
 current version.
 
-- [ ] **Step 4: Report draft writes without clearing form data**
+- [x] **Step 4: Report draft writes without clearing form data**
 
 When the debounce starts, set `draftStatus` to `saving`. Store the returned Promise in
 `latestDraftPersistence`; only its current completion may set `saved`, `idle` or `error`. Never
 clear or reset `formModel` in the rejection path.
 
-- [ ] **Step 5: Add synchronized EN/LT/RU messages**
+- [x] **Step 5: Add synchronized EN/LT/RU messages**
 
 Add the same keys and parameters in every catalog:
 
@@ -483,7 +483,7 @@ draftError: 'Couldn’t save this draft. Your form is still open.',
 
 Use natural Lithuanian and Russian translations and let `i18n.spec.ts` enforce catalog parity.
 
-- [ ] **Step 6: Verify initialization, draft, i18n and strict compilation**
+- [x] **Step 6: Verify initialization, draft, i18n and strict compilation**
 
 ```bash
 pnpm exec ng test borrowed --watch=false \
@@ -492,7 +492,7 @@ pnpm exec ng test borrowed --watch=false \
 pnpm typecheck
 ```
 
-- [ ] **Step 7: Commit Add initialization as one behavior slice**
+- [x] **Step 7: Commit Add initialization as one behavior slice**
 
 ```bash
 git add -- \
@@ -517,19 +517,19 @@ Preserve the resource implementation and loading test from `222ba08` rather than
 - Modify: `src/app/i18n/lt.ts`
 - Modify: `src/app/i18n/ru.ts`
 
-- [ ] **Step 1: Repair the loading test seam**
+- [x] **Step 1: Repair the loading test seam**
 
 Do not await `fixture.whenStable()` while the resource Promise is intentionally unresolved. Use
 `vi.waitFor()` to assert the initial `role="status"`, then resolve the deferred Promise and wait for
 the empty state.
 
-- [ ] **Step 2: Add failing error/retry and stale-generation tests**
+- [x] **Step 2: Add failing error/retry and stale-generation tests**
 
 The first History call rejects and the second resolves. Click a localized retry button and assert
 results render. For stale protection, change the revision signal, resolve the newer Promise first
 and the older Promise last, then assert only newer data remains.
 
-- [ ] **Step 3: Expose a retry action from the resource**
+- [x] **Step 3: Expose a retry action from the resource**
 
 Add:
 
@@ -542,12 +542,12 @@ protected retry(): void {
 Render it only in the error branch with `type="button"`. Keep loading, empty, filtered-empty and
 results branches mutually exclusive.
 
-- [ ] **Step 4: Add the same History retry key to EN/LT/RU**
+- [x] **Step 4: Add the same History retry key to EN/LT/RU**
 
 Use `history.retry: 'Retry'` and natural Lithuanian/Russian equivalents. Preserve existing
 `history.loading` and `history.loadError` keys from `222ba08`.
 
-- [ ] **Step 5: Verify History and catalog parity**
+- [x] **Step 5: Verify History and catalog parity**
 
 ```bash
 pnpm exec ng test borrowed --watch=false \
@@ -556,7 +556,7 @@ pnpm exec ng test borrowed --watch=false \
 pnpm typecheck
 ```
 
-- [ ] **Step 6: Commit only the completed History state model**
+- [x] **Step 6: Commit only the completed History state model**
 
 ```bash
 git add -- \
@@ -573,9 +573,9 @@ git commit --only -m "fix(history): expose complete async states" -- \
 
 **Files:** Verify only; do not retain browser profiles, screenshots, traces or generated bundles.
 
-- [ ] Re-read `git status --short --branch` and require every remaining dirty path to be
+- [x] Re-read `git status --short --branch` and require every remaining dirty path to be
       attributable or explicitly identified as external.
-- [ ] Run full gates sequentially:
+- [x] Run full gates sequentially:
 
 ```bash
 pnpm test
@@ -588,14 +588,36 @@ git diff --check
 Expected: zero failed tests, ESLint/Prettier clean, development and production builds exit 0, and
 no whitespace errors.
 
-- [ ] Start the project through Angular CLI MCP at `http://127.0.0.1:4200` using an isolated
-      browser profile.
-- [ ] At 390x844 and 1440x1000 verify Add loading/retry/form transitions, item-money switching,
-      draft error preservation, Detail return busy state and History loading/error/retry/empty/data.
-- [ ] Verify keyboard focus, accessible names, `aria-busy`, live regions and zero console errors.
-- [ ] Inspect `git log --oneline` and confirm every Stage 0 commit contains only its documented
+- [x] Start the project through Angular CLI MCP on its reported loopback address using an
+      isolated browser profile.
+- [x] At 390x844 and 1440x1000 verify Add loading/form transitions, item-money switching, draft
+      error preservation, Detail return busy state and History error/retry/data; retain automated
+      component evidence for initialization retry and History loading/empty/stale generations.
+- [x] Verify keyboard focus, accessible names, `aria-busy`, live regions and zero console errors.
+- [x] Inspect `git log --oneline` and confirm every Stage 0 commit contains only its documented
       paths.
-- [ ] Update this plan's completed checkboxes and report any deferred item with exact evidence.
+- [x] Update this plan's completed checkboxes and report any deferred item with exact evidence.
+
+## Completion evidence — 2026-08-21
+
+- Full repository gates passed from commit `2006dcf`: 41 test files and 179 tests, ESLint,
+  Prettier, strict development compilation, production build and `git diff --check`.
+- Focused red-green regressions covered return chronology, canonical attention sorting, both
+  hidden Add-field directions, Add initialization/retry/draft failure, History retry and stale
+  resource generations, plus EN/LT/RU catalog parity.
+- Angular CLI MCP served the app successfully at `http://localhost:4200/`. Playwright could not
+  reach the MCP server through `127.0.0.1`, so browser acceptance used the equivalent loopback
+  hostname without changing the project or server configuration.
+- In the disposable Playwright profile, 390x844 and 1440x1000 checks found no horizontal
+  overflow. Add exposed loading without mounting the form, toggled `aria-busy`, preserved input
+  after a simulated draft-write failure and ignored an overlong hidden item validator. History
+  recovered from a simulated read failure through Retry and rendered 32 persisted rows.
+- Detail kept its return action disabled with `aria-busy="true"` while a simulated write remained
+  pending; a second native click left the write count at one on both required viewport sizes.
+- Route focus reached `main`; keyboard focus on the History search field had a visible 3px teal
+  outline. The browser console contained zero errors and zero warnings.
+- No Stage 0 production/test paths remained dirty. An externally created untracked
+  `2026-08-21-borrowed-audit-stage-0-final-verification.md` was preserved unchanged.
 
 ## Plan self-review
 
