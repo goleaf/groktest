@@ -66,15 +66,15 @@ until their owner settles them.
 - Modify: `src/app/i18n/ru.ts`
 
 - [ ] Add failing tests for initial loading, failure/retry, route-id changes, stale response
-  rejection and language changes without a second `personOverview()` call.
+      rejection and language changes without a second `personOverview()` call.
 - [ ] Replace `route.snapshot + effect + Promise.then` with `toSignal(route.paramMap)` and one
-  `resource` keyed by person id and the temporary revision only.
+      `resource` keyed by person id and the temporary revision only.
 - [ ] Return `remainingMinorUnitsByLoan` from `personOverview(personId)` and remove its locale
-  argument and formatted-string map.
+      argument and formatted-string map.
 - [ ] Format each raw balance in a Person `computed`, so locale changes affect only presentation.
 - [ ] Add localized Person load-error and retry messages and an accessible `aria-busy` boundary.
 - [ ] Run the focused Person and Dexie tests, Angular typecheck, lint for touched files and diff
-  checks; commit only this slice.
+      checks; commit only this slice.
 
 ### Task 2: Remove locale from Records and Search reads
 
@@ -89,12 +89,12 @@ until their owner settles them.
 - Modify: `src/app/ui/loan-row.ts`
 
 - [ ] Add tests proving language changes re-render remaining balances without calling
-  `remainingMap()` or `search()` again.
+      `remainingMap()` or `search()` again.
 - [ ] Change the remaining-balance query to return raw minor units keyed by loan id.
 - [ ] Make `LoanRow` accept raw remaining minor units and format with its current locale.
 - [ ] Remove locale from Records/Search resource params while retaining query/scope params.
 - [ ] Verify empty global search performs no IndexedDB read and stale search generations remain
-  protected.
+      protected.
 - [ ] Run focused feature/UI tests, typecheck and diff checks; commit only this slice.
 
 ### Task 3: Make Home summary presentation-neutral
@@ -131,7 +131,7 @@ until their owner settles them.
 - [ ] Move record/home/history/search/detail reads into `RecordsQueryService`.
 - [ ] Move people list/person overview reads into `PeopleQueryService`.
 - [ ] Keep settings, draft, backup and current-day responsibilities temporarily compatible; they
-  move in their dedicated later stages rather than growing the new services.
+      move in their dedicated later stages rather than growing the new services.
 - [ ] Update feature injection one page at a time and keep every intermediate commit green.
 
 ### Task 5: Add the Dexie live-query bridge
@@ -146,11 +146,11 @@ until their owner settles them.
 - Modify: `src/app/application/people-query-service.ts`
 
 - [ ] Define one typed observable read boundary in `BorrowedStore`; its Dexie implementation wraps
-  `liveQuery` without exposing Dexie to components.
+      `liveQuery` without exposing Dexie to components.
 - [ ] Represent initial loading, data and controlled read failure as explicit typed query state.
 - [ ] Prove a relevant transaction emits updated data and an unrelated table write does not.
 - [ ] Prove two `DexieBorrowedStore` instances on one database name receive cross-tab-equivalent
-  updates.
+      updates.
 - [ ] Preserve existing bounded/indexed store methods inside the watched query closures.
 
 ### Task 6: Migrate feature reads and remove global revision
@@ -164,7 +164,7 @@ until their owner settles them.
 - [ ] Migrate History and People lists to live query state.
 - [ ] Migrate scoped Records, Home and Search to live query state with reactive params.
 - [ ] Keep parameterized Detail/Person reads resource-based where one-shot reload semantics are
-  clearer, with targeted query-service invalidation from relevant writes only.
+      clearer, with targeted query-service invalidation from relevant writes only.
 - [ ] Delete `BorrowedApp.revision`, `touch()` and every revision dependency/test double.
 - [ ] Add integration tests for unrelated-mutation isolation and second-tab propagation.
 - [ ] Run all unit tests, lint, typecheck, production build and `git diff --check`.
@@ -179,9 +179,9 @@ until their owner settles them.
 
 - [ ] Start the Angular dev server through the Angular CLI MCP and wait for a successful build.
 - [ ] In an isolated Playwright profile verify Person route reuse, retry, language switch, Records
-  filters, Search and Detail after mutations at mobile and desktop widths.
+      filters, Search and Detail after mutations at mobile and desktop widths.
 - [ ] Open a second isolated tab, mutate shared IndexedDB data and verify affected first-tab UI
-  updates without reload.
+      updates without reload.
 - [ ] Check keyboard focus, `aria-busy`, retry controls, horizontal overflow and console errors.
 - [ ] Re-run the complete quality gate after browser checks and record exact evidence.
 
