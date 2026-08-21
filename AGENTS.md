@@ -7,7 +7,7 @@ This is **not** Laravel, Next.js, or a SaaS. Do not apply Laravel/Filament skill
 ## Stack
 
 - Angular 22 standalone, zoneless, TypeScript strict, pnpm
-- Dexie / IndexedDB (`borrowed-app`) behind `BorrowedStore`
+- Dexie / IndexedDB (`borrowed`) behind `BorrowedStore`
 - PWA + Capacitor (android/ios in tree) + Electron on `http://127.0.0.1:4200`
 - Vitest + jsdom; Prettier; angular-eslint
 - i18n catalogs in `src/app/i18n/` (`en`, `lt`, `ru`)
@@ -63,4 +63,4 @@ Verify UI in a real browser after visual or routing changes. Prefer Playwright o
 
 ## UI verification
 
-Dev server: `http://127.0.0.1:4200`. IndexedDB name: `borrowed-app`.
+Dev server: `http://127.0.0.1:4200`. IndexedDB name: `borrowed`.
