@@ -8,87 +8,73 @@
 
 ## Current repository baseline
 
-Snapshot reconciled at **2026-08-21T14:36:52+03:00** (`Europe/Vilnius`).
+Snapshot reconciled at **2026-08-21T14:53:29+03:00** (`Europe/Vilnius`).
 
-| Item                             | Verified baseline                                                                                       |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Repository                       | `goleaf/groktest`                                                                                       |
-| HEAD                             | `50884e76e8f28e27a367ad25766b51f6e6b5282c` (`50884e7`, `fix(people): make person reads route reactive`) |
-| Branch                           | existing `main`, four commits ahead of `origin/main` at snapshot time                                   |
-| Package manager                  | pnpm `10.33.0`                                                                                          |
-| Angular                          | packages `22.1.3`; CLI/build `22.1.5`                                                                   |
-| TypeScript                       | `6.0.3`                                                                                                 |
-| Dexie                            | `4.4.5`                                                                                                 |
-| Capacitor                        | Android/Core/iOS/CLI `8.5.0`                                                                            |
-| RxJS                             | `7.8.2`                                                                                                 |
-| Vitest / jsdom                   | `4.1.11` / `28.1.0`                                                                                     |
-| Electron                         | `43.4.1` development shell                                                                              |
-| Local schema                     | Dexie schema v3                                                                                         |
-| Actual production IndexedDB name | `borrowed` in `provideBorrowedPersistence()`; see the critical documentation mismatch below             |
-| Automated test inventory         | 41 `*.spec.ts` files; 186 tests in the current mixed Stage 0/Stage 1 Task 2 tree                        |
-| Authored SCSS                    | 2,821 lines / 47,832 bytes across `src/styles.scss` and `src/styles/*.scss`                             |
+| Item                             | Verified baseline                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| Repository                       | `goleaf/groktest`                                                                           |
+| HEAD                             | `c7100bbfc587b9d84eed32a90f6a3933ac985aec` (`c7100bb`)                                      |
+| Branch                           | existing `main`, exactly matching `origin/main` at snapshot time                            |
+| Package manager                  | pnpm `10.33.0`                                                                              |
+| Angular                          | packages `22.1.3`; CLI/build `22.1.5`                                                       |
+| TypeScript                       | `6.0.3`                                                                                     |
+| Dexie                            | `4.4.5`                                                                                     |
+| Capacitor                        | Android/Core/iOS/CLI `8.5.0`                                                                |
+| RxJS                             | `7.8.2`                                                                                     |
+| Vitest / jsdom                   | `4.1.11` / `28.1.0`                                                                         |
+| Electron                         | `43.4.1` development shell                                                                  |
+| Local schema                     | Dexie schema v3                                                                             |
+| Actual production IndexedDB name | `borrowed` in `provideBorrowedPersistence()`; see the critical documentation mismatch below |
+| Automated test inventory         | 42 `*.spec.ts` files / 190 tests after the coordinator guard; 41 / 186 at clean `c7100bb`   |
+| Authored SCSS                    | 2,821 lines / 47,832 bytes across `src/styles.scss` and `src/styles/*.scss`                 |
 
 ### Fresh gate evidence at this snapshot
 
-- `pnpm test`: at 14:27 the coordinator freshly observed 41 files / 186 tests pass in the exact
-  mixed tree containing the Stage 0 closeout slice and the uncommitted Stage 1 Task 2 changes.
-  The focused Task 2 matrix (`dexie-store`, Lists, Person, Search and `LoanRow`) also passed 5 files
-  / 30 tests immediately beforehand. Earlier Stage 0 red/timing history and its state-based repair
-  remain recorded in the final-verification plan; this new green run does not transfer ownership
-  or replace each active owner's focused RED/GREEN evidence. At 14:36, the coordinator refreshed
-  the focused Search suite alone: 1 file / 4 tests passed.
-- `pnpm audit --audit-level high`: exited 0 at the configured threshold with one moderate advisory
-  and no high/critical advisory.
-- `pnpm lint`: **not green**. Angular ESLint passed, but repository-wide Prettier reported exactly
-  `src/app/features/lists/list-page.ts` and `src/app/features/people/person-page.ts`, both owned by
-  active Stage 1 Task 2. The coordinator did not format or otherwise alter those foreign files.
-- `pnpm typecheck`: passed the Angular development build with strict templates/standalone checks.
-- `pnpm build`: passed; production styles were 37.92 kB raw / 6.58 kB estimated transfer, below
-  the named 38.5 kB warning budget.
-- `git diff --check`: exited 0 after the gate sequence. The coordination document itself is
-  Prettier-formatted; the only aggregate formatting failures are the two Task 2 files above.
+- Another worker created and pushed `c7100bb` while the coordinator was beginning the planned
+  Stage 0 review. Despite its `docs:` subject, that commit combines the coordination file, Stage 0
+  verification plan and cleanup, and all nine Stage 1 Task 2 product/test paths: 15 files, 1,243
+  insertions and 62 deletions. Do not rewrite published history to split it; record the provenance
+  defect and verify the actual code.
+- Immediately before that commit, the identical mixed product tree passed 41 files / 186 tests,
+  the five-file Task 2 matrix passed 30 tests, high-severity audit passed with one moderate
+  advisory, typecheck and production build passed, and `git diff --check` passed. Aggregate lint
+  was not green because Lists and Person formatting remained outstanding. This is prior-tree
+  evidence, not a fresh clean-HEAD gate.
+- A concurrent clean-HEAD verification attempt at 14:42 was interrupted before suite import by
+  `ENOSPC` when only 143 MiB was available. External environment work later restored about 16 GiB
+  without this coordinator deleting any cache or user data. Rechecking the unchanged `c7100bb`
+  tree at 14:44-14:45 then produced: 41 files / 186 tests pass; strict development typecheck pass;
+  production build pass at 37.92 kB styles raw / 6.58 kB estimated transfer; high-severity audit
+  pass with one moderate advisory; and `git diff --check` pass.
+- `pnpm lint` is **not green** on published `c7100bb`: Angular ESLint passes, while Prettier reports
+  exactly `src/app/features/lists/list-page.ts` and
+  `src/app/features/people/person-page.ts`. This is a committed Task 2 integration defect, not a
+  foreign worktree failure. A Task 2 closeout owner must format only those two paths and rerun the
+  complete gate.
+- The coordinator added `src/app/architecture-boundaries.spec.ts` as a characterization guard.
+  Its focused run passes 1 file / 4 tests and permits only two explicitly named temporary debts:
+  `domain/types.ts -> i18n/catalog.ts` and Detail's type-only `LoanRecord` import from `data/store`.
+  The final full run including this guard passes 42 files / 190 tests.
 - No browser, PWA offline, native build, APK installation, or physical-device claim was refreshed
-  by this coordinator snapshot.
-
-The mixed history above is intentional: it records the reproduced failure, its targeted repair,
-and the later green runs without treating a shared-tree pass as proof for either owner's slice.
-Re-run all gates from one stable tree after Stage 0 settles its index and again at each Stage 1
-handoff.
+  for `c7100bb`.
 
 ### Current dirty/staged ownership snapshot
 
-The following paths are **foreign staged work** owned by the active Stage 0 final-verification
-slice. Do not edit, unstage, restore, commit, format, or otherwise absorb them:
+At 14:44, before this coordinator update, HEAD, index and worktree were clean and `main` matched
+`origin/main`. The former Stage 0 and Task 2 dirty layers were combined into published commit
+`c7100bb`; they are no longer active file ownership claims. Never amend, reset or force-push that
+commit merely to repair its scope or message.
 
-- `docs/superpowers/plans/2026-08-21-borrowed-audit-stage-0-final-verification.md` (added in the
-  index and also modified unstaged while its owner records evidence; `AM`)
-- `src/app/features/add/add-page.spec.ts` (modified, staged, and modified again unstaged by the
-  Stage 0 timing repair; `MM`)
-- `src/app/features/add/add-page.ts` (modified, staged)
-- `src/app/features/history/history-page.spec.ts` (modified, staged)
-- `src/app/testing/deferred-promise.ts` (added, staged)
+The coordinator now owns only the reconciliation edits to
+`docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` and the untracked
+`src/app/architecture-boundaries.spec.ts` characterization guard. No product worker may absorb
+or partially stage them.
 
-Stage 1 Task 1 and its plan evidence were committed atomically as `50884e7`. A Stage 1 Task 2 owner
-is now actively changing the raw remaining-balance contract. Treat all of these **foreign
-unstaged** paths as one indivisible Task 2 slice:
-
-- `src/app/data/borrowed-app.ts`
-- `src/app/data/dexie-store.spec.ts`
-- `src/app/features/lists/list-page.spec.ts`
-- `src/app/features/lists/list-page.ts`
-- `src/app/features/people/person-page.ts`
-- `src/app/features/search/search-page.spec.ts`
-- `src/app/features/search/search-page.ts`
-- `src/app/ui/loan-row.spec.ts`
-- `src/app/ui/loan-row.ts`
-
-The Stage 1 plan names seven of those paths. `dexie-store.spec.ts` verifies the changed
-`remainingMap()` boundary and `person-page.ts` is a required `LoanRow` consumer, but this expanded
-ownership must be reconciled in the Task 2 plan/handoff before commit. Do not edit, format, stage,
-restore or partially commit any of these paths from another task.
-
-The coordinator alone owns the untracked
-`docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md`.
+No active product owner can be proven from Git state. Before starting any follow-up, mark its
+intended paths explicitly. The smallest Task 2 closeout is expected to touch only the two committed
+formatting failures, `src/app/features/search/search-page.spec.ts`, and
+`docs/superpowers/plans/2026-08-21-borrowed-audit-stage-1.md`; that is a recommendation, not current
+ownership.
 
 This snapshot can become stale while it is being read. `git status --short --branch`, unstaged diff,
 and staged diff are mandatory before acting.
@@ -145,14 +131,14 @@ native platform shells -> bootstrap/delivery adapters only, never domain or feat
   identity, summaries, filters, and deterministic ordering.
 - `src/app/data/borrowed-app.ts` is the current broad application facade. It owns explicit
   commands, query composition, the current global `revision`, current-day state, draft handling,
-  settings and export. The active Task 2 tree has already made Records/Search remaining values
+  settings and export. Committed Task 2 code makes Records/Search remaining values
   presentation-neutral; Home still returns locale-shaped actions. Stage 1 may split this facade
   only in reviewed, intermediate-green slices.
 - `src/app/data/store.ts` is the persistence port. `dexie-store.ts`, `database.ts`, `rows.ts`, and
   `mappers.ts` are the Dexie adapter and the only production Dexie boundary.
 - `src/app/features/` owns route-level loading/error/empty/success state and interaction wiring. It
   calls application services/facades, not Dexie.
-- `src/app/ui/` owns reusable presentation. In the active Task 2 tree, `LoanRow` accepts raw
+- `src/app/ui/` owns reusable presentation. At HEAD, `LoanRow` accepts raw
   `bigint | null` remaining minor units and formats them against the current locale. It still
   injects `BorrowedApp` for `daysUntilDue`; do not add more service coupling to UI primitives.
 - `src/app/i18n/` owns independent EN/LT/RU catalogs, locale metadata, parameter/plural contracts,
@@ -161,10 +147,11 @@ native platform shells -> bootstrap/delivery adapters only, never domain or feat
 - `capacitor.config.ts`, `android/`, `ios/`, and `electron/` are delivery boundaries. A feature
   must consume a small application interface before using a platform implementation.
 
-The intended inward dependency rule is stricter than current code: `domain/types.ts` currently
-imports `SupportedLanguage` from `i18n/catalog.ts`. This is known architecture debt from the
-modernization design. Do not broaden the exception. Stage 3 must move the shared language type to
-an inward-neutral contract so domain no longer imports UI catalogs.
+The intended inward dependency rule is stricter than current code. Two exact production edges are
+temporary, guarded debt: `domain/types.ts` imports `SupportedLanguage` from `i18n/catalog.ts`, and
+`DetailPage` imports the `LoanRecord` type from `data/store.ts`. Do not broaden either exception.
+Stage 1's service split must remove the Detail-to-data-port type edge; Stage 3 must move the shared
+language type to an inward-neutral contract so domain no longer imports UI catalogs.
 
 ### Domain and data invariants
 
@@ -201,10 +188,10 @@ an inward-neutral contract so domain no longer imports UI catalogs.
   temporary global revision until Stage 1 Tasks 4-6 replace that invalidation boundary.
 - Add's effect is allowed only as the debounced imperative draft-persistence boundary after full
   initialization. It is not precedent for screen reads.
-- In the active Task 2 tree, Records/Search resource parameters no longer include locale, and
-  `remainingMap()` plus `LoanRow` exchange raw minor units. This is uncommitted and is not a stable
-  contract until its owner reconciles the expanded file set, updates the plan and completes the
-  handoff.
+- At HEAD, Records/Search resource parameters no longer include locale, and `remainingMap()` plus
+  `LoanRow` exchange raw minor units. The code is committed in `c7100bb`, but Task 2 remains
+  acceptance-incomplete until formatting, zero-read characterization, plan evidence, full gates,
+  and browser checks are closed.
 - The current global `BorrowedApp.revision` invalidates unrelated reads and does not propagate
   cross-tab writes. Remove it only after typed query services/live-query coverage exists.
 
@@ -359,58 +346,58 @@ Statuses describe the actual implementation and current evidence, not checkbox a
 
 - **PLAN:** Compiler, return chronology, canonical attention ordering, Add correctness and History
   async-state baseline.
-- **STATUS:** PARTIALLY COMPLETE.
-- **PRIORITY:** Highest until final verification settles.
+- **STATUS:** COMPLETE in implementation; published integration provenance is defective.
+- **PRIORITY:** Preserve; do not re-execute.
 - **DEPENDENCIES:** Settled hardening implementation.
-- **LIKELY FILE OWNERSHIP:** Final verification owns the staged Add/History/helper cleanup.
+- **LIKELY FILE OWNERSHIP:** None currently.
 - **OVERLAPS:** Stage 1 future feature/service work and current full-suite gate.
 - **SUPERSEDES:** Older audit assumptions contradicted by current code.
 - **SUPERSEDED BY:** Final-verification plan for closeout evidence.
-- **NOTES:** Functional commits exist. The coordinator reproduced a timing-sensitive failure; the
-  final-verification owner repaired its assertion and records later green runs. Keep this parent
-  plan partial until the active closeout slice is settled; do not infer completion from boxes alone.
+- **NOTES:** Functional commits and the typed cleanup exist in current code. The state-based Add
+  timing repair and shared deferred helper landed in `c7100bb`; do not repeat them. Fresh full
+  tests/typecheck/build/audit are green; aggregate lint is blocked only by committed Task 2 files.
 
 ### `2026-08-21-borrowed-audit-stage-0-final-verification.md`
 
 - **PLAN:** Typed cleanup and coherent Stage 0 release-candidate verification.
-- **STATUS:** ACTIVE.
-- **PRIORITY:** Highest.
+- **STATUS:** COMPLETE in code/evidence; not attributable as an isolated commit.
+- **PRIORITY:** Historical evidence; do not re-execute.
 - **DEPENDENCIES:** Stage 0 commits through `329bdac`.
-- **LIKELY FILE OWNERSHIP:** Exactly the five paths listed in the baseline, including both index and
-  worktree layers of `add-page.spec.ts`; source Stage 0 plan may be updated after evidence.
+- **LIKELY FILE OWNERSHIP:** None currently.
 - **OVERLAPS:** Stage 1 Task 4/6 eventually touches feature tests; all global gates.
 - **SUPERSEDES:** Earlier Stage 0 completion claim where evidence is stale.
 - **SUPERSEDED BY:** None.
 - **NOTES:** Its owner diagnosed the draft-error timing assertion, changed it to state-based
-  waiting, and records repeated focused plus full green runs. The slice remains active because its
-  plan is `AM`, `add-page.spec.ts` is `MM`, and no attributable commit/handoff has settled it yet.
+  waiting, and recorded focused/full/browser evidence. The cleanup landed inside the over-broad
+  published `c7100bb` rather than the required isolated commit. Do not rewrite history; retain this
+  as a process defect and use current code as authoritative.
 
 ### `2026-08-21-borrowed-audit-stage-1.md`
 
 - **PLAN:** Presentation-neutral reads, application service split, Dexie `liveQuery`, cross-tab
   updates, removal of global revision.
-- **STATUS:** ACTIVE (Task 1 COMPLETE; Task 2 PARTIALLY COMPLETE in the current dirty tree).
-- **PRIORITY:** Task 2 may be finished only by its current owner after Stage 0's foreign index is
-  settled; do not start Task 3 or another product slice.
-- **DEPENDENCIES:** Stage 0 functional commits exist; final-verification files remain staged. The
-  Stage 1 plan was formatted in `7cdb4c3`; Task 1 implementation and evidence landed in `50884e7`.
-- **LIKELY FILE OWNERSHIP:** The active Task 2 owner holds the nine unstaged paths listed in the
-  baseline. Seven are named by the plan; the Dexie integration spec and Person consumer are a
-  necessary but not yet documented scope expansion. Future tasks broaden ownership to Home,
-  domain summaries, store/Dexie, application services and most feature specs.
+- **STATUS:** ACTIVE (Task 1 COMPLETE; Task 2 PARTIALLY COMPLETE after code landed in `c7100bb`).
+- **PRIORITY:** Close Task 2 evidence before planning or editing Task 3.
+- **DEPENDENCIES:** Stage 0 implementation is present. Task 1 landed in `50884e7`; Task 2 code was
+  bundled with Stage 0 and coordination documentation in `c7100bb`.
+- **LIKELY FILE OWNERSHIP:** None currently proven. A new Task 2 closeout owner should claim the
+  two formatting failures, Search's spec and the Stage 1 plan unless a failing characterization
+  proves another production correction is needed. Future tasks broaden ownership to Home, domain
+  summaries, store/Dexie, application services and most feature specs.
 - **OVERLAPS:** Every Stage 1 task overlaps another through `BorrowedApp`; Task 4/6 overlaps most
   feature pages. It is not safe to parallelize internally in this checkout.
 - **SUPERSEDES:** Revision-driven whole-app invalidation and Person's Promise-writing effect.
 - **SUPERSEDED BY:** None.
-- **NOTES:** Task 2 currently implements raw remaining values across `BorrowedApp`, Lists, Search,
-  Person and `LoanRow`; 5 focused files / 30 tests and the mixed-tree 41 files / 186 tests passed
-  in this coordinator run. The stale-search-generation regression remains present, but the plan's
+- **NOTES:** Task 2 implements raw remaining values across `BorrowedApp`, Lists, Search, Person and
+  `LoanRow`; before commit, 5 focused files / 30 tests and the identical product tree's 41 files /
+  186 tests passed. The stale-search-generation regression remains present, but the plan's
   separate requirement that an empty/whitespace global search perform no IndexedDB read is not yet
   proved by a spy/assertion characterization: the initial-guidance test uses unobserved async
   stubs. This behavior predates Task 2, so fabricating a RED state is neither required nor honest.
-  The task remains partial because that characterization, RED evidence for its actual behavioral
-  changes, plan checkboxes, expanded ownership, browser acceptance and attributable commit/handoff
-  are not yet settled.
+  The task remains partial because that characterization, plan checkboxes, expanded ownership,
+  Task 2 browser acceptance and the failing Prettier gate are not settled. An isolated Task 2
+  implementation commit is no longer possible without forbidden history rewriting; record
+  `c7100bb` honestly instead.
 
 ### Audit modernization Stages 2-4
 
@@ -428,36 +415,37 @@ Statuses describe the actual implementation and current evidence, not checkbox a
 
 ## File ownership / conflict map
 
-`Safe for parallel work?` assumes the current mixed Stage 0/Stage 1 state. A clean path is not
-automatically unowned.
+The tree was clean before this coordinator edit, but a clean path is not automatically safe: the
+next Stage 1 tasks share application contracts. Recheck Git immediately before claiming a row.
 
-| Path / area                                                | Current owner/task                                       | Safe for parallel work?                             | Notes                                                                |
-| ---------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` | Coordinator                                              | Documentation updates only                          | Reconcile, never replace wholesale                                   |
-| Stage 0 final-verification plan                            | Stage 0 final verification                               | No                                                  | Foreign `AM`: staged add plus unstaged evidence update               |
-| `src/app/testing/deferred-promise.ts`                      | Stage 0 final verification                               | No                                                  | Foreign staged add                                                   |
-| `src/app/domain/`                                          | Stage 1 Tasks 3/6 planned; no dirty source owner proven  | No during Stage 1                                   | `domain/types.ts` i18n dependency is known debt                      |
-| `src/app/application/`                                     | Stage 1 Tasks 4-6 planned                                | No                                                  | Directory does not exist yet; Stage 1 owns proposed boundary         |
-| `src/app/data/`                                            | Stage 1 Task 2 active                                    | **No**                                              | `BorrowedApp` and Dexie integration spec are foreign unstaged work   |
-| `src/app/features/add/`                                    | Stage 0 final verification                               | **No**                                              | Component is staged; spec is `MM`; no other task may touch either    |
-| `src/app/features/detail/`                                 | Stage 1 Task 6 planned; current dirty owner unproven     | No during Stage 1                                   | Resource/command contract is cross-task sensitive                    |
-| `src/app/features/home/`                                   | Stage 1 Tasks 3/6 planned                                | No during Stage 1                                   | Presentation-neutral summary and revision removal overlap            |
-| `src/app/features/history/`                                | Stage 0 owns staged spec; Stage 1 Task 6 later           | **No**                                              | Settle Stage 0 first                                                 |
-| `src/app/features/lists/`                                  | Stage 1 Task 2 active; Task 6 later                      | **No**                                              | Preserve `scope/filter/q`; raw balance migration is dirty            |
-| `src/app/features/people/`                                 | Stage 1 Task 2 owns dirty `person-page.ts`; Task 6 later | **No**                                              | Task 1 is committed; Person consumes the changing `LoanRow` contract |
-| `src/app/features/search/`                                 | Stage 1 Task 2 active                                    | **No**                                              | Shares raw remaining-value contract with Lists/LoanRow               |
-| `src/app/features/more/`                                   | `UNKNOWN — RECHECK BEFORE EDITING`                       | Only after fresh check                              | No active plan-specific change currently proven                      |
-| `src/app/features/settings/`                               | Stage 2 future; current owner unknown                    | No persistence work yet                             | Settings initialization/backup contracts are unresolved              |
-| `src/app/ui/`                                              | Stage 1 Task 2 active                                    | **No**                                              | Dirty `LoanRow` contract now accepts raw remaining minor units       |
-| `src/app/i18n/`                                            | No active dirty owner proven                             | Only after Stage 0 settles and fresh check          | Task 1 keys landed; future EN/LT/RU edits must move together         |
-| `src/app/layout/`                                          | `UNKNOWN — RECHECK BEFORE EDITING`                       | Only for isolated fixes after check                 | Shell uses revision/current-day and may be affected by service split |
-| `src/styles/` and `src/styles.scss`                        | No active source owner proven; SCSS plans historical     | Yes only for an explicitly isolated style-only task | Never re-run old dead-selector deletion; browser proof required      |
-| `angular.json`                                             | No active owner proven                                   | Only after fresh check                              | Named styles budget is protected by tests                            |
-| `tsconfig.json`                                            | No active owner proven                                   | Only after fresh check                              | Strict template/standalone flags are non-negotiable                  |
-| `package.json` / `pnpm-lock.yaml`                          | No active owner proven                                   | No blanket changes                                  | New dependencies require explicit evidence and lockfile ownership    |
-| Android files                                              | Stage 4 future; no current owner proven                  | No mutation without device/package gate             | Preserve app data; build output is not source ownership              |
-| iOS files                                                  | Stage 4 future; no current owner proven                  | Only isolated native work after check               | No fresh Xcode/device evidence                                       |
-| `.github/workflows/ci.yml`                                 | Stage 4 future; no current owner proven                  | Only isolated CI task after check                   | CI currently runs audit/lint/test/typecheck/build and Android build  |
+| Path / area                                                | Current owner/task                                   | Safe for parallel work?                             | Notes                                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` | Coordinator                                          | Documentation updates only                          | Current coordinator edit; reconcile, never replace wholesale           |
+| `src/app/architecture-boundaries.spec.ts`                  | Coordinator                                          | No partial staging                                  | New no-dependency characterization guard; focused 4/4 green            |
+| Stage 0 final-verification plan                            | No active owner proven                               | Recheck before editing                              | Committed in `c7100bb`; historical evidence                            |
+| `src/app/testing/deferred-promise.ts`                      | No active owner proven                               | Tests only after fresh claim                        | Shared helper committed in `c7100bb`                                   |
+| `src/app/domain/`                                          | Stage 1 Tasks 3/6 planned; no active owner proven    | No during Stage 1                                   | `domain/types.ts` i18n dependency is known debt                        |
+| `src/app/application/`                                     | Stage 1 Tasks 4-6 planned                            | No                                                  | Directory does not exist yet; Stage 1 owns proposed boundary           |
+| `src/app/data/`                                            | No active owner; Stage 1 Tasks 3-6 planned           | **No**                                              | Raw Task 2 contract is committed; later tasks share `BorrowedApp`      |
+| `src/app/features/add/`                                    | No active owner proven                               | Only an explicitly isolated task                    | Stage 0 cleanup is committed; do not repeat it                         |
+| `src/app/features/detail/`                                 | Stage 1 Tasks 4/6 planned; no active owner proven    | No during Stage 1                                   | Type-only `data/store` edge is guarded debt to remove in service split |
+| `src/app/features/home/`                                   | Stage 1 Tasks 3/6 planned                            | No during Stage 1                                   | Presentation-neutral summary must precede revision removal             |
+| `src/app/features/history/`                                | Stage 1 Task 6 planned; no active owner proven       | No during Stage 1                                   | Stage 0 async-state work is committed                                  |
+| `src/app/features/lists/`                                  | Stage 1 Task 6 planned; no active owner proven       | **No**                                              | Preserve `scope/filter/q`; raw balance migration is committed          |
+| `src/app/features/people/`                                 | Stage 1 Task 6 planned; no active owner proven       | **No**                                              | Route-reactive/raw-balance contracts are committed                     |
+| `src/app/features/search/`                                 | Task 2 evidence follow-up, then Task 6               | **No** until Task 2 closes                          | Missing zero-read characterization; production contract is committed   |
+| `src/app/features/more/`                                   | `UNKNOWN — RECHECK BEFORE EDITING`                   | Only after fresh check                              | No active plan-specific change currently proven                        |
+| `src/app/features/settings/`                               | Stage 2 future; current owner unknown                | No persistence work yet                             | Settings initialization/backup contracts are unresolved                |
+| `src/app/ui/`                                              | No active owner; Stage 1 Task 6 may consume          | Only after fresh claim                              | `LoanRow` raw remaining-minor-unit contract is committed               |
+| `src/app/i18n/`                                            | No active owner proven                               | Only after fresh check                              | Future EN/LT/RU edits must move together                               |
+| `src/app/layout/`                                          | `UNKNOWN — RECHECK BEFORE EDITING`                   | Only for isolated fixes after check                 | Shell uses revision/current-day and may be affected by service split   |
+| `src/styles/` and `src/styles.scss`                        | No active source owner proven; SCSS plans historical | Yes only for an explicitly isolated style-only task | Never re-run old dead-selector deletion; browser proof required        |
+| `angular.json`                                             | No active owner proven                               | Only after fresh check                              | Named styles budget is protected by tests                              |
+| `tsconfig.json`                                            | No active owner proven                               | Only after fresh check                              | Strict template/standalone flags are non-negotiable                    |
+| `package.json` / `pnpm-lock.yaml`                          | No active owner proven                               | No blanket changes                                  | New dependencies require explicit evidence and lockfile ownership      |
+| Android files                                              | Stage 4 future; no current owner proven              | No mutation without device/package gate             | Preserve app data; build output is not source ownership                |
+| iOS files                                                  | Stage 4 future; no current owner proven              | Only isolated native work after check               | No fresh Xcode/device evidence                                         |
+| `.github/workflows/ci.yml`                                 | Stage 4 future; no current owner proven              | Only isolated CI task after check                   | CI currently runs audit/lint/test/typecheck/build and Android build    |
 
 ## Cross-task contracts
 
@@ -470,6 +458,11 @@ bundle/update writes, all/active/completed/person Loan reads, repayment/event/de
 pending mutations, one Add draft, and close. Feature components must never receive a Dexie table
 or row type. Stage 1 may add one typed observable read boundary, but existing indexed methods stay
 inside it until measurements prove otherwise.
+
+`DetailPage` currently imports the `LoanRecord` type from this data port. The import-boundary guard
+allows exactly that one type edge so current HEAD stays green; it is not permission for features to
+import more store contracts. Stage 1 Task 4 must publish the detail query shape from the application
+layer before removing this exception.
 
 ### Domain entity shapes
 
@@ -524,11 +517,12 @@ one slice. Locale changes must reformat presentation without re-reading IndexedD
 
 ### Active component/view-model migration
 
-In the active Task 2 tree, `LoanRow` accepts `loan: Loan` and
+At HEAD, `LoanRow` accepts `loan: Loan` and
 `remainingMinorUnits: bigint | null`, injects `BorrowedApp` only for due distance, and formats the
 raw balance plus translated labels against the current locale. Lists, Search and Person have been
-migrated as one dirty consumer set. This is not yet a committed contract: do not create a second
-temporary row API, edit only one consumer, or restore the previous formatted-string input.
+migrated as one committed consumer set in `c7100bb`. The API is code-authoritative even though
+Task 2 acceptance is incomplete: do not create a second temporary row API, edit only one consumer,
+or restore the previous formatted-string input.
 
 ## Required pre-flight for every worker
 
@@ -668,145 +662,101 @@ another task. Update `package.json` and `pnpm-lock.yaml` together only with expl
   service worker boundary.
 - `src/app/data/persistence-provider.spec.ts`: historical production database-name preservation.
 - `src/app/native-config.spec.ts`: Android automatic backup remains disabled.
+- `src/app/architecture-boundaries.spec.ts`: production import boundaries for domain and
+  presentation layers. It permits only the two documented temporary edges and reports exact
+  `path -> specifier` failures; focused evidence is 4/4 passing.
 - Domain, fake-indexedDB integration, application and TestBed component suites cover current
   commands, transactions, migrations, resource states and primary UI contracts.
 - CI runs frozen install, high-severity audit, lint, tests, typecheck, production build and a Java
   21/API 36 Android debug build.
 
-### Not added by this coordinator
+### Remaining candidates not added
 
-No new executable guard was added in this snapshot. Adding a broad regex checker now would either
-produce false confidence or collide with active work:
-
-- a full domain-boundary guard is correctly expected to fail on the known i18n import debt;
-- a global TypeScript-escape guard would overlap the staged Stage 0 cleanup and existing
-  test-only assertions;
-- hardcoded user-visible-string detection is not reliable across templates, test fixtures and
-  domain event keys without a parser/allowlist;
-- Stage 1 is about to change the application/data boundary, so freezing its pre-split shape would
-  encode a transient architecture.
-
-Recommended guard order after Stage 1 is green: framework/Dexie import boundaries, production-only
-TypeScript escape detection, generated-artifact hygiene, then plan-status sanity. Add each as a
-characterization guard with actionable file/import output and no new dependency.
+- A global TypeScript-escape regex would mix production smells with intentional test fixtures and
+  existing assertions; add a production-only parser/allowlist guard in a separate characterized
+  slice rather than a noisy grep test.
+- Hardcoded user-visible-string detection is not reliable across templates, domain event keys and
+  test fixtures without parsing and an explicit allowlist.
+- Do not freeze the transient `BorrowedApp`/service surface while Stage 1 is splitting it.
+- After Stage 1, first remove the two import-boundary exceptions, then consider production-only
+  TypeScript escape detection, version synchronization, generated-artifact hygiene and plan-status
+  sanity. Every guard must report actionable paths and add no dependency unless justified.
 
 ## Known integration hazards
 
-| Severity     | Hazard                                                                                                                                                                                                                                  | Required resolution/order                                                                                                                                                                                           |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CRITICAL** | Stage 0 work remains staged and `add-page.spec.ts` is `MM` because its owner repaired the staged test in the worktree. Any normal staging/commit can collapse those layers or absorb the foreign index.                                 | Stage 0 exclusively owns both layers and must settle its attributable slice before Task 2 is staged/committed or any new product task starts. Inspect both cached and unstaged diffs.                               |
-| **CRITICAL** | `AGENTS.md`/environment text says IndexedDB `borrowed-app`, but production code and preservation test use historical `borrowed`. Renaming would hide existing user data.                                                                | Treat `borrowed` as authoritative. Resolve documentation separately; any future rename requires a tested in-place data migration and rollback.                                                                      |
-| **HIGH**     | The coordinator reproduced nondeterministic/red full runs; Stage 0 later repaired one timing assertion and reports repeated focused plus full green, including 183 tests with Task 1.                                                   | Preserve both facts. Stage 0 must commit/handoff its exact repair; each later Stage 1 task reruns focused and full gates from its settled slice. Never hide this with timeout increases.                            |
-| **HIGH**     | Aggregate gates are time-sensitive in a live tree. The mixed tree passes tests/typecheck/build but currently fails Prettier on Task 2's dirty Lists and Person files without any HEAD change.                                           | The Task 2 owner formats only its owned files, then reruns focused and full gates. Record dirty-path identity with every result; never carry this mixed-tree evidence forward to a later commit.                    |
-| **HIGH**     | Stage 1 Task 2 is active while Stage 0 still owns staged/index layers. Task 2 also expanded from seven planned files to nine by adding the Dexie integration spec and Person consumer.                                                  | Stage 0 settles first. Then the Task 2 owner must reconcile its plan/file list, inspect both Git layers, retain all nine consumers as one slice, and rerun focused/full gates before an attributable commit.        |
-| **MEDIUM**   | Task 2's empty-search acceptance is structurally implemented through an undefined `resource` request, but no test currently observes the data boundary and proves zero `search()`/`remainingMap()` calls for empty or whitespace input. | Add a focused spy-based characterization before closing Task 2; keep the existing stale-generation test and prove both cases in the focused Search suite. Do not manufacture a RED state for pre-existing behavior. |
-| **HIGH**     | Stage 1 Tasks 1-6 all touch `BorrowedApp`; Tasks 4/6 touch most features.                                                                                                                                                               | Execute serially in plan order with intermediate green commits; do not parallelize Stage 1 tasks in this checkout.                                                                                                  |
-| **HIGH**     | Removing global revision while introducing liveQuery changes query invalidation and cross-tab behavior simultaneously.                                                                                                                  | Establish typed query services and transaction-specific live-query tests before deleting revision/touch.                                                                                                            |
-| **HIGH**     | Dexie mappers trust bigint strings and `summaryParamsJson`; export has no decoder/import.                                                                                                                                               | Do not broaden trusted assertions. Stage 2 introduces runtime decoders/recovery before import or backup claims.                                                                                                     |
-| **HIGH**     | `initialize()` performs get-then-create outside one atomic creation decision, so two first-run tabs can create different local identities.                                                                                              | Preserve current contract during Stage 1; repair atomically in Stage 2 with a multi-tab regression.                                                                                                                 |
-| **HIGH**     | Repayment store reads can include soft-deleted rows; current domain rules filter them. Raw Stage 1 view models could bypass that protection.                                                                                            | Keep `activeRepayments()`/outstanding rules authoritative and test raw-value migrations with deleted repayment fixtures.                                                                                            |
-| **HIGH**     | Stage 1 Tasks 1-3 and any UI work share EN/LT/RU catalogs and `BorrowedApp`.                                                                                                                                                            | Serialize catalog edits and run parity after each slice. Never merge three independent catalog branches blindly.                                                                                                    |
-| **MEDIUM**   | `domain/types.ts` imports the i18n catalog while Stage 1 makes summaries presentation-neutral and Stage 3 plans domain-purity repair.                                                                                                   | Stage 1 removes locale-shaped query output first; Stage 3 then moves the language type inward without a second competing type.                                                                                      |
-| **MEDIUM**   | Lists router URL state and Stage 1 resource/live-query params are coupled.                                                                                                                                                              | Preserve `scope/filter/q` serialization and Back/Forward tests while changing query services.                                                                                                                       |
-| **MEDIUM**   | Old SCSS plans have open boxes although source work landed; a worker may repeat dead-selector deletion.                                                                                                                                 | Treat source plus current guards as authoritative. Reopen only a measured defect with browser baselines.                                                                                                            |
-| **LOW**      | Historical plan status is misleading because many plans were never checkbox-updated.                                                                                                                                                    | Use this coordination status and actual code; do not mechanically edit old checkboxes without fresh evidence.                                                                                                       |
+| Severity     | Hazard                                                                                                                                                                                                                   | Required resolution/order                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CRITICAL** | `AGENTS.md`/environment text says IndexedDB `borrowed-app`, but production code and preservation test use historical `borrowed`. Renaming would hide existing user data.                                                 | Treat `borrowed` as authoritative. Resolve documentation separately; any future rename requires a tested in-place data migration and rollback.                                            |
+| **HIGH**     | Published `c7100bb` has a documentation-only subject but combines Stage 0, Task 2 and coordination changes in one 15-file commit.                                                                                        | Do not amend, reset, rebase or force-push published history. Record its true scope here; require exact path review and single-task commits for every future slice.                        |
+| **HIGH**     | Published `c7100bb` fails the repository lint gate because Lists and Person are not Prettier-formatted.                                                                                                                  | Task 2 closeout formats only those two files, reruns focused/full gates, and commits the formatting plus evidence as an attributable follow-up.                                           |
+| **HIGH**     | Task 2 code is committed while its plan boxes, empty/whitespace zero-read characterization, clean-HEAD gates and browser acceptance remain incomplete.                                                                   | Close evidence with a dedicated minimal follow-up before Task 3. If the characterization exposes a defect, stop and claim the exact production fix rather than folding it into Home work. |
+| **HIGH**     | Stage 1 Tasks 3-6 all touch `BorrowedApp`; Tasks 4/6 touch most features.                                                                                                                                                | Execute serially with intermediate-green commits; do not parallelize product work inside Stage 1.                                                                                         |
+| **HIGH**     | Removing global revision while introducing liveQuery changes query invalidation and cross-tab behavior simultaneously.                                                                                                   | Establish typed query services and transaction-specific live-query tests before deleting revision/touch.                                                                                  |
+| **HIGH**     | Dexie mappers trust bigint strings and `summaryParamsJson`; export has no decoder/import.                                                                                                                                | Do not broaden trusted assertions. Stage 2 introduces runtime decoders/recovery before import or backup claims.                                                                           |
+| **HIGH**     | `initialize()` performs get-then-create outside one atomic creation decision, so two first-run tabs can create different local identities.                                                                               | Preserve current contract during Stage 1; repair atomically in Stage 2 with a multi-tab regression.                                                                                       |
+| **HIGH**     | Repayment store reads can include soft-deleted rows; current domain rules filter them. Raw view models could bypass that protection.                                                                                     | Keep `activeRepayments()`/outstanding rules authoritative and test raw-value migrations with deleted repayment fixtures.                                                                  |
+| **MEDIUM**   | Task 2's empty-search acceptance is structurally implemented through an undefined `resource` request, but no test observes the boundary and proves zero `search()`/`remainingMap()` calls for empty or whitespace input. | Add a focused spy-based characterization; keep the stale-generation test. Do not manufacture RED for pre-existing behavior.                                                               |
+| **MEDIUM**   | `domain/types.ts` imports the i18n catalog while Stage 1 makes summaries presentation-neutral and Stage 3 plans domain-purity repair.                                                                                    | Stage 1 removes locale-shaped query output first; Stage 3 then moves the language type inward without a second competing type.                                                            |
+| **MEDIUM**   | `DetailPage` imports the `LoanRecord` type from the data-layer store contract.                                                                                                                                           | Do not add more feature-to-store imports. Publish the detail view/query shape from the Stage 1 application service, migrate Detail, then remove the exact guard exception.                |
+| **MEDIUM**   | Lists router URL state and Stage 1 resource/live-query params are coupled.                                                                                                                                               | Preserve `scope/filter/q` serialization and Back/Forward tests while changing query services.                                                                                             |
+| **LOW**      | The filesystem briefly reached 143 MiB free and caused `ENOSPC`; about 16 GiB was available at 14:47 after external recovery.                                                                                            | Recheck free space before native packaging or a long gate, but do not delete caches or user/other-worker data from an unrelated task.                                                     |
+| **LOW**      | Historical plan status is misleading because some implemented work remains unchecked.                                                                                                                                    | Use actual code plus this coordination status; update only the active plan with fresh evidence.                                                                                           |
 
-## Immediate executable plan for the current mixed tree
+## Immediate executable plan for the current clean-HEAD baseline
 
-This plan is valid only while HEAD remains `50884e7` and the ownership snapshot above is
-unchanged. A different HEAD or dirty-path set invalidates the sequence and requires a new
-reconciliation before any edit, stage or commit.
+This sequence is valid only while HEAD remains `c7100bb` and the only dirty paths are the
+coordinator-owned document and import-boundary guard. Any other path or HEAD change requires a new
+status/diff/log reconciliation before editing, staging or running acceptance gates.
 
-### Lane A — Stage 0 attributable closeout
+### Lane A — coordinator handoff
 
-- **OWNER:** Existing Stage 0 final-verification worker only.
-- **DEPENDENCIES:** None. This lane owns the current Git index.
-- **FILES:** The five Stage 0 paths listed in the dirty ownership snapshot; no others.
-- **WORK:** Inspect both cached and unstaged versions, retain the state-based Add timing repair,
-  ensure the final-verification evidence matches the exact diff, and prepare an attributable
-  Stage 0 commit/handoff. Do not absorb Task 2 or this coordination file.
-- **ACCEPTANCE:** `add-page.spec.ts` no longer has an unexplained `MM` split; the intended staged
-  slice contains exactly the five owned paths; no Task 2 path is staged; focused Stage 0 tests and
-  every non-foreign gate are green. If aggregate Prettier is red only on the two Task 2 files,
-  record that external blocker and wait for Lane B formatting rather than editing those files.
-- **VERIFICATION:** Run the nine-file focused command from the Stage 0 final-verification plan,
-  then `pnpm audit --audit-level high`, `pnpm lint`, `pnpm test`, `pnpm typecheck`, `pnpm build`
-  and `git diff --check` sequentially. Inspect `git diff --cached --stat` and
-  `git diff --cached` before commit.
-- **ESTIMATED SCOPE:** Small closeout; no new behavior.
+- **OWNER:** Current coordinator only.
+- **FILES:** `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` and
+  `src/app/architecture-boundaries.spec.ts`.
+- **WORK:** Keep the baseline synchronized with `c7100bb`, document the published mixed-commit and
+  lint defects, and retain only a non-invasive import-boundary characterization guard.
+- **ACCEPTANCE:** Focused guard 4/4 green; the complete diff changes no product behavior; owned
+  paths pass Prettier and `git diff --check`; status and diff are re-read after all checks.
+- **GLOBAL EVIDENCE:** Full tests, typecheck, production build and high-severity audit are green.
+  Full lint is honestly red only on the two already-committed Task 2 files; the coordinator must not
+  format them from this lane.
 
-### Lane B — Task 2 pre-commit completion
+### Lane B — Stage 1 Task 2 evidence and CI closeout
 
-- **OWNER:** Existing Stage 1 Task 2 worker only.
-- **DEPENDENCIES:** May prepare in parallel with Lane A because source/test paths are disjoint, but
-  must not stage or commit until Lane A settles the index.
-- **FILES:** The existing nine Task 2 source/test paths plus
-  `docs/superpowers/plans/2026-08-21-borrowed-audit-stage-1.md` for truthful ownership and evidence
-  reconciliation. No other feature, catalog, dependency or configuration file.
-- **WORK:** Add a spy-based Search characterization proving both initial empty and whitespace-only
-  input call neither `search()` nor `remainingMap()`; preserve the stale-generation regression;
-  format only the owned Lists and Person files; reconcile the plan's seven-file declaration with
-  the actual nine-file contract migration. Record RED evidence only for actual Task 2 behavior;
-  explicitly label empty-search as pre-existing characterization.
-- **ACCEPTANCE:** Locale changes reformat Records, Search and Person balances without another data
-  read; `remainingMap()` returns raw `bigint | null`; the bounded repayment integration assertion
-  remains green; empty/whitespace search performs zero observed reads; stale results cannot win;
-  all ten closeout paths are formatted and free of new TypeScript escapes.
-- **FOCUSED VERIFICATION:**
+- **OWNER:** `UNKNOWN — RECHECK BEFORE EDITING`; the next worker must claim the exact paths.
+- **DEPENDENCIES:** May prepare beside Lane A only after confirming no new overlap; staging,
+  complete gates and handoff happen after Lane A's diff is stable.
+- **EXPECTED FILES:** `src/app/features/lists/list-page.ts`,
+  `src/app/features/people/person-page.ts`,
+  `src/app/features/search/search-page.spec.ts`, and
+  `docs/superpowers/plans/2026-08-21-borrowed-audit-stage-1.md`. Do not reopen the other seven Task 2
+  implementation paths unless the characterization proves a defect.
+- **WORK:** Format the two published failures; add a spy-based characterization proving initial
+  empty and whitespace-only search call neither `search()` nor `remainingMap()`; reconcile Task 2's
+  actual nine implementation paths and `c7100bb` provenance; preserve stale-generation coverage.
+- **ACCEPTANCE:** Focused Task 2 matrix passes; empty/whitespace performs zero observed reads;
+  locale changes reformat raw balances without another data read; full audit/lint/tests/typecheck/
+  build/diff gates pass; disposable-browser EN/LT/RU checks pass at 390px and 1440px.
+- **HANDOFF:** Mark Task 2 complete only after checkboxes, exact commands/counts, browser evidence,
+  current HEAD and remaining problems are recorded. Do not claim an isolated Task 2 implementation
+  commit: its product code already landed inside `c7100bb`.
 
-  ```bash
-  pnpm exec ng test borrowed --watch=false \
-    --include src/app/data/dexie-store.spec.ts \
-    --include src/app/features/lists/list-page.spec.ts \
-    --include src/app/features/people/person-page.spec.ts \
-    --include src/app/features/search/search-page.spec.ts \
-    --include src/app/ui/loan-row.spec.ts
-  ```
+### Checkpoint — re-plan before Task 3
 
-- **BROWSER VERIFICATION:** In one disposable profile, at 390px and 1440px, verify a partially
-  repaid money row in Records and Search across EN/LT/RU changes without refresh; preserve list URL
-  state, keyboard focus, status semantics, no horizontal overflow and a clean console. Unit spies,
-  not browser inference, prove the zero-read contract.
-- **ESTIMATED SCOPE:** Medium closeout of an already implemented contract; no new feature.
-
-### Checkpoint 1 — settle Stage 0 before Task 2 staging
-
-After Lane A is green and ready, the Stage 0 owner commits or hands off exactly its five paths.
-Then the coordinator must re-read HEAD, status, cached/unstaged diffs and the last 40 commits.
-Proceed only if the remaining product diff is exactly Lane B's nine source/test files plus its plan
-evidence. Update this file's baseline to the new HEAD before authorizing Task 2 staging.
-
-### Task 2 attributable closeout
-
-- Stage only Lane B's nine source/test paths and the Stage 1 plan evidence path. Never use a broad
-  staging command in this shared checkout.
-- Run the focused matrix, then audit, lint, full tests, typecheck, production build and
-  `git diff --check` sequentially from the settled post-Stage-0 tree.
-- Inspect both staged and unstaged diffs, verify that the coordination document remains owned by
-  the coordinator, and commit/handoff only the attributable Task 2 slice. Do not push without an
-  explicit user request.
-- Mark Task 2 COMPLETE only when the plan checkboxes, focused characterization, browser evidence,
-  complete gates and exact commit path list all agree.
-
-### Checkpoint 2 — re-plan before Task 3
-
-After Task 2 settles, do not immediately edit Home. Reconcile the new HEAD and create a bounded
-Task 3 plan with two intermediate-green slices: first an additive raw Home-summary domain contract,
-then the `BorrowedApp`/Home consumer migration and removal of the obsolete localized compatibility
-fields. Only after that checkpoint may Stage 1 Tasks 4-6 be decomposed against the actual service
-surface. The high-level serial order remains Task 3 → services → live query → revision removal.
+After Task 2 closes, re-read HEAD, dirty/staged state, the last 40 commits and this file. Create a
+bounded Task 3 plan with two intermediate-green slices: first an additive raw Home-summary domain
+contract, then the `BorrowedApp`/Home consumer migration and removal of obsolete localized fields.
+Only after that checkpoint may Tasks 4-6 be decomposed against the actual service surface. The
+serial dependency remains Task 3 → services → live query → revision removal.
 
 ## Recommended execution ordering
 
-1. **Stage 0 final verification:** its timing diagnosis and browser/automated evidence are now
-   recorded; settle exactly its five paths, including both layers of the `MM` Add spec, into an
-   attributable handoff/commit without touching Stage 1 or this document.
-2. **Stage 1 Task 2 closeout:** preserve the nine existing dirty paths, reconcile the two-file
-   ownership expansion in its plan, add the missing empty/whitespace-search zero-read
-   characterization, record RED evidence only for actual Task 2 changes, rerun its focused matrix
-   and all gates, perform required browser locale checks, then settle one attributable
-   handoff/commit. Do not restart or duplicate its already-present raw remaining-value
-   implementation.
+1. **Coordinator handoff:** review and settle only this coordination file plus the import-boundary
+   guard. Stage 0 is historical and must not be restarted.
+2. **Stage 1 Task 2 closeout:** repair its two committed formatting failures, add the missing
+   empty/whitespace-search zero-read characterization, reconcile the nine-file `c7100bb` scope in
+   its plan, rerun all gates and required browser locale checks. Do not duplicate the raw-balance
+   implementation or rewrite published history.
 3. **Stage 1 Task 3:** make Home summary presentation-neutral; remove locale from its query.
 4. **Stage 1 Task 4:** introduce command/query services and migrate feature injection one slice at
    a time.
@@ -829,18 +779,17 @@ is red.
 
 ### Safe now
 
-- **Coordinator documentation on this exact file**, **Stage 0 typed cleanup on its five staged
-  paths**, and **the already-active Stage 1 Task 2 nine-path slice** are path-disjoint. They may
-  coexist only to finish their current ownership; repository-wide gate evidence still requires a
-  stable combined tree, and no fourth product slice may start.
+- **Coordinator work on its two exact paths** and a newly claimed **Task 2 four-path closeout** are
+  source-disjoint. They may coexist only if both owners recheck Git first, never broad-stage, and
+  serialize repository-wide gates plus final handoff against one stable tree.
 - Read-only review of old specs/commits can run concurrently because it mutates nothing.
 
 ### Not safe now
 
-- No new product implementation may start until Stage 0 settles its staged/unstaged layers and
-  the already-active Task 2 owner settles all nine dirty consumer/contract paths.
-- Remaining Stage 1 Tasks 2 and 3 are not parallel-safe: both modify `BorrowedApp` and share
-  query/value shapes; Task 2 also spans Lists, Search and `LoanRow` as one contract migration.
+- No new product implementation may start until Task 2 repairs the committed lint failure and
+  closes its missing test/plan/browser evidence.
+- Stage 1 Tasks 2 and 3 are not acceptance-parallel: Task 3 must start from Task 2's green, settled
+  contract even if Task 2's remaining source files do not include `BorrowedApp`.
 - Stage 1 Tasks 4-6 are strictly serial: service boundaries must exist before liveQuery, and
   liveQuery/relevant-write tests must exist before removing revision.
 - Stage 2 persistence subprojects are not parallel-safe until exact decoder/schema/backup and
@@ -851,6 +800,6 @@ is red.
 
 ### Potential future parallel group, only after Stage 1 is green
 
-- A path-isolated documentation/ADR task and a new architecture-boundary characterization test
-  may run together if neither touches Stage 2 production paths and both use separate explicit
-  staging ownership. This is the only currently defensible parallel group; recheck before use.
+- A path-isolated documentation/ADR task and a precise quality-guard task may run together if
+  neither touches Stage 2 production paths and both use separate explicit staging ownership. No
+  future product pair is declared safe in advance; recheck current code and ownership first.

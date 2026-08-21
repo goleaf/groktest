@@ -38,6 +38,34 @@ Fresh clean-HEAD baseline on 2026-08-21:
 - Angular development typecheck and production build pass.
 - `main` matches `origin/main` before this plan document is committed.
 
+### Current-HEAD reconciliation — 2026-08-21
+
+- **Current HEAD:** `c7100bbfc587b9d84eed32a90f6a3933ac985aec` on `main`, matching
+  `origin/main` at pre-flight.
+- **Completed:** Tasks 1-6 and all of their behavioral checkboxes are present in current code and
+  tests. The strict compiler contract, return chronology invariant, shared attention comparator,
+  hidden Signal Form validation, Add initialization/draft protection, and History
+  loading/error/retry/stale-generation behavior landed in commits `6d8f951`, `1b89a64`,
+  `ef89da5`, `e71d94b`, `88fa697`, and `2006dcf`. The later typed Add/History test cleanup and
+  shared deferred helper are also present in `c7100bb`. A fresh current-tree focused Stage 0 run
+  passes 9 files / 79 tests.
+- **Partially completed:** Task 7's checked browser and full-gate evidence was valid for the earlier
+  Stage 0 tree, but later Stage 1 changes mean it must be refreshed before this current-HEAD
+  closeout can be claimed.
+- **Remaining:** Run the complete Stage 0 gates sequentially on one stable tree, repeat the
+  required disposable-browser checks at 390x844 and 1440x1000, inspect the final diff/history, and
+  append current-HEAD evidence below. No missing Stage 0 production behavior was found, so no new
+  behavioral implementation or artificial RED test is required.
+- **Dirty files owned by other work:**
+  `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` is modified and
+  `src/app/architecture-boundaries.spec.ts` is untracked. This Stage 0 closeout does not edit,
+  format, stage, commit, or absorb either path.
+- **Changes after this plan was written:** `222ba08` had already supplied Detail's duplicate-return
+  busy guard; `329bdac` recorded the first Stage 0 completion evidence; `50884e7` began Stage 1;
+  and published commit `c7100bb` combined Stage 0 typed-test cleanup with Stage 1 Task 2 raw-balance
+  changes. Those later Stage 1 changes are verification context only and are not extended or
+  refactored by this task.
+
 ## File ownership for this plan
 
 Clean and safe to edit:
