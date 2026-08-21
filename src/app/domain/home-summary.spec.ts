@@ -104,6 +104,20 @@ describe('home action urgency', () => {
     });
   });
 
+  it('uses stable id ordering when attention dates and updates tie', () => {
+    const summary = summarizeHome(
+      [
+        moneyLoan({ id: 'b', dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+        moneyLoan({ id: 'a', dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+      ],
+      new Map(),
+      '2026-08-20',
+      'en',
+    );
+
+    expect(summary.actions.map((action) => action.loanId)).toEqual(['a', 'b']);
+  });
+
   it('bounds attention and due-next rows without duplicating or showing overdue deadlines', () => {
     const loans = Array.from({ length: 12 }, (_, index) =>
       moneyLoan({

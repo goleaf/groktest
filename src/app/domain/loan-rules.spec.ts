@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from './errors';
 import {
+  compareLoansByAttention,
   isLoanDueSoon,
   isLoanOverdue,
   outstandingMinorUnits,
@@ -82,6 +83,41 @@ describe('overdue and due soon', () => {
     expect(isLoanDueSoon(loan, '2026-08-20')).toBe(true);
     expect(isLoanOverdue({ ...loan, status: 'completed' }, '2026-08-21')).toBe(false);
     expect(isLoanOverdue(moneyLoan({ dueOn: null }), '2026-08-21')).toBe(false);
+  });
+});
+
+describe('attention ordering', () => {
+  const today = '2026-08-20' as const;
+
+  it('orders active records by urgency and nearest relevant date', () => {
+    const records = [
+      moneyLoan({ id: 'future', dueOn: '2026-09-01' }),
+      moneyLoan({ id: 'tomorrow', dueOn: '2026-08-21' }),
+      moneyLoan({ id: 'old-overdue', dueOn: '2026-08-10' }),
+      moneyLoan({ id: 'new-overdue', dueOn: '2026-08-19' }),
+      moneyLoan({ id: 'undated', dueOn: null }),
+    ];
+
+    expect(
+      [...records].sort((a, b) => compareLoansByAttention(a, b, today)).map(({ id }) => id),
+    ).toEqual(['old-overdue', 'new-overdue', 'tomorrow', 'future', 'undated']);
+  });
+
+  it('puts active before completed and uses updatedAt then id as stable tie breakers', () => {
+    const records = [
+      moneyLoan({ id: 'b', dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+      moneyLoan({ id: 'a', dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+      moneyLoan({
+        id: 'completed-old-due',
+        status: 'completed',
+        dueOn: '2026-01-01',
+        updatedAt: '2026-08-21T10:00:00.000Z',
+      }),
+    ];
+
+    expect(
+      [...records].sort((a, b) => compareLoansByAttention(a, b, today)).map(({ id }) => id),
+    ).toEqual(['a', 'b', 'completed-old-due']);
   });
 });
 

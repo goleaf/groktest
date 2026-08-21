@@ -16,7 +16,7 @@ import {
 } from '../domain/commands';
 import { summarizeHome } from '../domain/home-summary';
 import { DomainError } from '../domain/errors';
-import { outstandingMinorUnits, urgencyRank } from '../domain/loan-rules';
+import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
 import { formatMinorUnits, requireCurrency } from '../domain/money';
 import { summarizePersonRelationships } from '../domain/person-summary';
 import type { ListFilter } from '../domain/query';
@@ -163,7 +163,7 @@ export class BorrowedApp {
   async activeLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
     const today = this.today();
     const loans = await this.store.listActiveLoans(direction);
-    return loans.sort((left, right) => urgencyRank(left, today) - urgencyRank(right, today));
+    return loans.sort((left, right) => compareLoansByAttention(left, right, today));
   }
 
   async history(): Promise<Loan[]> {
@@ -323,8 +323,8 @@ export class BorrowedApp {
   async search(query: string): Promise<Loan[]> {
     const loans = await this.store.listLoans();
     const today = this.today();
-    return visibleLoans(loans, query, 'all', today).sort(
-      (left, right) => urgencyRank(left, today) - urgencyRank(right, today),
+    return visibleLoans(loans, query, 'all', today).sort((left, right) =>
+      compareLoansByAttention(left, right, today),
     );
   }
 

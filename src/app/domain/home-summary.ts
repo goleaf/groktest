@@ -1,6 +1,11 @@
 import { calendarDaysBetween, type CalendarDate } from './calendar-date';
 import { formatMinorUnits } from './money';
-import { isLoanDueSoon, isLoanOverdue, outstandingMinorUnits, urgencyRank } from './loan-rules';
+import {
+  compareLoansByAttention,
+  isLoanDueSoon,
+  isLoanOverdue,
+  outstandingMinorUnits,
+} from './loan-rules';
 import type { HomeAction, HomeSummary, Loan, MoneyTotal, Repayment } from './types';
 
 export function groupOutstandingMoney(
@@ -87,20 +92,14 @@ export function summarizeHome(
 ): HomeSummary {
   const visible = loans.filter((loan) => loan.deletedAt === null);
   const active = visible.filter((loan) => loan.status === 'active');
-  const ranked = [...active].sort(
-    (left, right) => urgencyRank(left, today) - urgencyRank(right, today),
-  );
+  const ranked = [...active].sort((left, right) => compareLoansByAttention(left, right, today));
   const actions = ranked
     .slice(0, 5)
     .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
   const actionIds = new Set(actions.map((action) => action.loanId));
   const dueNext = active
     .filter((loan) => loan.dueOn !== null && !isLoanOverdue(loan, today) && !actionIds.has(loan.id))
-    .sort(
-      (left, right) =>
-        (left.dueOn ?? '').localeCompare(right.dueOn ?? '') ||
-        left.updatedAt.localeCompare(right.updatedAt),
-    )
+    .sort((left, right) => compareLoansByAttention(left, right, today))
     .slice(0, 4)
     .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
   const people = new Map<

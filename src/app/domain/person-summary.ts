@@ -1,6 +1,6 @@
 import type { CalendarDate } from './calendar-date';
 import { groupOutstandingMoney } from './home-summary';
-import { outstandingMinorUnits, urgencyRank } from './loan-rules';
+import { compareLoansByAttention, outstandingMinorUnits } from './loan-rules';
 import type { Loan, MoneyTotal, Repayment } from './types';
 
 export interface PersonRelationshipSummary {
@@ -29,7 +29,7 @@ export function summarizePersonRelationships(
   const visible = loans.filter((loan) => loan.deletedAt === null);
   const active = visible
     .filter((loan) => loan.status === 'active')
-    .sort((left, right) => urgencyRank(left, today) - urgencyRank(right, today));
+    .sort((left, right) => compareLoansByAttention(left, right, today));
   const activeLent = active.filter((loan) => loan.direction === 'lent');
   const activeBorrowed = active.filter((loan) => loan.direction === 'borrowed');
   const remainingMinorUnitsByLoan = new Map<string, bigint>();

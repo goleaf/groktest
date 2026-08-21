@@ -1,4 +1,4 @@
-import { addCalendarDays, compareCalendarDates, isDueSoonOn, isOverdueOn } from './calendar-date';
+import { compareCalendarDates, isDueSoonOn, isOverdueOn } from './calendar-date';
 import type { CalendarDate } from './calendar-date';
 import { DUE_SOON_DAYS } from './config';
 import { DomainError } from './errors';
@@ -47,17 +47,43 @@ export function isLoanDueSoon(loan: Loan, today: CalendarDate): boolean {
   );
 }
 
-export function urgencyRank(loan: Loan, today: CalendarDate): number {
+function attentionBand(loan: Loan, today: CalendarDate): number {
+  if (loan.status !== 'active' || loan.deletedAt !== null) {
+    return 5;
+  }
   if (isLoanOverdue(loan, today)) {
     return 0;
   }
-  if (isLoanDueSoon(loan, today) && loan.dueOn) {
-    return 1 + Math.max(0, compareCalendarDates(loan.dueOn, today));
+  if (loan.dueOn === today) {
+    return 1;
   }
-  if (loan.dueOn) {
-    return 10 + compareCalendarDates(loan.dueOn, addCalendarDays(today, 30));
+  if (isLoanDueSoon(loan, today)) {
+    return 2;
   }
-  return 100;
+  if (loan.dueOn !== null) {
+    return 3;
+  }
+  return 4;
+}
+
+export function compareLoansByAttention(left: Loan, right: Loan, today: CalendarDate): number {
+  const band = attentionBand(left, today) - attentionBand(right, today);
+  if (band !== 0) {
+    return band;
+  }
+
+  const dueDate =
+    left.dueOn !== null && right.dueOn !== null
+      ? compareCalendarDates(left.dueOn, right.dueOn)
+      : left.dueOn !== null
+        ? -1
+        : right.dueOn !== null
+          ? 1
+          : 0;
+
+  return (
+    dueDate || right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id)
+  );
 }
 
 export function assertCanRepay(

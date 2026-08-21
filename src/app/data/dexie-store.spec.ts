@@ -118,6 +118,31 @@ describe('local persistence', () => {
     indexedDB.deleteDatabase(dbName);
   });
 
+  it('keeps active records ahead of completed records in search ordering', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const active = await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Anna',
+      itemName: 'drill',
+    });
+    const completed = await app.createRecord({
+      direction: 'borrowed',
+      kind: 'physical_item',
+      personName: 'Peter',
+      itemName: 'ladder',
+      occurredOn: '2026-08-01',
+      dueOn: '2026-08-02',
+    });
+    await app.markReturned(completed.id);
+
+    expect((await app.search('')).map((loan) => loan.id)).toEqual([active.id, completed.id]);
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
   it('reads active and completed loans through bounded status queries', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const { app, store } = await session(dbName);

@@ -146,4 +146,17 @@ describe('person relationship summary', () => {
     expect(summary.lentItemCount).toBe(3);
     expect(summary.borrowedItemCount).toBe(2);
   });
+
+  it('uses stable attention ordering for active relationship groups', () => {
+    const summary = summarizePersonRelationships(
+      [
+        loan('b', { dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+        loan('a', { dueOn: null, updatedAt: '2026-08-18T10:00:00.000Z' }),
+      ],
+      new Map(),
+      '2026-08-20',
+    );
+
+    expect(summary.activeLent.map((item) => item.id)).toEqual(['a', 'b']);
+  });
 });
