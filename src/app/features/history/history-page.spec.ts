@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
+import { deferred } from '../../testing/deferred-promise';
 import { HistoryPage } from './history-page';
 
 function completedLoan(id: string, itemName: string): Loan {
@@ -28,14 +29,6 @@ function completedLoan(id: string, itemName: string): Loan {
     version: 2,
     deletedAt: null,
   };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
 }
 
 describe('HistoryPage', () => {

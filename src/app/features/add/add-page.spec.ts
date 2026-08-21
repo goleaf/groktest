@@ -1,18 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { BorrowedApp } from '../../data/borrowed-app';
-import { AddPage } from './add-page';
 import { vi } from 'vitest';
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
+import { BorrowedApp } from '../../data/borrowed-app';
+import { deferred } from '../../testing/deferred-promise';
+import { AddPage } from './add-page';
 
 describe('AddPage', () => {
   it('marks required conditional fields after submit without starting a write', async () => {
@@ -292,10 +283,12 @@ describe('AddPage', () => {
 
     person.value = 'Peter';
     person.dispatchEvent(new Event('input'));
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    fixture.detectChanges();
 
-    expect(root.querySelector('.draft-status[role="alert"]')?.textContent).toContain('draft');
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('.draft-status[role="alert"]')?.textContent).toContain('draft');
+    });
+
     expect((root.querySelector('#person') as HTMLInputElement).value).toBe('Peter');
     expect(createRecord).not.toHaveBeenCalled();
   });

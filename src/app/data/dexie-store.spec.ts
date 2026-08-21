@@ -360,6 +360,7 @@ describe('local persistence', () => {
       amount: '50',
       currency: 'EUR',
     });
+    await app.repay(lentMoney.id, '25', 'EUR');
     await app.createRecord({
       direction: 'lent',
       kind: 'physical_item',
@@ -372,7 +373,8 @@ describe('local persistence', () => {
 
     repaymentQueries.mockClear();
     const boundedRepaymentQueries = vi.spyOn(store, 'listRepaymentsForLoanIds');
-    await app.remainingMap(await app.activeLoans());
+    const remaining = await app.remainingMap(await app.activeLoans());
+    expect(remaining.get(lentMoney.id)).toBe(7500n);
     expect(boundedRepaymentQueries).toHaveBeenCalledTimes(1);
     expect(boundedRepaymentQueries.mock.calls[0]?.[0]).toHaveLength(2);
     expect(boundedRepaymentQueries.mock.calls[0]?.[0]).toEqual(

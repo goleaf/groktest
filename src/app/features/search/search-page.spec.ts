@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
+import { I18n } from '../../i18n/i18n';
 import { SearchPage } from './search-page';
 
 const loan: Loan = {
@@ -147,5 +148,52 @@ describe('SearchPage', () => {
 
     expect(root.querySelector('.loan-list')?.textContent).toContain('saw');
     expect(root.querySelector('.loan-list')?.textContent).not.toContain('drill');
+  });
+
+  it('reformats raw balances without repeating a search when language changes', async () => {
+    const moneyLoan: Loan = {
+      ...loan,
+      id: 'money',
+      assetKind: 'money',
+      itemName: null,
+      quantity: null,
+      currencyCode: 'EUR',
+      originalMinorUnits: 10000n,
+    };
+    const search = vi.fn().mockResolvedValue([moneyLoan]);
+    const remainingMap = vi.fn().mockResolvedValue(new Map([['money', 5000n]]));
+    await TestBed.configureTestingModule({
+      imports: [SearchPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            search,
+            remainingMap,
+            daysUntilDue: () => null,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SearchPage);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const input = root.querySelector('input') as HTMLInputElement;
+    input.value = 'money';
+    input.dispatchEvent(new Event('input'));
+    await vi.waitFor(() =>
+      expect(root.querySelector('.status-with-icon')?.textContent).toContain('€50.00 remaining'),
+    );
+
+    TestBed.inject(I18n).setLanguage('lt');
+    await vi.waitFor(() =>
+      expect(root.querySelector('.status-with-icon')?.textContent).toContain('Liko 50,00 €'),
+    );
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(remainingMap).toHaveBeenCalledTimes(1);
   });
 });

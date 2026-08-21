@@ -47,7 +47,9 @@ import { PageHeading } from '../../ui/page-heading';
         </p>
         <ul class="loan-list">
           @for (loan of results(); track loan.id) {
-            <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
+            <li>
+              <app-loan-row [loan]="loan" [remainingMinorUnits]="remainingOf(loan.id)" />
+            </li>
           }
         </ul>
       }
@@ -62,16 +64,15 @@ export class SearchPage {
     params: () => {
       const query = this.query();
       const revision = this.app.revision();
-      const locale = this.i18n.locale();
-      return query.trim() ? { query, revision, locale } : undefined;
+      return query.trim() ? { query, revision } : undefined;
     },
     loader: async ({ params }) => {
       const loans = await this.app.search(params.query);
-      return { loans, remaining: await this.app.remainingMap(loans, params.locale) };
+      return { loans, remaining: await this.app.remainingMap(loans) };
     },
   });
   protected readonly results = computed<Loan[]>(() => this.searchResource.value()?.loans ?? []);
-  protected readonly remaining = computed<ReadonlyMap<string, string | null>>(
+  protected readonly remaining = computed<ReadonlyMap<string, bigint | null>>(
     () => this.searchResource.value()?.remaining ?? new Map(),
   );
   protected readonly loading = this.searchResource.isLoading;
@@ -79,7 +80,7 @@ export class SearchPage {
     this.searchResource.error() ? this.i18n.t('search.loadError') : '',
   );
 
-  protected remainingOf(id: string): string | null {
+  protected remainingOf(id: string): bigint | null {
     return this.remaining().get(id) ?? null;
   }
 }

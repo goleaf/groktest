@@ -99,6 +99,7 @@ type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
             <label for="person">
               <span class="icon-line"><app-icon name="person" /> {{ personPrompt() }}</span>
               <input
+                #personInput
                 id="person"
                 autocomplete="name"
                 [formField]="addForm.personName"
@@ -110,7 +111,7 @@ type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
                     ? 'person-error'
                     : null
                 "
-                (input)="updatePersonName($any($event.target).value)"
+                (input)="updatePersonName(personInput.value)"
                 [placeholder]="i18n.t('add.personPlaceholder')"
               />
             </label>

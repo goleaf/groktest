@@ -91,7 +91,12 @@ import { LoanRow } from '../../ui/loan-row';
             </h2>
             <ul class="loan-list">
               @for (loan of activeLent(); track loan.id) {
-                <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
+                <li>
+                  <app-loan-row
+                    [loan]="loan"
+                    [remainingMinorUnits]="remainingOf(loan.id)"
+                  />
+                </li>
               }
             </ul>
           </section>
@@ -104,7 +109,12 @@ import { LoanRow } from '../../ui/loan-row';
             </h2>
             <ul class="loan-list">
               @for (loan of activeBorrowed(); track loan.id) {
-                <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
+                <li>
+                  <app-loan-row
+                    [loan]="loan"
+                    [remainingMinorUnits]="remainingOf(loan.id)"
+                  />
+                </li>
               }
             </ul>
           </section>
@@ -164,26 +174,20 @@ export class PersonPage {
     () => this.overview()?.owedToMe ?? [],
   );
   protected readonly iOwe = computed<readonly MoneyTotal[]>(() => this.overview()?.iOwe ?? []);
-  protected readonly remaining = computed<ReadonlyMap<string, string | null>>(() => {
-    const locale = this.i18n.locale();
+  protected readonly remaining = computed<ReadonlyMap<string, bigint | null>>(() => {
     const data = this.overview();
-    const formatted = new Map<string, string | null>();
+    const balances = new Map<string, bigint | null>();
     if (!data) {
-      return formatted;
+      return balances;
     }
     for (const loan of [...data.activeLent, ...data.activeBorrowed]) {
       const minorUnits = data.remainingMinorUnitsByLoan.get(loan.id);
-      if (
-        minorUnits === undefined ||
-        !loan.currencyCode ||
-        minorUnits === loan.originalMinorUnits
-      ) {
-        formatted.set(loan.id, null);
-        continue;
-      }
-      formatted.set(loan.id, formatMinorUnits(minorUnits, loan.currencyCode, locale));
+      balances.set(
+        loan.id,
+        minorUnits === undefined || minorUnits === loan.originalMinorUnits ? null : minorUnits,
+      );
     }
-    return formatted;
+    return balances;
   });
   protected readonly missing = computed(
     () =>
@@ -195,7 +199,7 @@ export class PersonPage {
     this.personResource.error() ? this.i18n.t('person.loadError') : '',
   );
 
-  protected remainingOf(id: string): string | null {
+  protected remainingOf(id: string): bigint | null {
     return this.remaining().get(id) ?? null;
   }
 

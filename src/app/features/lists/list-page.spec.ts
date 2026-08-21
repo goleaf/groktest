@@ -4,6 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { Loan } from '../../domain/types';
+import { I18n } from '../../i18n/i18n';
 import { ListPage } from './list-page';
 
 const loan: Loan = {
@@ -248,5 +249,54 @@ describe('ListPage filters', () => {
 
     expect(root.querySelector('.loan-list')?.textContent).toContain('ladder');
     expect(root.querySelector('.loan-list')?.textContent).not.toContain('drill');
+  });
+
+  it('reformats raw balances without reloading records when language changes', async () => {
+    const moneyLoan: Loan = {
+      ...loan,
+      id: 'money',
+      assetKind: 'money',
+      itemName: null,
+      quantity: null,
+      currencyCode: 'EUR',
+      originalMinorUnits: 10000n,
+    };
+    const activeLoans = vi.fn().mockResolvedValue([moneyLoan]);
+    const remainingMap = vi.fn().mockResolvedValue(new Map([['money', 5000n]]));
+    await TestBed.configureTestingModule({
+      imports: [ListPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            activeLoans,
+            remainingMap,
+            filterLoans: (loans: readonly Loan[]) => [...loans],
+            daysUntilDue: () => null,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ListPage);
+    fixture.componentRef.setInput('direction', 'lent');
+    fixture.componentRef.setInput('titleKey', 'lent.title');
+    fixture.componentRef.setInput('emptyKey', 'lent.empty');
+    fixture.componentRef.setInput('emptyActionKey', 'lent.emptyAction');
+    fixture.componentRef.setInput('icon', 'lent');
+    const root = fixture.nativeElement as HTMLElement;
+    await vi.waitFor(() =>
+      expect(root.querySelector('.status-with-icon')?.textContent).toContain('€50.00 remaining'),
+    );
+
+    TestBed.inject(I18n).setLanguage('lt');
+    await vi.waitFor(() =>
+      expect(root.querySelector('.status-with-icon')?.textContent).toContain('Liko 50,00 €'),
+    );
+
+    expect(activeLoans).toHaveBeenCalledTimes(1);
+    expect(remainingMap).toHaveBeenCalledTimes(1);
   });
 });

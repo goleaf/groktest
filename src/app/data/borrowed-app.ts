@@ -17,7 +17,7 @@ import {
 import { summarizeHome } from '../domain/home-summary';
 import { DomainError } from '../domain/errors';
 import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
-import { formatMinorUnits, requireCurrency } from '../domain/money';
+import { requireCurrency } from '../domain/money';
 import {
   summarizePersonRelationships,
   type PersonRelationshipSummary,
@@ -302,11 +302,8 @@ export class BorrowedApp {
     return visibleLoans(loans, query, filter, this.today());
   }
 
-  async remainingMap(
-    loans: readonly Loan[],
-    locale = 'en-GB',
-  ): Promise<ReadonlyMap<string, string | null>> {
-    const map = new Map<string, string | null>();
+  async remainingMap(loans: readonly Loan[]): Promise<ReadonlyMap<string, bigint | null>> {
+    const map = new Map<string, bigint | null>();
     const moneyLoanIds = loans.filter((loan) => loan.assetKind === 'money').map((loan) => loan.id);
     const repaymentsByLoan = this.groupRepayments(
       await this.store.listRepaymentsForLoanIds(moneyLoanIds),
@@ -321,7 +318,7 @@ export class BorrowedApp {
         map.set(loan.id, null);
         continue;
       }
-      map.set(loan.id, formatMinorUnits(remaining, loan.currencyCode, locale));
+      map.set(loan.id, remaining);
     }
     return map;
   }

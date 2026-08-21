@@ -85,7 +85,12 @@ import {
           </div>
           <ul class="loan-list">
             @for (loan of shown(); track loan.id) {
-              <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
+              <li>
+                <app-loan-row
+                  [loan]="loan"
+                  [remainingMinorUnits]="remainingOf(loan.id)"
+                />
+              </li>
             }
           </ul>
         }
@@ -119,19 +124,18 @@ export class ListPage {
     params: () => ({
       revision: this.app.revision(),
       scope: this.scope(),
-      locale: this.i18n.locale(),
     }),
     loader: async ({ params }) => {
       const loans = await this.app.activeLoans(params.scope === 'all' ? undefined : params.scope);
       return {
         loans,
-        remaining: await this.app.remainingMap(loans, params.locale),
+        remaining: await this.app.remainingMap(loans),
       };
     },
   });
   protected readonly all = computed(() => this.recordsResource.value()?.loans ?? []);
   protected readonly remaining = computed(
-    () => this.recordsResource.value()?.remaining ?? new Map<string, string | null>(),
+    () => this.recordsResource.value()?.remaining ?? new Map<string, bigint | null>(),
   );
   protected readonly loading = this.recordsResource.isLoading;
   protected readonly loadError = computed(() =>
@@ -143,7 +147,7 @@ export class ListPage {
   protected readonly iconForScope = iconForScope;
   protected readonly iconForFilter = iconForFilter;
 
-  protected remainingOf(id: string): string | null {
+  protected remainingOf(id: string): bigint | null {
     return this.remaining().get(id) ?? null;
   }
 

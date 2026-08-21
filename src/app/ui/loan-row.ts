@@ -1,6 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BorrowedApp } from '../data/borrowed-app';
+import { formatMinorUnits } from '../domain/money';
 import { formatLoanTitle } from '../i18n/format';
 import { I18n } from '../i18n/i18n';
 import type { Loan } from '../domain/types';
@@ -28,10 +29,10 @@ import { HandoffLine } from './handoff-line';
         </span>
       </span>
       <span class="meta">
-        @if (remaining()) {
+        @if (remaining(); as amount) {
           <span class="status-with-icon">
             <app-icon name="money" />
-            {{ i18n.t('detail.remaining', { amount: remaining()! }) }}
+            {{ i18n.t('detail.remaining', { amount }) }}
           </span>
         }
         @if (loan().status === 'active' && loan().dueOn) {
@@ -50,10 +51,17 @@ import { HandoffLine } from './handoff-line';
 })
 export class LoanRow {
   readonly loan = input.required<Loan>();
-  readonly remaining = input<string | null>(null);
+  readonly remainingMinorUnits = input<bigint | null>(null);
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
   protected readonly title = computed(() => formatLoanTitle(this.loan(), this.i18n.locale()));
+  protected readonly remaining = computed(() => {
+    const minorUnits = this.remainingMinorUnits();
+    const currency = this.loan().currencyCode;
+    return minorUnits === null || currency === null
+      ? null
+      : formatMinorUnits(minorUnits, currency, this.i18n.locale());
+  });
   protected readonly daysUntilDue = computed(() => this.app.daysUntilDue(this.loan()));
   protected readonly icon = computed(() => iconForLoan(this.loan()));
   protected readonly directionLabel = computed(() =>
