@@ -28,6 +28,8 @@ find "$build_directory" -maxdepth 1 -type f -name '*.js' -print -quit | grep -q 
 grep -q '<head>' "$build_directory/index.html" || fail 'index.html does not contain a head element'
 grep -q 'name="borrowed-release"' "$build_directory/index.html" && \
     fail 'index.html already contains a borrowed release marker'
+grep -Eiq '[[:space:]]on[a-z]+[[:space:]]*=' "$build_directory/index.html" && \
+    fail 'index.html contains CSP-incompatible inline event handlers'
 
 temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/borrowed-package.XXXXXX")
 cleanup() {

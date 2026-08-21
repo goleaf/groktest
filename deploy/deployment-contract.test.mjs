@@ -74,6 +74,25 @@ test('the packager rejects a non-SHA release id', () => {
   assert.match(result.stderr.toString(), /40-character lowercase commit SHA/);
 });
 
+test('the packager rejects CSP-incompatible inline event handlers', () => {
+  const unsafeBuild = join(fixtureRoot, 'unsafe-build');
+  const unsafeOutput = join(fixtureRoot, 'unsafe-output');
+  mkdirSync(unsafeBuild);
+  writeFileSync(
+    join(unsafeBuild, 'index.html'),
+    '<!doctype html><html><head><link rel="stylesheet" href="styles.css" media="print" onload="this.media=\'all\'"></head><body><app-root></app-root></body></html>\n',
+  );
+  writeFileSync(join(unsafeBuild, 'manifest.webmanifest'), '{}\n');
+  writeFileSync(join(unsafeBuild, 'ngsw.json'), '{}\n');
+  writeFileSync(join(unsafeBuild, 'ngsw-worker.js'), 'self.addEventListener("fetch", () => {});\n');
+  writeFileSync(join(unsafeBuild, 'main-ABCDEF1234.js'), 'console.log("fixture");\n');
+
+  const result = spawnSync('bash', [packageScript, sha, unsafeBuild, unsafeOutput]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr.toString(), /CSP-incompatible inline event handlers/);
+});
+
 test('the packager emits a verified SHA-bound PWA archive', () => {
   assert.equal(existsSync(packageScript), true, 'package script must exist');
 
@@ -133,6 +152,13 @@ test('CI uploads artifacts only for main push events', () => {
   assert.match(workflow, /deploy\/package-web-release\.sh/);
   assert.match(workflow, /actions\/upload-artifact@v7/);
   assert.match(workflow, /retention-days: 14/);
+});
+
+test('the production build does not generate inline stylesheet event handlers', () => {
+  const workspace = JSON.parse(readRequired(join(repoRoot, 'angular.json')));
+  const production = workspace.projects.borrowed.architect.build.configurations.production;
+
+  assert.equal(production.optimization.styles.inlineCritical, false);
 });
 
 test('production deployment requires a successful main push workflow', () => {
