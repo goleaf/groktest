@@ -24,12 +24,43 @@ const styleModules = [
   'supporting',
 ] as const;
 
-const selectorKeys = (source: string): string[] => {
-  const keys: string[] = [];
+type StyleModule = (typeof styleModules)[number];
+
+type StyleRule = {
+  moduleName: StyleModule;
+  context: string;
+  selectors: string[];
+  declarations: { property: string; value: string }[];
+};
+
+const matchingBraceIndex = (source: string, openingBraceIndex: number): number => {
+  let depth = 0;
+
+  for (let index = openingBraceIndex; index < source.length; index += 1) {
+    if (source[index] === '{') {
+      depth += 1;
+    } else if (source[index] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return source.length;
+};
+
+const styleRules = (moduleName: StyleModule): StyleRule[] => {
+  const source = fileSystem
+    .readFileSync(`${projectRoot}/src/styles/_${moduleName}.scss`, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules: StyleRule[] = [];
   const contexts: (string | null)[] = [];
   let prelude = '';
 
-  for (const character of source.replace(/\/\*[\s\S]*?\*\//g, '')) {
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+
     if (character === '{') {
       const value = prelude.trim();
       prelude = '';
@@ -39,9 +70,22 @@ const selectorKeys = (source: string): string[] => {
         const selectors = value
           .split(',')
           .map((selector) => selector.trim().replace(/\s+/g, ' '))
-          .sort()
-          .join(',');
-        keys.push(`${contexts.filter(Boolean).join('>')}|${selectors}`);
+          .filter(Boolean);
+        const closingBraceIndex = matchingBraceIndex(source, index);
+        const body = source.slice(index + 1, closingBraceIndex);
+        const declarations = [...body.matchAll(/^\s*([-\w]+)\s*:\s*([^;{}]+);/gm)].map(
+          (match) => ({
+            property: match[1],
+            value: match[2].trim().replace(/\s+/g, ' '),
+          }),
+        );
+
+        rules.push({
+          moduleName,
+          context: contexts.filter(Boolean).join('>'),
+          selectors,
+          declarations,
+        });
         contexts.push(null);
       }
       continue;
@@ -56,8 +100,10 @@ const selectorKeys = (source: string): string[] => {
     prelude += character;
   }
 
-  return keys;
+  return rules;
 };
+
+const allStyleRules = (): StyleRule[] => styleModules.flatMap(styleRules);
 
 describe('SCSS architecture', () => {
   it('keeps the global entrypoint as an ordered Sass module manifest', () => {
@@ -113,14 +159,24 @@ describe('SCSS architecture', () => {
   });
 
   it('declares each selector list once in each cascade context', () => {
-    const keys = styleModules.flatMap((moduleName) =>
-      selectorKeys(
-        fileSystem.readFileSync(`${projectRoot}/src/styles/_${moduleName}.scss`, 'utf8'),
-      ),
+    const keys = allStyleRules().map(
+      (rule) => `${rule.context}|${rule.selectors.slice().sort().join(',')}`,
     );
     const repeatedKeys = [...new Set(keys.filter((key, index) => keys.indexOf(key) !== index))];
 
     expect(repeatedKeys).toEqual([]);
+  });
+
+  it('keeps hover presentation inside a hover-capable media context', () => {
+    const ungatedHoverSelectors = allStyleRules().flatMap((rule) =>
+      rule.context.includes('@media (hover: hover)')
+        ? []
+        : rule.selectors
+            .filter((selector) => selector.includes(':hover'))
+            .map((selector) => `${rule.moduleName}:${selector}`),
+    );
+
+    expect(ungatedHoverSelectors).toEqual([]);
   });
 
   it('keeps only the winning declaration for each property in a rule', () => {
