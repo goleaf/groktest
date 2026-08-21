@@ -1,0 +1,247 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Retained 40-character commit SHA to reactivate
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  deployments: write
+
+concurrency:
+  group: borrowed-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://borrowed.miniserver.fun
+    env:
+      ARTIFACT_NAME: borrowed-web-${{ github.event.workflow_run.head_sha }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Download the exact successful CI artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/borrowed-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Validate deployment inputs and artifact
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$DEPLOY_HOST" == 'miniserver.fun' ]]
+          [[ "$DEPLOY_PORT" == '22' ]]
+          [[ "$DEPLOY_USER" == 'borrowed-deploy' ]]
+          [[ "$DEPLOY_PATH" == '/www/wwwroot/borrowed.miniserver.fun' ]]
+          [[ "$PRODUCTION_URL" == 'https://borrowed.miniserver.fun' ]]
+
+          artifact_root="$RUNNER_TEMP/borrowed-artifact"
+          archive_name="borrowed-web-${RELEASE_SHA}.tar.gz"
+          test -f "$artifact_root/release/$archive_name"
+          test -f "$artifact_root/release/${archive_name}.sha256"
+          test -f "$artifact_root/deploy/activate-web-release.sh"
+          (
+            cd "$artifact_root/release"
+            sha256sum --check "${archive_name}.sha256"
+          )
+          bash -n "$artifact_root/deploy/activate-web-release.sh"
+          test "$(tar -xOzf "$artifact_root/release/$archive_name" ./release.json)" = \
+            "{\"sha\":\"${RELEASE_SHA}\"}"
+
+      - name: Configure pinned SSH
+        shell: bash
+        env:
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          install -d -m 0700 "$ssh_directory"
+          install -m 0600 /dev/null "$ssh_directory/id_ed25519"
+          install -m 0600 /dev/null "$ssh_directory/known_hosts"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_directory/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_directory/known_hosts"
+          ssh-keygen -y -f "$ssh_directory/id_ed25519" >/dev/null
+          ssh-keygen -F "$DEPLOY_HOST" -f "$ssh_directory/known_hosts" >/dev/null
+
+      - name: Transfer and activate the tested release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          artifact_root="$RUNNER_TEMP/borrowed-artifact"
+          archive_name="borrowed-web-${RELEASE_SHA}.tar.gz"
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          remote_stage="${DEPLOY_PATH}/deploy/shared/incoming/${RELEASE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh_options=(
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_directory}/known_hosts"
+            -i "${ssh_directory}/id_ed25519"
+            -p "$DEPLOY_PORT"
+          )
+          scp_options=(
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_directory}/known_hosts"
+            -i "${ssh_directory}/id_ed25519"
+            -P "$DEPLOY_PORT"
+          )
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "install -d -m 0755 '$remote_stage'"
+          scp "${scp_options[@]}" \
+            "$artifact_root/release/$archive_name" \
+            "$artifact_root/release/${archive_name}.sha256" \
+            "$artifact_root/deploy/activate-web-release.sh" \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${remote_stage}/"
+
+          local_activator_hash=$(sha256sum "$artifact_root/deploy/activate-web-release.sh" | cut -d' ' -f1)
+          remote_activator_hash=$(ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "sha256sum '$remote_stage/activate-web-release.sh' | cut -d' ' -f1")
+          test "$local_activator_hash" = "$remote_activator_hash"
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "bash '$remote_stage/activate-web-release.sh' \
+              --root '$DEPLOY_PATH' \
+              --sha '$RELEASE_SHA' \
+              --staging-dir '$remote_stage' \
+              --url '$PRODUCTION_URL'"
+
+      - name: Verify the public release marker
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          release_response=$(curl --fail --silent --show-error --location \
+            --retry 3 --retry-all-errors --connect-timeout 5 --max-time 20 \
+            --header 'ngsw-bypass: true' "${PRODUCTION_URL}/release.json")
+          test "$release_response" = "{\"sha\":\"${RELEASE_SHA}\"}"
+
+      - name: Remove the runner SSH key
+        if: always()
+        shell: bash
+        run: |
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          if test -f "$ssh_directory/id_ed25519"; then
+            shred --remove "$ssh_directory/id_ed25519"
+          fi
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://borrowed.miniserver.fun
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+      RELEASE_SHA: ${{ inputs.release_sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate rollback inputs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$DEPLOY_HOST" == 'miniserver.fun' ]]
+          [[ "$DEPLOY_PORT" == '22' ]]
+          [[ "$DEPLOY_USER" == 'borrowed-deploy' ]]
+          [[ "$DEPLOY_PATH" == '/www/wwwroot/borrowed.miniserver.fun' ]]
+          [[ "$PRODUCTION_URL" == 'https://borrowed.miniserver.fun' ]]
+          bash -n deploy/rollback-web-release.sh
+
+      - name: Configure pinned SSH
+        shell: bash
+        env:
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          install -d -m 0700 "$ssh_directory"
+          install -m 0600 /dev/null "$ssh_directory/id_ed25519"
+          install -m 0600 /dev/null "$ssh_directory/known_hosts"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_directory/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_directory/known_hosts"
+          ssh-keygen -y -f "$ssh_directory/id_ed25519" >/dev/null
+          ssh-keygen -F "$DEPLOY_HOST" -f "$ssh_directory/known_hosts" >/dev/null
+
+      - name: Transfer and run the verified rollback script
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          remote_stage="${DEPLOY_PATH}/deploy/shared/incoming/${RELEASE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh_options=(
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_directory}/known_hosts"
+            -i "${ssh_directory}/id_ed25519"
+            -p "$DEPLOY_PORT"
+          )
+          scp_options=(
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_directory}/known_hosts"
+            -i "${ssh_directory}/id_ed25519"
+            -P "$DEPLOY_PORT"
+          )
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "install -d -m 0755 '$remote_stage'"
+          scp "${scp_options[@]}" deploy/rollback-web-release.sh \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${remote_stage}/"
+
+          local_rollback_hash=$(sha256sum deploy/rollback-web-release.sh | cut -d' ' -f1)
+          remote_rollback_hash=$(ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "sha256sum '$remote_stage/rollback-web-release.sh' | cut -d' ' -f1")
+          test "$local_rollback_hash" = "$remote_rollback_hash"
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "bash '$remote_stage/rollback-web-release.sh' \
+              --root '$DEPLOY_PATH' \
+              --sha '$RELEASE_SHA' \
+              --url '$PRODUCTION_URL'"
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "unlink '$remote_stage/rollback-web-release.sh' && rmdir '$remote_stage'"
+
+      - name: Remove the runner SSH key
+        if: always()
+        shell: bash
+        run: |
+          ssh_directory="$RUNNER_TEMP/borrowed-ssh"
+          if test -f "$ssh_directory/id_ed25519"; then
+            shred --remove "$ssh_directory/id_ed25519"
+          fi
