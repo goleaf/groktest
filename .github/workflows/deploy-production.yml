@@ -41,7 +41,7 @@ jobs:
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Download the exact successful CI artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ runner.temp }}/borrowed-artifact
@@ -166,7 +166,7 @@ jobs:
       PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
       RELEASE_SHA: ${{ inputs.release_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate rollback inputs
         shell: bash
