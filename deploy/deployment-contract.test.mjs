@@ -150,6 +150,8 @@ test('the Nginx vhost preserves ACME and serves the atomic release', () => {
   assert.match(config, /try_files \$uri \$uri\/ \/index\.html;/);
   assert.match(config, /location = \/ngsw\.json/);
   assert.match(config, /add_header_inherit merge/);
+  const hashedAssetLocation = config.split('\n').find((line) => line.includes('[a-z0-9]{8,}'));
+  assert.match(hashedAssetLocation, /location ~\* ".+" \{/);
   assert.doesNotMatch(config, /enable-php/);
   assert.doesNotMatch(config, /TLSv1\.1/);
 });
