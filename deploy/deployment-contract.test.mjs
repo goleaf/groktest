@@ -158,8 +158,8 @@ test('bootstrap confines the deployment account to the deploy subtree', () => {
   const bootstrap = readRequired(join(deployRoot, 'bootstrap-aapanel-server.sh'));
 
   assert.match(bootstrap, /passwd --lock borrowed-deploy/);
-  assert.match(bootstrap, /restrict ssh-ed25519/);
-  assert.match(bootstrap, /deploy\/shared\/incoming/);
+  assert.match(bootstrap, /printf 'restrict %s/);
+  assert.match(bootstrap, /\$deploy_root\/shared\/incoming/);
   assert.match(bootstrap, /nginx -t/);
   assert.match(bootstrap, /restore_vhost/);
 });
