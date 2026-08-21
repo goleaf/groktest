@@ -3,10 +3,10 @@ import { Component, computed, effect, ElementRef, inject, viewChild } from '@ang
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { CurrentDayService } from '../application/current-day-service';
 import { I18n } from '../i18n/i18n';
 import { Icon } from '../ui/icon';
 import { LanguageSwitcher } from '../ui/language-switcher';
-import { CurrentDayTracker } from './current-day-tracker';
 
 @Component({
   selector: 'app-shell',
@@ -151,7 +151,7 @@ export class Shell {
   );
 
   constructor() {
-    inject(CurrentDayTracker);
+    inject(CurrentDayService);
     effect(() => {
       this.currentUrl();
       let route = this.router.routerState.snapshot.root;

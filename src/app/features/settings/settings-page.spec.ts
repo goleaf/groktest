@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { BackupService } from '../../application/backup-service';
+import { SettingsService } from '../../application/settings-service';
 import { I18n } from '../../i18n/i18n';
 import { SettingsPage } from './settings-page';
 
@@ -9,12 +10,13 @@ describe('SettingsPage', () => {
       imports: [SettingsPage],
       providers: [
         {
-          provide: BorrowedApp,
+          provide: SettingsService,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR', preferredLanguage: 'en' }),
+            get: async () => ({ preferredCurrency: 'EUR', preferredLanguage: 'en' }),
             setPreferredLanguage: async (preferredLanguage: string) => ({ preferredLanguage }),
           },
         },
+        { provide: BackupService, useValue: { exportJson: async () => '{}' } },
       ],
     }).compileComponents();
 
@@ -43,12 +45,13 @@ describe('SettingsPage', () => {
       imports: [SettingsPage],
       providers: [
         {
-          provide: BorrowedApp,
+          provide: SettingsService,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR', preferredLanguage: 'en' }),
+            get: async () => ({ preferredCurrency: 'EUR', preferredLanguage: 'en' }),
             setPreferredLanguage: async (preferredLanguage: string) => ({ preferredLanguage }),
           },
         },
+        { provide: BackupService, useValue: { exportJson: async () => '{}' } },
       ],
     }).compileComponents();
 

@@ -4,6 +4,7 @@ import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
 import type { DomainClock } from './domain/commands';
 import type { LocalSettings } from './domain/types';
+import { SettingsService } from './application/settings-service';
 import { BorrowedApp } from './data/borrowed-app';
 import { DexieBorrowedStore } from './data/dexie-store';
 import { I18n } from './i18n/i18n';
@@ -68,12 +69,13 @@ describe('application initialization corruption boundary', () => {
     const dbName = await corruptSettingsDatabase();
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
+    const settings = new SettingsService(store, clock);
     const i18n = new I18n();
     const state = new ApplicationInitializationState();
     const seed = vi.fn(async () => undefined);
 
     await expect(
-      initializeBorrowedApplication({ app, i18n, clock, state, development: true, seed }),
+      initializeBorrowedApplication({ app, settings, i18n, clock, state, development: true, seed }),
     ).resolves.toBeUndefined();
 
     expect(state.failure()).toEqual({
@@ -90,11 +92,20 @@ describe('application initialization corruption boundary', () => {
     const dbName = `borrowed-initialization-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
+    const settings = new SettingsService(store, clock);
     const i18n = new I18n();
     const state = new ApplicationInitializationState();
     const seed = vi.fn(async () => undefined);
 
-    await initializeBorrowedApplication({ app, i18n, clock, state, development: true, seed });
+    await initializeBorrowedApplication({
+      app,
+      settings,
+      i18n,
+      clock,
+      state,
+      development: true,
+      seed,
+    });
 
     expect(i18n.language()).toBe('en');
     expect(state.failure()).toBeNull();
@@ -108,14 +119,16 @@ describe('application initialization corruption boundary', () => {
     const dbName = `borrowed-initialization-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
+    const settings = new SettingsService(store, clock);
     const failure = unavailablePersistence();
-    vi.spyOn(app, 'initialize').mockRejectedValue(failure);
+    vi.spyOn(settings, 'initialize').mockRejectedValue(failure);
     const state = new ApplicationInitializationState();
     const i18n = new I18n();
 
     await expect(
       initializeBorrowedApplication({
         app,
+        settings,
         i18n,
         clock,
         state,
@@ -134,15 +147,24 @@ describe('application initialization corruption boundary', () => {
     const dbName = `borrowed-initialization-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
+    const settings = new SettingsService(store, clock);
     const initialize = vi
-      .spyOn(app, 'initialize')
+      .spyOn(settings, 'initialize')
       .mockRejectedValueOnce(unavailablePersistence())
       .mockResolvedValueOnce(lithuanianSettings);
     const i18n = new I18n();
     const state = new ApplicationInitializationState();
     const seed = vi.fn(async () => undefined);
 
-    await initializeBorrowedApplication({ app, i18n, clock, state, development: true, seed });
+    await initializeBorrowedApplication({
+      app,
+      settings,
+      i18n,
+      clock,
+      state,
+      development: true,
+      seed,
+    });
     await state.retry();
 
     expect(initialize).toHaveBeenCalledTimes(2);
@@ -159,11 +181,15 @@ describe('application initialization corruption boundary', () => {
     const dbName = `borrowed-initialization-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
-    const initialize = vi.spyOn(app, 'initialize').mockRejectedValue(unavailablePersistence());
+    const settings = new SettingsService(store, clock);
+    const initialize = vi
+      .spyOn(settings, 'initialize')
+      .mockRejectedValue(unavailablePersistence());
     const state = new ApplicationInitializationState();
 
     await initializeBorrowedApplication({
       app,
+      settings,
       i18n: new I18n(),
       clock,
       state,
@@ -186,13 +212,15 @@ describe('application initialization corruption boundary', () => {
     const dbName = `borrowed-initialization-${crypto.randomUUID()}`;
     const store = new DexieBorrowedStore(dbName);
     const app = new BorrowedApp(store, clock);
+    const settings = new SettingsService(store, clock);
     const failure = new Error('programmer_failure');
-    vi.spyOn(app, 'initialize').mockRejectedValue(failure);
+    vi.spyOn(settings, 'initialize').mockRejectedValue(failure);
     const state = new ApplicationInitializationState();
 
     await expect(
       initializeBorrowedApplication({
         app,
+        settings,
         i18n: new I18n(),
         clock,
         state,

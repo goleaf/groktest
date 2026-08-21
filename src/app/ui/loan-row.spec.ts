@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { BorrowedApp } from '../data/borrowed-app';
+import { CurrentDayService } from '../application/current-day-service';
 import type { Loan } from '../domain/types';
 import { I18n } from '../i18n/i18n';
 import { LoanRow } from './loan-row';
@@ -34,7 +34,7 @@ describe('LoanRow', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: CurrentDayService,
           useValue: { daysUntilDue: () => -2 },
         },
       ],
@@ -72,7 +72,7 @@ describe('LoanRow', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
+          provide: CurrentDayService,
           useValue: { daysUntilDue: () => null },
         },
       ],

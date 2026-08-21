@@ -1,18 +1,16 @@
-import { Inject, Injectable, signal } from '@angular/core';
+import { Inject, Injectable, signal, type Signal } from '@angular/core';
+import { BackupService } from '../application/backup-service';
+import { CurrentDayService } from '../application/current-day-service';
+import { RecordDraftService } from '../application/record-draft-service';
 import {
   RecordsCommandService,
   type CreateRecordInput,
 } from '../application/records-command-service';
-import {
-  calendarDaysBetween,
-  instantFrom,
-  todayInTimeZone,
-  type CalendarDate,
-} from '../domain/calendar-date';
+import { SettingsService } from '../application/settings-service';
+import type { CalendarDate } from '../domain/calendar-date';
 import type { DomainClock } from '../domain/commands';
 import { summarizeHome } from '../domain/home-summary';
 import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
-import { requireCurrency } from '../domain/money';
 import {
   summarizePersonRelationships,
   type PersonRelationshipSummary,
@@ -50,8 +48,7 @@ export interface PersonOverview extends PersonRelationshipSummary {
 @Injectable({ providedIn: 'root' })
 export class BorrowedApp {
   readonly revision = signal(0);
-  private readonly currentDayState = signal<CalendarDate>('1970-01-01');
-  readonly currentDay = this.currentDayState.asReadonly();
+  readonly currentDay: Signal<CalendarDate>;
 
   constructor(
     private readonly store: BorrowedStore,
@@ -60,8 +57,12 @@ export class BorrowedApp {
       store,
       clock,
     ),
+    private readonly settingsService: SettingsService = new SettingsService(store, clock),
+    private readonly recordDraftService: RecordDraftService = new RecordDraftService(store, clock),
+    private readonly backupService: BackupService = new BackupService(store, clock),
+    private readonly currentDayService: CurrentDayService = new CurrentDayService(clock),
   ) {
-    this.refreshCurrentDay();
+    this.currentDay = this.currentDayService.currentDay;
   }
 
   private touch(): void {
@@ -69,37 +70,21 @@ export class BorrowedApp {
   }
 
   async initialize(): Promise<LocalSettings> {
-    return this.store.initialize(this.clock);
+    return this.settingsService.initialize();
   }
 
   async settings(): Promise<LocalSettings> {
-    return this.store.getSettings();
+    return this.settingsService.get();
   }
 
   async setPreferredCurrency(currency: string): Promise<LocalSettings> {
-    const code = requireCurrency(currency);
-    const current = await this.store.getSettings();
-    const next: LocalSettings = {
-      ...current,
-      preferredCurrency: code,
-      updatedAt: instantFrom(this.clock.now()),
-      version: current.version + 1,
-    };
-    await this.store.saveSettings(next, this.clock);
+    const next = await this.settingsService.setPreferredCurrency(currency);
     this.touch();
     return next;
   }
 
   async setPreferredLanguage(language: SupportedLanguage): Promise<LocalSettings> {
-    const current = await this.store.getSettings();
-    const next: LocalSettings = {
-      ...current,
-      preferredLanguage: language,
-      updatedAt: instantFrom(this.clock.now()),
-      version: current.version + 1,
-    };
-    await this.store.saveSettings(next, this.clock);
-    return next;
+    return this.settingsService.setPreferredLanguage(language);
   }
 
   async people(): Promise<Person[]> {
@@ -173,21 +158,15 @@ export class BorrowedApp {
   }
 
   async recordDraft(): Promise<RecordDraft | undefined> {
-    return this.store.getRecordDraft();
+    return this.recordDraftService.load();
   }
 
   async saveRecordDraft(draft: Omit<RecordDraft, 'id' | 'updatedAt'>): Promise<RecordDraft> {
-    const saved: RecordDraft = {
-      ...draft,
-      id: 'add-record',
-      updatedAt: instantFrom(this.clock.now()),
-    };
-    await this.store.saveRecordDraft(saved);
-    return saved;
+    return this.recordDraftService.save(draft);
   }
 
   async clearRecordDraft(): Promise<void> {
-    await this.store.clearRecordDraft();
+    await this.recordDraftService.clear();
   }
 
   async pendingMutations(): Promise<SyncMutation[]> {
@@ -195,15 +174,11 @@ export class BorrowedApp {
   }
 
   daysUntilDue(loan: Loan): number | null {
-    return loan.dueOn ? calendarDaysBetween(this.today(), loan.dueOn) : null;
+    return this.currentDayService.daysUntilDue(loan);
   }
 
   refreshCurrentDay(): CalendarDate {
-    const next = todayInTimeZone(this.clock.now(), this.clock.timeZone());
-    if (next !== this.currentDayState()) {
-      this.currentDayState.set(next);
-    }
-    return next;
+    return this.currentDayService.refresh();
   }
 
   async peopleWithCounts(): Promise<PersonListRow[]> {
@@ -235,7 +210,7 @@ export class BorrowedApp {
   }
 
   today(): CalendarDate {
-    return this.currentDay();
+    return this.currentDayService.today();
   }
 
   filterLoans(loans: readonly Loan[], query: string, filter: ListFilter): Loan[] {
@@ -286,37 +261,11 @@ export class BorrowedApp {
   }
 
   async exportJson(): Promise<string> {
-    const [people, loans, settings, repayments] = await Promise.all([
-      this.store.listPeople(),
-      this.store.listLoans(),
-      this.store.getSettings(),
-      this.store.listRepayments(),
-    ]);
-    return JSON.stringify(
-      {
-        app: 'borrowed',
-        exportedAt: instantFrom(this.clock.now()),
-        settings: {
-          preferredCurrency: settings.preferredCurrency,
-          schemaVersion: settings.schemaVersion,
-        },
-        people,
-        loans: loans.map((loan) => ({
-          ...loan,
-          originalMinorUnits: loan.originalMinorUnits?.toString() ?? null,
-        })),
-        repayments: repayments.map((repayment) => ({
-          ...repayment,
-          minorUnits: repayment.minorUnits.toString(),
-        })),
-      },
-      null,
-      2,
-    );
+    return this.backupService.exportJson();
   }
 
   async exportRawRecoveryJson(): Promise<string> {
-    return this.store.exportRawRecoveryJson(instantFrom(this.clock.now()));
+    return this.backupService.exportRawRecoveryJson();
   }
 
   private async repaymentsByLoan(): Promise<Map<string, Repayment[]>> {

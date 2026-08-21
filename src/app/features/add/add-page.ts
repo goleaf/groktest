@@ -1,6 +1,11 @@
 import { Component, computed, effect, inject, PendingTasks, signal } from '@angular/core';
 import { FormField, form, hidden, maxLength, required, submit } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
+import {
+  RecordDraftService,
+  type DraftPersistenceStatus,
+} from '../../application/record-draft-service';
+import { SettingsService } from '../../application/settings-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { DomainError } from '../../domain/errors';
 import { CURRENCY_EXPONENTS, type CurrencyCode } from '../../domain/money';
@@ -21,8 +26,6 @@ interface AddRecordFormModel {
   dueOn: string;
   note: string;
 }
-
-type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 @Component({
   selector: 'app-add-page',
@@ -260,6 +263,8 @@ type DraftStatus = 'idle' | 'saving' | 'saved' | 'error';
 export class AddPage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
+  private readonly settings = inject(SettingsService);
+  private readonly drafts = inject(RecordDraftService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly pendingTasks = inject(PendingTasks);
@@ -309,7 +314,7 @@ export class AddPage {
   protected readonly error = signal('');
   protected readonly initializing = signal(true);
   protected readonly initializationError = signal('');
-  protected readonly draftStatus = signal<DraftStatus>('idle');
+  protected readonly draftStatus = signal<DraftPersistenceStatus>('idle');
   private readonly people = signal<Person[]>([]);
   protected readonly recents = computed(() => {
     const people = this.people();
@@ -364,8 +369,8 @@ export class AddPage {
           draft.note.trim(),
         );
         const persistence = hasUserContent
-          ? this.app.saveRecordDraft(draft)
-          : this.app.clearRecordDraft();
+          ? this.drafts.save(draft)
+          : this.drafts.clear();
         this.draftStatus.set('saving');
         this.latestDraftPersistence = persistence;
         void persistence.then(
@@ -400,9 +405,9 @@ export class AddPage {
 
     try {
       const [settings, people, draft] = await Promise.all([
-        this.app.settings(),
+        this.settings.get(),
         this.app.people(),
-        this.app.recordDraft(),
+        this.drafts.load(),
       ]);
       if (version !== this.initializationVersion) {
         return;
@@ -484,7 +489,7 @@ export class AddPage {
           const pendingDraft = this.latestDraftPersistence;
           this.latestDraftPersistence = undefined;
           await pendingDraft?.catch(() => undefined);
-          await this.app.clearRecordDraft();
+          await this.drafts.clear();
           this.draftStatus.set('idle');
           await this.router.navigate(['/loans', loan.id]);
           return undefined;

@@ -1,7 +1,7 @@
 import { Component, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { BackupService } from './application/backup-service';
 import { ApplicationInitializationState } from './application-initialization';
-import { BorrowedApp } from './data/borrowed-app';
 import { I18n } from './i18n/i18n';
 
 @Component({
@@ -96,7 +96,7 @@ import { I18n } from './i18n/i18n';
 export class App {
   protected readonly initialization = inject(ApplicationInitializationState);
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly backups = inject(BackupService);
   private readonly recoveryMain = viewChild<ElementRef<HTMLElement>>('recoveryMain');
   protected readonly exportBusy = signal(false);
   protected readonly feedback = signal('');
@@ -140,7 +140,7 @@ export class App {
     this.exportBusy.set(true);
     this.feedback.set('');
     try {
-      const json = await this.app.exportRawRecoveryJson();
+      const json = await this.backups.exportRawRecoveryJson();
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');

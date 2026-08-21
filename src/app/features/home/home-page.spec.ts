@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { CurrentDayService } from '../../application/current-day-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
 import { HomePage } from './home-page';
@@ -102,11 +103,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
             home: async () => summary,
             markReturned,
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
       ],
     }).compileComponents();
 
@@ -178,11 +179,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
             home: async () => ordinarySummary,
             markReturned: async () => undefined,
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
       ],
     }).compileComponents();
 
@@ -209,11 +210,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay,
             home,
             markReturned: async () => undefined,
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay } },
       ],
     }).compileComponents();
 
@@ -245,11 +246,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision,
-            currentDay: signal('2026-08-20'),
             home,
             markReturned: async () => undefined,
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
       ],
     }).compileComponents();
 
@@ -283,11 +284,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
             home: async () => summary,
             markReturned,
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
       ],
     }).compileComponents();
 
@@ -323,11 +324,11 @@ describe('HomePage', () => {
           provide: BorrowedApp,
           useValue: {
             revision: signal(0),
-            currentDay: signal('2026-08-20'),
             home: async () => summary,
             markReturned: async () => Promise.reject(new Error('disk unavailable')),
           },
         },
+        { provide: CurrentDayService, useValue: { currentDay: signal('2026-08-20') } },
       ],
     }).compileComponents();
 

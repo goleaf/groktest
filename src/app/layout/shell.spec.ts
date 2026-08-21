@@ -2,14 +2,14 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { BorrowedApp } from '../data/borrowed-app';
+import { CurrentDayService } from '../application/current-day-service';
+import { SettingsService } from '../application/settings-service';
 import { Shell } from './shell';
 
 @Component({ template: '<h1>Test page</h1><input aria-label="Page search" />' })
 class TestPage {}
 
-const borrowedAppStub = {
-  refreshCurrentDay: () => undefined,
+const settingsStub = {
   setPreferredLanguage: async (preferredLanguage: string) => ({ preferredLanguage }),
 };
 
@@ -20,9 +20,10 @@ describe('Shell', () => {
       providers: [
         provideRouter([]),
         {
-          provide: BorrowedApp,
-          useValue: borrowedAppStub,
+          provide: CurrentDayService,
+          useValue: {},
         },
+        { provide: SettingsService, useValue: settingsStub },
       ],
     }).compileComponents();
 
@@ -73,7 +74,8 @@ describe('Shell', () => {
             ],
           },
         ]),
-        { provide: BorrowedApp, useValue: borrowedAppStub },
+        { provide: CurrentDayService, useValue: {} },
+        { provide: SettingsService, useValue: settingsStub },
       ],
     }).compileComponents();
 
@@ -100,7 +102,8 @@ describe('Shell', () => {
             ],
           },
         ]),
-        { provide: BorrowedApp, useValue: borrowedAppStub },
+        { provide: CurrentDayService, useValue: {} },
+        { provide: SettingsService, useValue: settingsStub },
       ],
     }).compileComponents();
 
@@ -130,7 +133,8 @@ describe('Shell', () => {
             ],
           },
         ]),
-        { provide: BorrowedApp, useValue: borrowedAppStub },
+        { provide: CurrentDayService, useValue: {} },
+        { provide: SettingsService, useValue: settingsStub },
       ],
     }).compileComponents();
 

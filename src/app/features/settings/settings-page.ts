@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BorrowedApp } from '../../data/borrowed-app';
+import { BackupService } from '../../application/backup-service';
+import { SettingsService } from '../../application/settings-service';
 import { CURRENCY_EXPONENTS, type CurrencyCode } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
 import { Icon } from '../../ui/icon';
@@ -72,22 +73,23 @@ import { PageHeading } from '../../ui/page-heading';
 })
 export class SettingsPage {
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly settings = inject(SettingsService);
+  private readonly backups = inject(BackupService);
   protected readonly currency = signal<CurrencyCode>('EUR');
   protected readonly currencies = Object.keys(CURRENCY_EXPONENTS);
   protected readonly version = '0.1.0';
 
   constructor() {
-    void this.app.settings().then((settings) => this.currency.set(settings.preferredCurrency));
+    void this.settings.get().then((settings) => this.currency.set(settings.preferredCurrency));
   }
 
   protected async onCurrency(value: string): Promise<void> {
-    const settings = await this.app.setPreferredCurrency(value);
+    const settings = await this.settings.setPreferredCurrency(value);
     this.currency.set(settings.preferredCurrency);
   }
 
   protected async exportData(): Promise<void> {
-    const json = await this.app.exportJson();
+    const json = await this.backups.exportJson();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

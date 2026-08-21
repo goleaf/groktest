@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
+import { RecordDraftService } from '../../application/record-draft-service';
+import { SettingsService } from '../../application/settings-service';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { deferred } from '../../testing/deferred-promise';
 import { AddPage } from './add-page';
@@ -15,12 +17,17 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
             createRecord,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -63,12 +70,17 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
             createRecord,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -113,12 +125,17 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
             createRecord,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -177,11 +194,16 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: () => settings.promise,
             people: () => people.promise,
-            recordDraft: () => recordDraft.promise,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
+          },
+        },
+        { provide: SettingsService, useValue: { get: () => settings.promise } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: () => recordDraft.promise,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -221,11 +243,16 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings,
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
+          },
+        },
+        { provide: SettingsService, useValue: { get: settings } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -263,12 +290,17 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft,
-            clearRecordDraft: async () => undefined,
             createRecord,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: saveRecordDraft,
+            clear: async () => undefined,
           },
         },
       ],
@@ -301,11 +333,16 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -360,9 +397,15 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [],
-            recordDraft: async () => ({
+            createRecord,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => ({
               direction: 'borrowed',
               kind: 'money',
               personName: 'Anna',
@@ -373,9 +416,8 @@ describe('AddPage', () => {
               dueOn: '2026-08-30',
               note: 'Lunch',
             }),
-            saveRecordDraft,
-            clearRecordDraft,
-            createRecord,
+            save: saveRecordDraft,
+            clear: clearRecordDraft,
           },
         },
       ],
@@ -413,14 +455,19 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => [
               { id: 'person-peter', displayName: 'Peter' },
               { id: 'person-andrei', displayName: 'Andrei' },
             ],
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],
@@ -452,11 +499,16 @@ describe('AddPage', () => {
         {
           provide: BorrowedApp,
           useValue: {
-            settings: async () => ({ preferredCurrency: 'EUR' }),
             people: async () => people,
-            recordDraft: async () => undefined,
-            saveRecordDraft: async () => undefined,
-            clearRecordDraft: async () => undefined,
+          },
+        },
+        { provide: SettingsService, useValue: { get: async () => ({ preferredCurrency: 'EUR' }) } },
+        {
+          provide: RecordDraftService,
+          useValue: {
+            load: async () => undefined,
+            save: async () => undefined,
+            clear: async () => undefined,
           },
         },
       ],

@@ -12,6 +12,7 @@ import { DomainError } from '../domain/errors';
 import type { Loan, Person } from '../domain/types';
 import { CLOCK } from '../data/clock';
 import { BorrowedStore } from '../data/store';
+import { SettingsService } from './settings-service';
 
 export interface CreateRecordInput {
   direction: CreateLoanInput['direction'];
@@ -32,6 +33,7 @@ export class RecordsCommandService {
   constructor(
     private readonly store: BorrowedStore,
     @Inject(CLOCK) private readonly clock: DomainClock,
+    private readonly settings: SettingsService = new SettingsService(store, clock),
   ) {}
 
   async createRecord(input: CreateRecordInput): Promise<Loan> {
@@ -45,7 +47,7 @@ export class RecordsCommandService {
     if (!person) {
       person = buildPerson(input.personName, this.clock);
     }
-    const settings = await this.store.getSettings();
+    const settings = await this.settings.get();
     const { loan, event } = createLoan(
       {
         direction: input.direction,

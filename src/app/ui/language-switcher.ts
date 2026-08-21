@@ -1,5 +1,5 @@
 import { Component, inject, input, signal } from '@angular/core';
-import { BorrowedApp } from '../data/borrowed-app';
+import { SettingsService } from '../application/settings-service';
 import type { SupportedLanguage } from '../domain/types';
 import { I18n, LANGUAGE_OPTIONS } from '../i18n/i18n';
 import { Icon } from './icon';
@@ -67,7 +67,7 @@ import { Icon } from './icon';
 export class LanguageSwitcher {
   readonly compact = input(false);
   protected readonly i18n = inject(I18n);
-  private readonly app = inject(BorrowedApp);
+  private readonly settings = inject(SettingsService);
   protected readonly options = LANGUAGE_OPTIONS;
   protected readonly saving = signal<SupportedLanguage | null>(null);
   protected readonly saveFailed = signal(false);
@@ -91,7 +91,7 @@ export class LanguageSwitcher {
     this.saving.set(language);
     this.i18n.setLanguage(language);
     try {
-      await this.app.setPreferredLanguage(language);
+      await this.settings.setPreferredLanguage(language);
     } catch {
       this.i18n.setLanguage(previous);
       this.saveFailed.set(true);

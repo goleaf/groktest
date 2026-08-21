@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { App } from './app';
+import { BackupService } from './application/backup-service';
+import { SettingsService } from './application/settings-service';
 import {
   ApplicationInitializationState,
   initializeBorrowedApplication,
@@ -61,7 +63,8 @@ describe('App', () => {
     const unavailable = new Error(secret);
     unavailable.name = 'OpenFailedError';
     const app = TestBed.inject(BorrowedApp);
-    vi.spyOn(app, 'initialize').mockRejectedValueOnce(unavailable).mockResolvedValueOnce({
+    const settings = TestBed.inject(SettingsService);
+    vi.spyOn(settings, 'initialize').mockRejectedValueOnce(unavailable).mockResolvedValueOnce({
       id: 'local',
       localIdentityId: 'identity-1',
       preferredCurrency: 'EUR',
@@ -75,6 +78,7 @@ describe('App', () => {
 
     await initializeBorrowedApplication({
       app,
+      settings,
       i18n: TestBed.inject(I18n),
       clock: TestBed.inject(CLOCK),
       state,
@@ -99,15 +103,17 @@ describe('App', () => {
     const unavailable = new Error(secret);
     unavailable.name = 'QuotaExceededError';
     const app = TestBed.inject(BorrowedApp);
-    const retryResult = deferred<Awaited<ReturnType<BorrowedApp['initialize']>>>();
+    const settings = TestBed.inject(SettingsService);
+    const retryResult = deferred<Awaited<ReturnType<SettingsService['initialize']>>>();
     const initialize = vi
-      .spyOn(app, 'initialize')
+      .spyOn(settings, 'initialize')
       .mockRejectedValueOnce(unavailable)
       .mockReturnValueOnce(retryResult.promise);
     const state = TestBed.inject(ApplicationInitializationState);
 
     await initializeBorrowedApplication({
       app,
+      settings,
       i18n: TestBed.inject(I18n),
       clock: TestBed.inject(CLOCK),
       state,
@@ -146,9 +152,9 @@ describe('App', () => {
   it('downloads raw recovery data without inserting private contents into the page', async () => {
     const state = TestBed.inject(ApplicationInitializationState);
     state.reportFailure('unavailable');
-    const app = TestBed.inject(BorrowedApp);
+    const backups = TestBed.inject(BackupService);
     const raw = '{"people":[{"displayName":"Aistė"}]}';
-    vi.spyOn(app, 'exportRawRecoveryJson').mockResolvedValue(raw);
+    vi.spyOn(backups, 'exportRawRecoveryJson').mockResolvedValue(raw);
     const createObjectUrl = vi.fn(() => 'blob:borrowed-recovery');
     const revokeObjectUrl = vi.fn();
     Object.defineProperty(URL, 'createObjectURL', {
@@ -170,7 +176,7 @@ describe('App', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(app.exportRawRecoveryJson).toHaveBeenCalledOnce();
+    expect(backups.exportRawRecoveryJson).toHaveBeenCalledOnce();
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:borrowed-recovery');
@@ -182,7 +188,7 @@ describe('App', () => {
     const secret = 'Private person: Aistė';
     const state = TestBed.inject(ApplicationInitializationState);
     state.reportFailure('corruption');
-    vi.spyOn(TestBed.inject(BorrowedApp), 'exportRawRecoveryJson').mockRejectedValue(
+    vi.spyOn(TestBed.inject(BackupService), 'exportRawRecoveryJson').mockRejectedValue(
       new Error(secret),
     );
     const fixture = TestBed.createComponent(App);

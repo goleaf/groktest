@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { BorrowedApp } from '../data/borrowed-app';
+import { SettingsService } from '../application/settings-service';
 import { LanguageSwitcher } from './language-switcher';
 
 describe('LanguageSwitcher', () => {
@@ -17,7 +17,7 @@ describe('LanguageSwitcher', () => {
       imports: [LanguageSwitcher],
       providers: [
         {
-          provide: BorrowedApp,
+          provide: SettingsService,
           useValue: { setPreferredLanguage },
         },
       ],
@@ -66,7 +66,7 @@ describe('LanguageSwitcher', () => {
       imports: [LanguageSwitcher],
       providers: [
         {
-          provide: BorrowedApp,
+          provide: SettingsService,
           useValue: { setPreferredLanguage: async () => undefined },
         },
       ],

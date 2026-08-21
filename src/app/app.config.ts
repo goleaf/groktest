@@ -9,6 +9,7 @@ import {
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { Capacitor } from '@capacitor/core';
+import { SettingsService } from './application/settings-service';
 import { provideBorrowedPersistence } from './data/borrowed-app';
 import { BorrowedApp } from './data/borrowed-app';
 import { browserClock, CLOCK } from './data/clock';
@@ -34,6 +35,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() =>
       initializeBorrowedApplication({
         app: inject(BorrowedApp),
+        settings: inject(SettingsService),
         i18n: inject(I18n),
         clock: inject(CLOCK),
         state: inject(ApplicationInitializationState),

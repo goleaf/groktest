@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { SettingsService } from './application/settings-service';
 import type { DomainClock } from './domain/commands';
 import { BorrowedApp } from './data/borrowed-app';
 import { PersistenceCorruptionError } from './data/persistence-corruption';
@@ -58,6 +59,7 @@ type DemoSeeder = (app: BorrowedApp, clock: DomainClock) => Promise<void>;
 
 export interface BorrowedApplicationInitialization {
   readonly app: BorrowedApp;
+  readonly settings: SettingsService;
   readonly i18n: I18n;
   readonly clock: DomainClock;
   readonly state: ApplicationInitializationState;
@@ -109,7 +111,7 @@ async function attemptInitialization(
   allowDevelopmentSeed: boolean,
 ): Promise<void> {
   try {
-    const settings = await input.app.initialize();
+    const settings = await input.settings.initialize();
     input.i18n.setLanguage(settings.preferredLanguage);
     if (allowDevelopmentSeed) {
       await (input.seed ?? seedDemoIfEmpty)(input.app, input.clock);
