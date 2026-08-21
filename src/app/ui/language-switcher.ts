@@ -13,6 +13,7 @@ import { Icon } from './icon';
         <app-icon name="language" />
         <select
           class="language-select"
+          name="interface-language"
           [attr.aria-label]="i18n.t('language.label')"
           [value]="i18n.language()"
           [disabled]="saving() !== null"

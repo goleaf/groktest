@@ -226,6 +226,26 @@ describe('SCSS architecture', () => {
     expect(pixelMedia).toEqual([]);
   });
 
+  it('keeps the desktop shell in the same single-column application grid', () => {
+    const source = fileSystem.readFileSync(`${projectRoot}/src/styles/_shell.scss`, 'utf8');
+    const desktopStart = source.indexOf('@media (min-width: 70rem) {');
+    const desktopEnd = source.indexOf('@media (width < 70rem) {');
+    const desktopRules = source.slice(desktopStart, desktopEnd);
+
+    expect(desktopStart).toBeGreaterThanOrEqual(0);
+    expect(desktopEnd).toBeGreaterThan(desktopStart);
+    expect(desktopRules).not.toMatch(/\.main\s*{[^}]*grid-(?:column|row)\s*:/s);
+    expect(desktopRules).not.toMatch(/\.brand-link\s*{[^}]*width\s*:/s);
+    expect(desktopRules).not.toMatch(/\.brand\s*{[^}]*font-size\s*:/s);
+  });
+
+  it('does not erase the active background from the mobile add destination', () => {
+    const source = fileSystem.readFileSync(`${projectRoot}/src/styles/_shell.scss`, 'utf8');
+    const addRule = source.match(/\.mobile-nav a\.add\s*{([^}]*)}/)?.[1] ?? '';
+
+    expect(addRule).not.toMatch(/background\s*:/);
+  });
+
   it('keeps the authored SCSS within the optimized source budget', () => {
     const paths = ['src/styles.scss', ...styleModules.map((name) => `src/styles/_${name}.scss`)];
     const totalBytes = paths.reduce(

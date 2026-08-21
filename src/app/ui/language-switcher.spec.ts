@@ -30,6 +30,7 @@ describe('LanguageSwitcher', () => {
     const select = root.querySelector<HTMLSelectElement>('select.language-select');
 
     expect(select?.getAttribute('aria-label')).toBe('Language selection');
+    expect(select?.name).toBe('interface-language');
     expect(
       Array.from(select?.options ?? []).map((option) => ({
         value: option.value,
