@@ -39,7 +39,7 @@ import { I18n } from './i18n/i18n';
               class="button"
               data-recovery-action="retry"
               type="button"
-              [disabled]="initialization.retrying() || exportBusy()"
+              [attr.aria-disabled]="initialization.retrying() || exportBusy() ? 'true' : null"
               (click)="retryRecovery()"
             >
               {{
@@ -53,7 +53,7 @@ import { I18n } from './i18n/i18n';
               data-recovery-action="export"
               type="button"
               aria-describedby="recovery-export-privacy"
-              [disabled]="initialization.retrying() || exportBusy()"
+              [attr.aria-disabled]="initialization.retrying() || exportBusy() ? 'true' : null"
               (click)="exportRecoveryData()"
             >
               {{ i18n.t(exportBusy() ? 'app.localRecoveryExporting' : 'app.localRecoveryExport') }}
@@ -118,6 +118,9 @@ export class App {
   }
 
   protected async retryRecovery(): Promise<void> {
+    if (this.initialization.retrying() || this.exportBusy()) {
+      return;
+    }
     this.feedback.set('');
     try {
       await this.initialization.retry();
@@ -130,7 +133,7 @@ export class App {
   }
 
   protected async exportRecoveryData(): Promise<void> {
-    if (this.exportBusy()) {
+    if (this.initialization.retrying() || this.exportBusy()) {
       return;
     }
 

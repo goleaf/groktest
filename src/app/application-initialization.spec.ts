@@ -111,17 +111,20 @@ describe('application initialization corruption boundary', () => {
     const failure = unavailablePersistence();
     vi.spyOn(app, 'initialize').mockRejectedValue(failure);
     const state = new ApplicationInitializationState();
+    const i18n = new I18n();
 
     await expect(
       initializeBorrowedApplication({
         app,
-        i18n: new I18n(),
+        i18n,
         clock,
         state,
         development: false,
+        fallbackLanguage: 'lt-LT',
       }),
     ).resolves.toBeUndefined();
     expect(state.failure()).toEqual({ kind: 'unavailable', attempt: 1 });
+    expect(i18n.language()).toBe('lt');
 
     await store.close();
     indexedDB.deleteDatabase(dbName);

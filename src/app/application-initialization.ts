@@ -63,6 +63,7 @@ export interface BorrowedApplicationInitialization {
   readonly state: ApplicationInitializationState;
   readonly development: boolean;
   readonly seed?: DemoSeeder;
+  readonly fallbackLanguage?: string;
 }
 
 const INDEXED_DB_FAILURE_NAMES = new Set([
@@ -126,6 +127,11 @@ async function attemptInitialization(
 export async function initializeBorrowedApplication(
   input: BorrowedApplicationInitialization,
 ): Promise<void> {
+  const fallbackLanguage =
+    input.fallbackLanguage ?? (typeof navigator === 'undefined' ? undefined : navigator.language);
+  if (fallbackLanguage) {
+    input.i18n.setLanguage(fallbackLanguage);
+  }
   input.state.registerRetry(() => attemptInitialization(input, false));
   await attemptInitialization(input, input.development);
 }

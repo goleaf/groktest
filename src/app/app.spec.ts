@@ -9,6 +9,7 @@ import {
 import { BorrowedApp, provideBorrowedPersistence } from './data/borrowed-app';
 import { browserClock, CLOCK } from './data/clock';
 import { I18n } from './i18n/i18n';
+import { deferred } from './testing/deferred-promise';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -98,7 +99,11 @@ describe('App', () => {
     const unavailable = new Error(secret);
     unavailable.name = 'QuotaExceededError';
     const app = TestBed.inject(BorrowedApp);
-    const initialize = vi.spyOn(app, 'initialize').mockRejectedValue(unavailable);
+    const retryResult = deferred<Awaited<ReturnType<BorrowedApp['initialize']>>>();
+    const initialize = vi
+      .spyOn(app, 'initialize')
+      .mockRejectedValueOnce(unavailable)
+      .mockReturnValueOnce(retryResult.promise);
     const state = TestBed.inject(ApplicationInitializationState);
 
     await initializeBorrowedApplication({
@@ -111,20 +116,31 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
+    const retry = root.querySelector<HTMLButtonElement>('[data-recovery-action="retry"]');
 
-    root.querySelector<HTMLButtonElement>('[data-recovery-action="retry"]')?.click();
-    await fixture.whenStable();
+    retry?.focus();
+    retry?.click();
+    await Promise.resolve();
     fixture.detectChanges();
+
+    expect(retry?.disabled).toBe(false);
+    expect(retry?.getAttribute('aria-disabled')).toBe('true');
+    expect(document.activeElement).toBe(retry);
+
+    retryResult.reject(unavailable);
+    await fixture.whenStable();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(root.querySelector('[role="status"]')?.textContent).toContain(
+        'still could not be opened',
+      );
+    });
 
     expect(initialize).toHaveBeenCalledTimes(2);
     expect(root.querySelector('.persistence-failure')).toBeTruthy();
-    expect(root.querySelector('[role="status"]')?.textContent).toContain(
-      'still could not be opened',
-    );
     expect(root.textContent).not.toContain(secret);
-    expect(root.querySelector<HTMLButtonElement>('[data-recovery-action="retry"]')?.disabled).toBe(
-      false,
-    );
+    expect(retry?.disabled).toBe(false);
+    expect(document.activeElement).toBe(retry);
   });
 
   it('downloads raw recovery data without inserting private contents into the page', async () => {

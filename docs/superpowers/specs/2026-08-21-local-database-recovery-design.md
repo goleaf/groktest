@@ -31,6 +31,11 @@ It never exposes or stores a raw exception message for rendering. The production
 registers one retry closure, suppresses only the two persistence failure classes above, and keeps
 unrelated programming failures observable by rethrowing them.
 
+Before opening persistence, the initializer applies a safe browser-language fallback. Valid decoded
+settings replace it before normal rendering. If settings cannot be trusted or storage is unavailable,
+the recovery copy therefore remains reachable in EN, LT or RU without reading a partially corrupt
+row.
+
 Retry invokes the same `BorrowedApp.initialize()` and language restoration path. It is single-flight,
 exposes a busy state, clears the recovery screen only after success, and can be attempted repeatedly.
 Development demo seeding remains unchanged during normal boot but is deliberately skipped on a
@@ -48,24 +53,24 @@ It is a diagnostic/recovery snapshot, not the existing point-in-time app export 
 restorable backup contract. The UI warns that the downloaded file can contain private local data.
 Raw rows are never inserted into the DOM or console.
 
-No schema/index/dependency changes are needed. The export transaction is read-only. It does not
-delete, repair, coerce, migrate, reseed or mutate IndexedDB.
+No production schema/index/dependency changes are needed. The export transaction is read-only. It
+does not delete, repair, coerce, migrate, reseed or mutate IndexedDB.
 
 ## Recovery UI
 
 The root recovery screen replaces the router for either failure kind and provides:
 
 - one localized non-private heading and explanation;
-- a native Retry button with disabled/busy semantics;
-- a native diagnostic-download button with explicit privacy guidance;
+- a native Retry button with guarded `aria-disabled` busy semantics that retain keyboard focus;
+- a native diagnostic-download button with the same guard and explicit privacy guidance;
 - an assertive live status for repeated retry/export outcomes;
 - a clearly destructive reset explanation with no reset control; and
 - a visible disabled restore entry point labelled as not yet available, with no hidden file input or
   fake handler.
 
-The initial heading is programmatically focusable and receives focus when the boundary first
+The recovery `main` is programmatically focusable and receives focus when the boundary first
 appears. Native buttons preserve keyboard activation, global focus-visible styling and 48px touch
-targets. Repeated retry failure leaves the user on the same usable screen.
+targets. Repeated retry failure leaves focus on Retry and keeps the screen usable.
 
 ## Privacy and failure handling
 
@@ -83,3 +88,8 @@ failure, no raw exception disclosure, unchanged normal boot, raw export through 
 reset/reseed on recovery. EN/LT/RU catalog parity, focused persistence/application/root tests, full
 typecheck/tests/lint/build, diff checks and disposable-browser keyboard/accessibility verification
 complete the slice.
+
+The added raw persistence spec made an existing test-order dependency reproducible: UI specs could
+load Dexie before file-local `fake-indexeddb/auto` imports. A shared Angular test setup now installs
+fake IndexedDB before every worker imports application modules. This is test-only and does not enter
+the production bundle.

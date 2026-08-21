@@ -1,21 +1,16 @@
 import { Inject, Injectable, signal } from '@angular/core';
 import {
+  RecordsCommandService,
+  type CreateRecordInput,
+} from '../application/records-command-service';
+import {
   calendarDaysBetween,
   instantFrom,
   todayInTimeZone,
   type CalendarDate,
 } from '../domain/calendar-date';
-import {
-  addRepayment,
-  buildPerson,
-  changeLoanDueDate,
-  createLoan,
-  markItemReturned,
-  type CreateLoanInput,
-  type DomainClock,
-} from '../domain/commands';
+import type { DomainClock } from '../domain/commands';
 import { summarizeHome } from '../domain/home-summary';
-import { DomainError } from '../domain/errors';
 import { compareLoansByAttention, outstandingMinorUnits } from '../domain/loan-rules';
 import { requireCurrency } from '../domain/money';
 import {
@@ -38,19 +33,7 @@ import { CLOCK } from './clock';
 import { DexieBorrowedStore } from './dexie-store';
 import { BorrowedStore } from './store';
 
-export interface CreateRecordInput {
-  direction: CreateLoanInput['direction'];
-  kind: CreateLoanInput['kind'];
-  personName: string;
-  personId?: string;
-  itemName?: string;
-  quantity?: number;
-  amount?: string;
-  currency?: string;
-  occurredOn?: string;
-  dueOn?: string | null;
-  note?: string | null;
-}
+export type { CreateRecordInput } from '../application/records-command-service';
 
 export interface PersonListRow {
   readonly person: Person;
@@ -73,6 +56,10 @@ export class BorrowedApp {
   constructor(
     private readonly store: BorrowedStore,
     @Inject(CLOCK) private readonly clock: DomainClock,
+    private readonly recordsCommands: RecordsCommandService = new RecordsCommandService(
+      store,
+      clock,
+    ),
   ) {
     this.refreshCurrentDay();
   }
@@ -134,34 +121,7 @@ export class BorrowedApp {
   }
 
   async createRecord(input: CreateRecordInput): Promise<Loan> {
-    let person: Person | undefined;
-    if (input.personId) {
-      person = await this.store.findPersonById(input.personId);
-      if (!person) {
-        throw new DomainError('person_missing');
-      }
-    }
-    if (!person) {
-      person = buildPerson(input.personName, this.clock);
-    }
-    const settings = await this.store.getSettings();
-    const { loan, event } = createLoan(
-      {
-        direction: input.direction,
-        kind: input.kind,
-        personId: person.id,
-        personName: person.displayName,
-        itemName: input.itemName,
-        quantity: input.quantity,
-        amount: input.amount,
-        currency: input.currency ?? settings.preferredCurrency,
-        occurredOn: input.occurredOn,
-        dueOn: input.dueOn,
-        note: input.note,
-      },
-      this.clock,
-    );
-    await this.store.putLoanBundle({ person, loan, event, clock: this.clock });
+    const loan = await this.recordsCommands.createRecord(input);
     this.touch();
     return loan;
   }
@@ -195,39 +155,19 @@ export class BorrowedApp {
   }
 
   async markReturned(loanId: string): Promise<Loan> {
-    const loan = await this.store.updateLoan({
-      loanId,
-      clock: this.clock,
-      apply: (current) => markItemReturned(current, this.clock),
-    });
+    const loan = await this.recordsCommands.markReturned(loanId);
     this.touch();
     return loan;
   }
 
   async changeDueDate(loanId: string, dueOn: string): Promise<Loan> {
-    const loan = await this.store.updateLoan({
-      loanId,
-      clock: this.clock,
-      apply: (current) => changeLoanDueDate(current, dueOn, this.clock),
-    });
+    const loan = await this.recordsCommands.changeDueDate(loanId, dueOn);
     this.touch();
     return loan;
   }
 
   async repay(loanId: string, amount: string, currency?: string): Promise<Loan> {
-    const loan = await this.store.updateLoan({
-      loanId,
-      clock: this.clock,
-      apply: (current, repayments) => {
-        const result = addRepayment(
-          current,
-          repayments,
-          { amount, currency: currency ?? current.currencyCode ?? 'EUR' },
-          this.clock,
-        );
-        return { ...result, repayment: result.repayment };
-      },
-    });
+    const loan = await this.recordsCommands.addRepayment(loanId, amount, currency);
     this.touch();
     return loan;
   }

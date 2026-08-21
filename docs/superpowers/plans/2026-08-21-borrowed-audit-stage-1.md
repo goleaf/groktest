@@ -134,12 +134,20 @@ overflow, and zero console errors or warnings.
 - Modify: `src/app/data/borrowed-app.ts`
 
 - [ ] Characterize current public methods with focused service tests before moving behavior.
-- [ ] Move create/return/due-date/repayment mutations into `RecordsCommandService`.
+- [x] Move create/return/due-date/repayment mutations into `RecordsCommandService`.
 - [ ] Move record/home/history/search/detail reads into `RecordsQueryService`.
 - [ ] Move people list/person overview reads into `PeopleQueryService`.
 - [ ] Keep settings, draft, backup and current-day responsibilities temporarily compatible; they
       move in their dedicated later stages rather than growing the new services.
 - [ ] Update feature injection one page at a time and keep every intermediate commit green.
+
+**Task 4 command-only partial evidence (2026-08-21):** `RecordsCommandService` now owns creation,
+return, due-date and repayment orchestration behind `BorrowedStore`; `BorrowedApp` remains the
+compatibility delegate and retains successful-write revision invalidation. Focused red-green tests,
+domain/Dexie integration tests, Angular DI tests and the complete 47-file/269-test suite pass at
+`1a5a9b8`; typecheck, lint and production build also pass. Query services, feature injection,
+live-query state and revision removal remain unstarted by this slice, so Task 4 as a whole is only
+partially complete.
 
 ### Task 5: Add the Dexie live-query bridge
 
