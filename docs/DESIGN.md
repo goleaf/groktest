@@ -59,6 +59,14 @@ Record scope, filter, and normalized search live in `scope`, `filter`, and `q` U
 
 State transitions last 160–200ms and only clarify selection, focus, hover, or completion. Reduced motion removes non-essential transitions. Every target is at least 44px, focus is visible against dark and light surfaces, and body/placeholder text meets WCAG AA contrast.
 
+## Styling architecture
+
+`src/styles.scss` is an import manifest, not a place for selectors. The emitted cascade has one owner per concern, in this order: tokens, document base, shell, shared primitives, ledger rows, Home, record creation/detail, and supporting screens. Modules never import another module that emits CSS.
+
+Canonical tokens use surface, teal, ink, muted, overdue, focus, geometry, safe-area, and z-index language. Compatibility aliases from the superseded interface are prohibited. Responsive boundaries use rem units; 70rem remains the single shell switch. Each media condition appears once per module, hover presentation stays capability-gated, and only the global reduced-motion override may use `!important`.
+
+The static SCSS contract rejects legacy selectors, repeated selector lists in the same cascade context, repeated properties inside a rule, pixel-based media boundaries, and source growth beyond the optimized budget. Production CSS size is measured before and after stylesheet changes, while browser screenshots protect the rendered contract.
+
 ## Prohibited patterns
 
 No gradients, glass, warm cream, wide shadows, nested cards, display serif, decorative badges, direction-by-color, invented sync/social features, or illustration data. Summary metrics are allowed only when they navigate to real records and remain part of one connected ledger ribbon.

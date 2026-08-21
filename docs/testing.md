@@ -8,7 +8,7 @@
 | Persistence/application | offline create/reload, indexed active/completed reads, bounded visible-loan repayment reads, return/history, repayment, deadline change/event/queue, overpay prevention, stable person reuse, indexed person overview, settings, drafts and v1→v3 migration                 | Dexie + fake-indexeddb            |
 | Component               | shell/navigation, URL-restored record filters, stale async response rejection, local-midnight/focus refresh, Signal Form validation, Add draft/person matching, shared due status, lists, Home, People/person details, deadline form, settings, icons and accessible labels | Angular TestBed/Vitest            |
 | Localization            | catalog parity, interpolation parameters, EN/RU/LT plural rules, fallback, persistence and HTML language                                                                                                                                                                    | Vitest + Angular TestBed          |
-| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier                                                                                                                                                                             | CLI/CI                            |
+| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier, SCSS module ownership, cascade uniqueness, canonical tokens, media units and source budget                                                                                 | CLI/CI + Vitest                   |
 | Delivery                | Production PWA artifact and Android debug APK                                                                                                                                                                                                                               | Angular builder, Capacitor/Gradle |
 | Browser acceptance      | critical flows, responsive widths, offline reload, clean console, accessibility tree                                                                                                                                                                                        | isolated Chrome DevTools profile  |
 
@@ -44,6 +44,15 @@ CI performs all web gates and a separate Java 21 Android build. Full iOS compila
 - Console: zero application errors/warnings. Network failures expected only after explicit offline simulation and must not break core behavior.
 - Icon system: every top-level utility page has a semantic heading icon; filters, selectors, empty states, statuses and recovery actions retain visible text and use the shared SVG component.
 - Android: build with command-scoped JDK 21, verify package/signature/SHA-256, install with `adb install -r`, cold-launch, inspect crash logs, and confirm the existing IndexedDB record count remains intact.
+
+## Stylesheet acceptance
+
+- Run `src/app/styles-architecture.spec.ts` through the Angular test builder; it verifies the ordered import-only entrypoint and all static cascade budgets.
+- Compile production CSS before and after a styling change and compare raw and gzip bytes. A source-line reduction alone is not a runtime performance claim.
+- Cover Home, Records, Add, Detail, People, Person, History, Search, More, and Settings at 390×844 and 1440×1000 in the same isolated browser context.
+- Compare like-for-like full-page screenshots. Investigate every non-zero difference; subpixel-only differences still require an SSIM measurement and visual diff inspection.
+- Recheck 900×800 and both sides of the 70rem shell boundary after responsive or navigation work.
+- Keep browser screenshots, expanded CSS, compressed CSS, traces, and coverage output in a temporary directory outside the repository.
 
 ## Deferred automation
 

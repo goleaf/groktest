@@ -1,27 +1,21 @@
+/* Canonical visual tokens and responsive token adjustments. */
+
 :root {
   color-scheme: light;
   --canvas: oklch(0.975 0.012 188);
   --surface: oklch(1 0 0);
   --surface-muted: oklch(0.955 0.02 188);
-  --paper: var(--surface);
   --teal: oklch(0.48 0.11 188);
   --teal-hover: oklch(0.42 0.105 188);
   --teal-deep: oklch(0.29 0.07 188);
-  --chrome: var(--teal-deep);
-  --chrome-raised: var(--teal);
-  --chrome-text: oklch(0.97 0.008 188);
-  --mint: var(--surface-muted);
-  --mint-strong: oklch(0.9 0.04 188);
+  --on-teal: oklch(0.97 0.008 188);
+  --teal-soft: oklch(0.9 0.04 188);
   --ink: oklch(0.2 0.02 188);
   --muted: oklch(0.46 0.025 188);
   --line: oklch(0.88 0.018 188);
-  --action: var(--teal);
-  --action-hover: var(--teal-hover);
-  --action-soft: oklch(0.94 0.035 188);
   --overdue: oklch(0.52 0.16 38);
   --overdue-soft: oklch(0.96 0.035 38);
   --overdue-line: oklch(0.78 0.08 38);
-  --success: oklch(0.48 0.12 158);
   --focus: oklch(0.62 0.14 188);
   --radius-sm: 8px;
   --radius: 10px;
@@ -34,4 +28,9 @@
   --z-skip: 30;
   --font: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 37.5rem) {
+  :root {
+    --content-pad: 28px;
+  }
 }

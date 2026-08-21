@@ -12,9 +12,13 @@ const fileSystem = processApi.process.getBuiltinModule('fs');
 const styles = [
   'src/styles.scss',
   'src/styles/_tokens.scss',
+  'src/styles/_base.scss',
   'src/styles/_shell.scss',
+  'src/styles/_primitives.scss',
   'src/styles/_ledger.scss',
+  'src/styles/_home.scss',
   'src/styles/_records.scss',
+  'src/styles/_supporting.scss',
 ]
   .map((path) => fileSystem.readFileSync(`${processApi.process.cwd()}/${path}`, 'utf8'))
   .join('\n');
