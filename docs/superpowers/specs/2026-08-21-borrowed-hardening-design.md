@@ -95,7 +95,7 @@ The handoff line remains the single signature element. Density, typography, and 
 
 ## Persistence and APK update
 
-No table or entity migration is required. Existing schema v3 indexes are reused. The Android update is installed with `adb install -r`, preserving the existing `borrowed-app` IndexedDB and the current 100 demo loans.
+No table or entity migration is required. Existing schema v3 indexes are reused. The Android update is installed with `adb install -r`, preserving the historical `borrowed` IndexedDB name and the current 100 demo loans.
 
 The APK is produced from development web assets because demo seeding is deliberately development-only; `seedDemoIfEmpty` still returns immediately when loans exist. Gradle uses command-scoped JDK 21. The global Java configuration is not changed.
 

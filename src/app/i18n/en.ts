@@ -35,6 +35,7 @@ export const en = {
     title: 'Home',
     heading: 'Overview',
     intro: 'Every open handoff, due date, and person in one place.',
+    loadError: 'The overview could not be loaded on this device. Try again.',
     asideTitle: 'Keeping it simple',
     asideBody:
       'Track the things and money you lend and borrow. Set due dates, see what’s still out, and keep life moving.',
@@ -130,6 +131,9 @@ export const en = {
   },
   add: {
     title: 'Add',
+    personRequired: 'Enter or choose a person.',
+    itemRequired: 'Enter the item or object.',
+    amountRequired: 'Enter an amount.',
     heading: 'New record',
     intro: 'Capture the handoff while it is fresh.',
     handoffLabel: 'What changed hands',
@@ -167,6 +171,11 @@ export const en = {
   },
   detail: {
     title: 'Record',
+    loadError: 'This record could not be loaded on this device. Try again.',
+    dueDateRequired: 'Choose a return date.',
+    dueDateTooEarly: 'Choose a date on or after the handoff date.',
+    dueDateUnchanged: 'Choose a different return date.',
+    repayAmountRequired: 'Enter the amount that was returned.',
     actionsKicker: 'Record actions',
     nextStep: 'Next step',
     localHint: 'Changes are saved privately on this device.',

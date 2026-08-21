@@ -2,7 +2,8 @@ import { Location } from '@angular/common';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { LoanRecord } from '../../data/store';
@@ -242,6 +243,64 @@ describe('DetailPage', () => {
     );
   });
 
+  it('requires a repayment amount and prevents duplicate writes while saving', async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const repay = vi.fn(async () => {
+      await pending;
+      return moneyRecord('lent').loan;
+    });
+    await TestBed.configureTestingModule({
+      imports: [DetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => 'drill' } } } },
+        { provide: Location, useValue: { back: () => undefined } },
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            loanDetail: async () => moneyRecord('lent'),
+            daysUntilDue: () => 2,
+            repay,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DetailPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const form = root.querySelector('.repayment-form') as HTMLFormElement;
+
+    form.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(root.querySelector('#repayment-error')?.textContent).toContain(
+      'Enter the amount that was returned',
+    );
+    expect(repay).not.toHaveBeenCalled();
+
+    const input = form.querySelector('input') as HTMLInputElement;
+    input.value = '10';
+    input.dispatchEvent(new Event('input'));
+    form.dispatchEvent(new Event('submit'));
+    form.dispatchEvent(new Event('submit'));
+    await vi.waitFor(() => expect(repay).toHaveBeenCalledTimes(1));
+    fixture.detectChanges();
+    expect((form.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
+
+    finish();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect((form.querySelector('input') as HTMLInputElement).value).toBe('');
+    });
+  });
+
   it('moves the return date and renders the localized change in history', async () => {
     const changeDueDate = vi.fn(async () => record.loan);
     const recordWithChange: LoanRecord = {
@@ -285,18 +344,25 @@ describe('DetailPage', () => {
     const root = fixture.nativeElement as HTMLElement;
     const details = root.querySelector('.due-editor') as HTMLDetailsElement;
     expect(details.querySelector('summary')?.textContent).toContain('Change return date');
-    expect((details.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
+    expect((details.querySelector('button') as HTMLButtonElement).disabled).toBe(false);
     expect(root.querySelector('.timeline')?.textContent).toContain(
       'Return date changed to 25 Aug 2026',
     );
 
     details.open = true;
     fixture.detectChanges();
+    details.querySelector('button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(details.querySelector('#due-date-error')?.textContent).toContain(
+      'Choose a different return date',
+    );
+    expect(changeDueDate).not.toHaveBeenCalled();
+
     const inputDebug = fixture.debugElement.query(By.css('.due-date-form input[type="date"]'));
     const input = inputDebug.nativeElement as HTMLInputElement;
     input.value = '2026-08-27';
     inputDebug.triggerEventHandler('input', { target: input });
-    inputDebug.triggerEventHandler('ngModelChange', '2026-08-27');
     await fixture.whenStable();
     fixture.detectChanges();
     expect((details.querySelector('button') as HTMLButtonElement).disabled).toBe(false);
@@ -337,5 +403,52 @@ describe('DetailPage', () => {
       'Back to records',
     );
     expect(root.querySelector('.missing-state a[href="/records"] app-icon')).toBeTruthy();
+  });
+
+  it('loads a new record when only the route id changes', async () => {
+    const params = new BehaviorSubject(convertToParamMap({ id: 'drill' }));
+    const sawRecord: LoanRecord = {
+      ...record,
+      loan: { ...record.loan, id: 'saw', itemName: 'Circular saw' },
+    };
+    const loanDetail = vi.fn(async (id: string) => (id === 'saw' ? sawRecord : record));
+
+    await TestBed.configureTestingModule({
+      imports: [DetailPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: params.asObservable(),
+            snapshot: { paramMap: params.value },
+          },
+        },
+        { provide: Location, useValue: { back: () => undefined } },
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision: signal(0),
+            loanDetail,
+            daysUntilDue: () => 2,
+            markReturned: async () => record.loan,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DetailPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Cordless drill');
+
+    params.next(convertToParamMap({ id: 'saw' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Circular saw');
+    expect(loanDetail).toHaveBeenLastCalledWith('saw');
   });
 });

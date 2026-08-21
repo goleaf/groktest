@@ -67,7 +67,29 @@ const summary: HomeSummary = {
       params: { person: 'Anna', item: 'ladder' },
     },
   ],
+  dueNext: [
+    {
+      loanId: 'camera',
+      direction: 'lent',
+      assetKind: 'physical_item',
+      personName: 'Sergey',
+      subject: 'camera',
+      urgency: 'open',
+      dueOn: '2026-08-25',
+      daysUntilDue: 5,
+      messageKey: 'home.action.lentItem',
+      params: { person: 'Sergey', item: 'camera' },
+    },
+  ],
 };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 describe('HomePage', () => {
   it('renders a connected overview, handoff ledger, due rail, and related people', async () => {
@@ -100,7 +122,8 @@ describe('HomePage', () => {
     expect(root.querySelector('.home-ledger')?.textContent).toContain('Overdue by 2 days');
     expect(root.querySelector('.home-ledger')?.textContent).toContain('bike pump');
     expect(root.querySelectorAll('.home-ledger app-handoff-line')).toHaveLength(3);
-    expect(root.querySelector('.due-rail')?.textContent).toContain('Maya');
+    expect(root.querySelector('.due-rail')?.textContent).toContain('camera');
+    expect(root.querySelector('.due-rail')?.textContent).not.toContain('bike pump');
     expect(root.querySelector('.people-rail')?.textContent).toContain('Peter');
     expect(root.querySelector('.ledger-return-action')?.textContent).toContain('Mark returned');
 
@@ -144,6 +167,7 @@ describe('HomePage', () => {
           params: { person: 'Maya', item: 'book' },
         },
       ],
+      dueNext: [],
     };
 
     await TestBed.configureTestingModule({
@@ -202,5 +226,49 @@ describe('HomePage', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(home).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not let an older summary replace a newer revision', async () => {
+    const revision = signal(0);
+    const older = deferred<HomeSummary>();
+    const newer = deferred<HomeSummary>();
+    const home = vi
+      .fn<() => Promise<HomeSummary>>()
+      .mockImplementationOnce(() => older.promise)
+      .mockImplementationOnce(() => newer.promise);
+
+    await TestBed.configureTestingModule({
+      imports: [HomePage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            revision,
+            currentDay: signal('2026-08-20'),
+            home,
+            markReturned: async () => undefined,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await vi.waitFor(() => expect(home).toHaveBeenCalledTimes(1));
+    revision.set(1);
+    fixture.detectChanges();
+    await vi.waitFor(() => expect(home).toHaveBeenCalledTimes(2));
+
+    newer.resolve({ ...summary, activeLentCount: 9 });
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('13 open records');
+    });
+    older.resolve(summary);
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('13 open records');
   });
 });

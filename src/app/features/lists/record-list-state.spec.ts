@@ -20,11 +20,12 @@ describe('record list URL state', () => {
 
   it('omits defaults and empty search while preserving unrelated parameters', () => {
     expect(
-      recordListQueryParams(
-        { scope: 'lent', filter: 'all', query: '   ' },
-        'lent',
-        { scope: 'borrowed', filter: 'money', q: 'old', campaign: 'local' },
-      ),
+      recordListQueryParams({ scope: 'lent', filter: 'all', query: '   ' }, 'lent', {
+        scope: 'borrowed',
+        filter: 'money',
+        q: 'old',
+        campaign: 'local',
+      }),
     ).toEqual({ campaign: 'local' });
   });
 

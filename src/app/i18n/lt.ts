@@ -37,6 +37,7 @@ export const lt = {
     title: 'Pradžia',
     heading: 'Apžvalga',
     intro: 'Visi aktyvūs perdavimai, terminai ir žmonės vienoje vietoje.',
+    loadError: 'Nepavyko įkelti apžvalgos šiame įrenginyje. Bandykite dar kartą.',
     asideTitle: 'Paprasta ir aišku',
     asideBody:
       'Sekite, ką paskolinote ar pasiskolinote. Nurodykite terminus ir matykite, kas dar negrąžinta.',
@@ -165,6 +166,9 @@ export const lt = {
   },
   add: {
     title: 'Pridėti',
+    personRequired: 'Įveskite arba pasirinkite žmogų.',
+    itemRequired: 'Įveskite daiktą ar objektą.',
+    amountRequired: 'Įveskite sumą.',
     heading: 'Naujas įrašas',
     intro: 'Užfiksuokite perdavimą, kol viskas dar šviežia.',
     handoffLabel: 'Kas buvo perduota',
@@ -202,6 +206,11 @@ export const lt = {
   },
   detail: {
     title: 'Įrašas',
+    loadError: 'Nepavyko įkelti įrašo šiame įrenginyje. Bandykite dar kartą.',
+    dueDateRequired: 'Pasirinkite grąžinimo datą.',
+    dueDateTooEarly: 'Data turi būti ne ankstesnė už perdavimo datą.',
+    dueDateUnchanged: 'Pasirinkite kitą grąžinimo datą.',
+    repayAmountRequired: 'Įveskite grąžintą sumą.',
     actionsKicker: 'Įrašo veiksmai',
     nextStep: 'Kitas žingsnis',
     localHint: 'Pakeitimai privačiai saugomi šiame įrenginyje.',

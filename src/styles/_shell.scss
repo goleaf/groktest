@@ -1,0 +1,9 @@
+@media (max-width: calc(70rem - 0.02px)) {
+  html {
+    scroll-padding-bottom: calc(76px + var(--safe-bottom));
+  }
+
+  html .main {
+    padding-bottom: calc(56px + var(--safe-bottom));
+  }
+}

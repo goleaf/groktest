@@ -1,7 +1,9 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, effect, inject, resource, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { FormField, form, required, submit, validate } from '@angular/forms/signals';
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { of } from 'rxjs';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { LoanRecord } from '../../data/store';
 import { DomainError } from '../../domain/errors';
@@ -17,13 +19,15 @@ import { HandoffLine } from '../../ui/handoff-line';
 
 @Component({
   selector: 'app-detail-page',
-  imports: [DueStatus, FormsModule, HandoffLine, RouterLink, Icon],
+  imports: [DueStatus, FormField, HandoffLine, RouterLink, Icon],
   template: `
     <section class="page detail-page">
       <button type="button" class="back" (click)="back()">
         <app-icon name="back" /> {{ i18n.t('nav.back') }}
       </button>
-      @if (missing()) {
+      @if (loadError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      } @else if (missing()) {
         <div class="missing-state">
           <app-icon name="info" />
           <h1>{{ i18n.t('detail.missingTitle') }}</h1>
@@ -111,7 +115,7 @@ import { HandoffLine } from '../../ui/handoff-line';
                   </span>
                   <app-icon class="disclosure-chevron" name="chevron" />
                 </summary>
-                <form class="due-date-form" (ngSubmit)="saveDueDate()">
+                <form class="due-date-form" (submit)="saveDueDate($event)" novalidate>
                   <label>
                     <span class="icon-line">
                       <app-icon name="calendar" />
@@ -119,18 +123,27 @@ import { HandoffLine } from '../../ui/handoff-line';
                     </span>
                     <input
                       type="date"
-                      name="dueDate"
-                      required
                       [min]="data.loan.occurredOn"
-                      [(ngModel)]="dueDateDraft"
+                      [formField]="dueDateForm.dueOn"
+                      [attr.aria-invalid]="
+                        dueDateForm.dueOn().touched() && dueDateForm.dueOn().invalid()
+                      "
+                      [attr.aria-describedby]="
+                        dueDateForm.dueOn().touched() && dueDateForm.dueOn().invalid()
+                          ? 'due-date-error'
+                          : null
+                      "
                     />
                   </label>
+                  @if (dueDateForm.dueOn().touched() && dueDateForm.dueOn().invalid()) {
+                    <small class="field-error" id="due-date-error">{{
+                      dueDateForm.dueOn().errors()[0]?.message
+                    }}</small>
+                  }
                   <button
                     class="button"
                     type="submit"
-                    [disabled]="
-                      savingDueDate() || !dueDateDraft || dueDateDraft === data.loan.dueOn
-                    "
+                    [disabled]="savingDueDate()"
                     [attr.aria-busy]="savingDueDate()"
                   >
                     <app-icon name="calendar" />
@@ -172,7 +185,7 @@ import { HandoffLine } from '../../ui/handoff-line';
               </button>
             }
             @if (data.loan.status === 'active' && data.loan.assetKind === 'money') {
-              <form (ngSubmit)="repay()" class="stack repayment-form">
+              <form (submit)="repay($event)" class="stack repayment-form" novalidate>
                 <h3 class="section-heading">
                   <app-icon name="money" />
                   {{ repayPrompt() }}
@@ -182,9 +195,25 @@ import { HandoffLine } from '../../ui/handoff-line';
                     <app-icon name="money" />
                     {{ i18n.t('detail.repayAmount') }}
                   </span>
-                  <input name="repay" inputmode="decimal" [(ngModel)]="repayAmount" />
+                  <input
+                    inputmode="decimal"
+                    [formField]="repaymentForm.amount"
+                    [attr.aria-invalid]="
+                      repaymentForm.amount().touched() && repaymentForm.amount().invalid()
+                    "
+                    [attr.aria-describedby]="
+                      repaymentForm.amount().touched() && repaymentForm.amount().invalid()
+                        ? 'repayment-error'
+                        : null
+                    "
+                  />
                 </label>
-                <button class="button" type="submit">
+                @if (repaymentForm.amount().touched() && repaymentForm.amount().invalid()) {
+                  <small class="field-error" id="repayment-error">{{
+                    repaymentForm.amount().errors()[0]?.message
+                  }}</small>
+                }
+                <button class="button" type="submit" [disabled]="savingRepayment()">
                   <app-icon name="money" />
                   {{ repayAction() }}
                 </button>
@@ -209,12 +238,53 @@ export class DetailPage {
   private readonly app = inject(BorrowedApp);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
-  protected readonly record = signal<LoanRecord | null>(null);
-  protected readonly missing = signal(false);
+  private readonly routeParamMap = toSignal(
+    this.route.paramMap || of(this.route.snapshot.paramMap),
+    { initialValue: this.route.snapshot.paramMap },
+  );
+  private readonly recordResource = resource({
+    params: () => ({
+      id: this.routeParamMap().get('id'),
+      revision: this.app.revision(),
+    }),
+    loader: ({ params }) =>
+      params.id ? this.app.loanDetail(params.id) : Promise.resolve(undefined),
+  });
+  protected readonly record = computed<LoanRecord | null>(() =>
+    this.recordResource.hasValue() ? (this.recordResource.value() ?? null) : null,
+  );
+  protected readonly missing = computed(
+    () =>
+      !this.routeParamMap().get('id') ||
+      (this.recordResource.status() === 'resolved' && this.recordResource.value() === undefined),
+  );
+  protected readonly loadError = computed(() =>
+    this.recordResource.error() ? this.i18n.t('detail.loadError') : '',
+  );
   protected readonly error = signal('');
   protected readonly savingDueDate = signal(false);
-  protected repayAmount = '';
-  protected dueDateDraft = '';
+  protected readonly savingRepayment = signal(false);
+  private readonly dueDateModel = signal({ dueOn: '' });
+  protected readonly dueDateForm = form(this.dueDateModel, (dueDate) => {
+    required(dueDate.dueOn, { message: this.i18n.t('detail.dueDateRequired') });
+    validate(dueDate.dueOn, ({ value }) => {
+      const next = value();
+      const current = this.record()?.loan;
+      if (!next || !current) {
+        return undefined;
+      }
+      if (next < current.occurredOn) {
+        return { kind: 'date-before-record', message: this.i18n.t('detail.dueDateTooEarly') };
+      }
+      return next === current.dueOn
+        ? { kind: 'date-unchanged', message: this.i18n.t('detail.dueDateUnchanged') }
+        : undefined;
+    });
+  });
+  private readonly repaymentModel = signal({ amount: '' });
+  protected readonly repaymentForm = form(this.repaymentModel, (repayment) => {
+    required(repayment.amount, { message: this.i18n.t('detail.repayAmountRequired') });
+  });
   protected readonly formatCalendarDate = formatCalendarDate;
   protected readonly iconForLoan = iconForLoan;
 
@@ -284,17 +354,8 @@ export class DetailPage {
 
   constructor() {
     effect(() => {
-      this.app.revision();
-      const id = this.route.snapshot.paramMap.get('id');
-      if (!id) {
-        this.missing.set(true);
-        return;
-      }
-      void this.app.loanDetail(id).then((value) => {
-        this.record.set(value ?? null);
-        this.missing.set(!value);
-        this.dueDateDraft = value?.loan.dueOn ?? '';
-      });
+      this.dueDateModel.set({ dueOn: this.record()?.loan.dueOn ?? '' });
+      this.repaymentModel.set({ amount: '' });
     });
   }
 
@@ -328,28 +389,33 @@ export class DetailPage {
     return this.i18n.t(event.summaryKey, params);
   }
 
-  protected async saveDueDate(): Promise<void> {
+  protected async saveDueDate(event?: Event): Promise<void> {
+    event?.preventDefault();
     const id = this.record()?.loan.id;
-    if (
-      !id ||
-      !this.dueDateDraft ||
-      this.dueDateDraft === this.record()?.loan.dueOn ||
-      this.savingDueDate()
-    ) {
+    if (!id || this.savingDueDate()) {
       return;
     }
     this.error.set('');
-    this.savingDueDate.set(true);
     try {
-      await this.app.changeDueDate(id, this.dueDateDraft);
+      await submit(this.dueDateForm, {
+        action: async (field) => {
+          this.savingDueDate.set(true);
+          try {
+            const changed = await this.app.changeDueDate(id, field().value().dueOn);
+            this.dueDateForm().reset({ dueOn: changed.dueOn ?? '' });
+            return undefined;
+          } finally {
+            this.savingDueDate.set(false);
+          }
+        },
+        onInvalid: () => this.dueDateForm.dueOn().focusBoundControl(),
+      });
     } catch (caught) {
       this.error.set(
         caught instanceof DomainError
           ? this.i18n.t(`errors.${caught.code}`)
           : this.i18n.t('add.error'),
       );
-    } finally {
-      this.savingDueDate.set(false);
     }
   }
 
@@ -370,15 +436,27 @@ export class DetailPage {
     }
   }
 
-  protected async repay(): Promise<void> {
+  protected async repay(event?: Event): Promise<void> {
+    event?.preventDefault();
     const id = this.record()?.loan.id;
-    if (!id) {
+    if (!id || this.savingRepayment()) {
       return;
     }
     this.error.set('');
     try {
-      await this.app.repay(id, this.repayAmount);
-      this.repayAmount = '';
+      await submit(this.repaymentForm, {
+        action: async (field) => {
+          this.savingRepayment.set(true);
+          try {
+            await this.app.repay(id, field().value().amount);
+            this.repaymentForm().reset({ amount: '' });
+            return undefined;
+          } finally {
+            this.savingRepayment.set(false);
+          }
+        },
+        onInvalid: () => this.repaymentForm.amount().focusBoundControl(),
+      });
     } catch (caught) {
       this.error.set(
         caught instanceof DomainError

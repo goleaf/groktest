@@ -108,7 +108,10 @@ describe('home action urgency', () => {
     const loans = Array.from({ length: 12 }, (_, index) =>
       moneyLoan({
         id: `loan-${index}`,
-        dueOn: index < 2 ? `2026-08-${String(18 + index).padStart(2, '0')}` : `2026-09-${String(index).padStart(2, '0')}`,
+        dueOn:
+          index < 2
+            ? `2026-08-${String(18 + index).padStart(2, '0')}`
+            : `2026-09-${String(index).padStart(2, '0')}`,
       }),
     );
 

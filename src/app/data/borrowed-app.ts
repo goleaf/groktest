@@ -301,9 +301,7 @@ export class BorrowedApp {
     locale = 'en-GB',
   ): Promise<ReadonlyMap<string, string | null>> {
     const map = new Map<string, string | null>();
-    const moneyLoanIds = loans
-      .filter((loan) => loan.assetKind === 'money')
-      .map((loan) => loan.id);
+    const moneyLoanIds = loans.filter((loan) => loan.assetKind === 'money').map((loan) => loan.id);
     const repaymentsByLoan = this.groupRepayments(
       await this.store.listRepaymentsForLoanIds(moneyLoanIds),
     );

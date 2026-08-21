@@ -49,8 +49,7 @@ describe('Shell', () => {
     expect(root.querySelector('.brand-mark app-icon')).toBeTruthy();
     expect(root.querySelectorAll('.mobile-nav app-icon')).toHaveLength(5);
     expect(root.querySelector('a[href="#main"]')?.textContent).toContain('Skip to main content');
-    expect(root.querySelectorAll('.language-option')).toHaveLength(3);
-    expect(root.textContent).toContain('🇷🇺');
-    expect(root.textContent).toContain('🇱🇹');
+    expect(root.querySelectorAll('.header-tools select.language-select')).toHaveLength(1);
+    expect(root.querySelectorAll('.header-tools .language-option')).toHaveLength(0);
   });
 });

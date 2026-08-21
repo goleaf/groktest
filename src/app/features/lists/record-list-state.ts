@@ -39,7 +39,10 @@ export function recordListQueryParams(
   defaultScope: RecordListScope,
   current: Params = {},
 ): Params {
-  const { scope: _scope, filter: _filter, q: _query, ...unrelated } = current;
+  const unrelated = { ...current };
+  delete unrelated['scope'];
+  delete unrelated['filter'];
+  delete unrelated['q'];
   const query = normalizeSearch(state.query);
 
   return {

@@ -2,15 +2,15 @@
 
 ## Automated layers
 
-| Layer                   | Coverage                                                                                                                                                                               | Tool                              |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Domain                  | UUIDv7, money parsing/format/bounds, calendar-day distance, create, return, repay, due-date change, person relationship summaries, completion, urgency and query rules                 | Vitest pure tests                 |
-| Persistence/application | offline create/reload, return/history, repayment, deadline change/event/queue, overpay prevention, stable person reuse, indexed person overview, settings, drafts and v1→v3 migration  | Dexie + fake-indexeddb            |
-| Component               | shell/navigation, local-midnight/focus refresh, Add draft/person matching, shared due status, lists, Home, People/person details, deadline form, settings, icons and accessible labels | Angular TestBed/Vitest            |
-| Localization            | catalog parity, interpolation parameters, EN/RU/LT plural rules, fallback, persistence and HTML language                                                                               | Vitest + Angular TestBed          |
-| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier                                                                                        | CLI/CI                            |
-| Delivery                | Production PWA artifact and Android debug APK                                                                                                                                          | Angular builder, Capacitor/Gradle |
-| Browser acceptance      | critical flows, responsive widths, offline reload, clean console, accessibility tree                                                                                                   | isolated Chrome DevTools profile  |
+| Layer                   | Coverage                                                                                                                                                                                                                                                                    | Tool                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Domain                  | UUIDv7, money parsing/format/bounds, calendar-day distance, create, return, repay, due-date change, person relationship summaries, completion, urgency and query rules                                                                                                      | Vitest pure tests                 |
+| Persistence/application | offline create/reload, indexed active/completed reads, bounded visible-loan repayment reads, return/history, repayment, deadline change/event/queue, overpay prevention, stable person reuse, indexed person overview, settings, drafts and v1→v3 migration                 | Dexie + fake-indexeddb            |
+| Component               | shell/navigation, URL-restored record filters, stale async response rejection, local-midnight/focus refresh, Signal Form validation, Add draft/person matching, shared due status, lists, Home, People/person details, deadline form, settings, icons and accessible labels | Angular TestBed/Vitest            |
+| Localization            | catalog parity, interpolation parameters, EN/RU/LT plural rules, fallback, persistence and HTML language                                                                                                                                                                    | Vitest + Angular TestBed          |
+| Static quality          | TypeScript strict build, Angular template compiler, ESLint, angular-eslint a11y rules, Prettier                                                                                                                                                                             | CLI/CI                            |
+| Delivery                | Production PWA artifact and Android debug APK                                                                                                                                                                                                                               | Angular builder, Capacitor/Gradle |
+| Browser acceptance      | critical flows, responsive widths, offline reload, clean console, accessibility tree                                                                                                                                                                                        | isolated Chrome DevTools profile  |
 
 Deterministic clocks and named fixtures cover one person with simultaneous lent/borrowed relationships, active lent drill, borrowed ladder, partial money repayment, completed item, due-tomorrow, due-in-three-days and exact overdue duration. Tests do not depend on network or production data.
 
@@ -37,12 +37,13 @@ CI performs all web gates and a separate Java 21 Android build. Full iOS compila
 ## Browser acceptance matrix
 
 - 320×568, 375×812, 390×844: no ordinary horizontal scroll; bottom navigation respects safe area; form controls and submit remain reachable.
-- Tablet around 768×1024: usable layout with no mobile-only hover dependency.
-- Desktop around 1440×900: horizontal header, ledger/context columns, landmarks and readable line length.
+- Tablet at 900×800: compact header and bottom navigation, zero overlap and no mobile-only hover dependency.
+- Desktop from 70rem, including 1440×1000: horizontal header, ledger/context columns, landmarks and readable line length.
 - Keyboard: skip link, logical focus order, visible focus, form labels and actionable buttons.
 - Production PWA: load online once, verify active service worker, create a record, switch offline, reload, find the same record, perform another local action.
 - Console: zero application errors/warnings. Network failures expected only after explicit offline simulation and must not break core behavior.
 - Icon system: every top-level utility page has a semantic heading icon; filters, selectors, empty states, statuses and recovery actions retain visible text and use the shared SVG component.
+- Android: build with command-scoped JDK 21, verify package/signature/SHA-256, install with `adb install -r`, cold-launch, inspect crash logs, and confirm the existing IndexedDB record count remains intact.
 
 ## Deferred automation
 

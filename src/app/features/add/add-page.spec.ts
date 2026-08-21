@@ -5,6 +5,54 @@ import { AddPage } from './add-page';
 import { vi } from 'vitest';
 
 describe('AddPage', () => {
+  it('marks required conditional fields after submit without starting a write', async () => {
+    const createRecord = vi.fn(async () => ({ id: 'unexpected' }));
+    await TestBed.configureTestingModule({
+      imports: [AddPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: BorrowedApp,
+          useValue: {
+            settings: async () => ({ preferredCurrency: 'EUR' }),
+            people: async () => [],
+            recordDraft: async () => undefined,
+            saveRecordDraft: async () => undefined,
+            clearRecordDraft: async () => undefined,
+            createRecord,
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AddPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector('form')?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(root.querySelector('#person-error')?.textContent).toContain('Enter or choose a person');
+    expect(root.querySelector('#item-error')?.textContent).toContain('Enter the item or object');
+    expect(root.querySelector('#amount-error')).toBeNull();
+    expect(createRecord).not.toHaveBeenCalled();
+
+    (
+      root
+        .querySelectorAll('.handoff-builder fieldset')[1]
+        ?.querySelectorAll('button')[1] as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    root.querySelector('form')?.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(root.querySelector('#item-error')).toBeNull();
+    expect(root.querySelector('#amount-error')?.textContent).toContain('Enter an amount');
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
   it('presents one accessible fast create form', async () => {
     await TestBed.configureTestingModule({
       imports: [AddPage],

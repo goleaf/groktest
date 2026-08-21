@@ -9,7 +9,13 @@ const processApi = globalThis as typeof globalThis & {
   };
 };
 const fileSystem = processApi.process.getBuiltinModule('fs');
-const styles = ['src/styles.scss', 'src/styles/_tokens.scss', 'src/styles/_ledger.scss']
+const styles = [
+  'src/styles.scss',
+  'src/styles/_tokens.scss',
+  'src/styles/_shell.scss',
+  'src/styles/_ledger.scss',
+  'src/styles/_records.scss',
+]
   .map((path) => fileSystem.readFileSync(`${processApi.process.cwd()}/${path}`, 'utf8'))
   .join('\n');
 
@@ -63,5 +69,11 @@ describe('design system contract', () => {
     expect(styles).toMatch(/\.records-page \.loan-list > li\s*\{[^}]*content-visibility:\s*auto/s);
     expect(styles).toMatch(/\.records-page \.chips\s*\{[^}]*overflow-x:\s*auto/s);
     expect(styles).toMatch(/@media print\s*\{[^}]*content-visibility:\s*visible/s);
+  });
+
+  it('keeps form focus visible and reserves compact-shell scroll space', () => {
+    expect(styles).toMatch(/\.app-frame input:focus-visible[^{]*\{[^}]*outline:\s*3px solid/s);
+    expect(styles).toContain('scroll-padding-bottom: calc(76px + var(--safe-bottom))');
+    expect(styles).toContain('.field-error');
   });
 });

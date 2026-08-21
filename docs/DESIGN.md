@@ -37,9 +37,11 @@ The spacing system uses 4px micro steps and an 8px base. Controls use a 10px rad
 
 ## Shell and information architecture
 
-Mobile uses a compact white brand bar and white bottom navigation: Home, Records, Add, Search, More. Desktop switches at 880px to one horizontal white header with Home, Records, People, History, search, settings, language, and Add record. The truthful local-device state sits in the footer.
+Mobile and tablet below 70rem (1120px) use a compact white brand bar and white bottom navigation: Home, Records, Add, Search, More. Desktop switches at 70rem to one horizontal white header with Home, Records, People, History, search, settings, language, and Add record. The truthful local-device state sits in the footer.
 
 Records is the unified active-record destination. Lent and Borrowed remain routes and direction scopes, not competing primary navigation systems.
+
+Record scope, filter, and normalized search live in `scope`, `filter`, and `q` URL query parameters. Defaults are omitted, unrelated parameters survive changes, and browser history restores the visible state.
 
 ## Signature patterns
 
@@ -48,6 +50,8 @@ Records is the unified active-record destination. Lent and Borrowed remain route
 - Add reads as a sentence and renders a live record preview beside the form.
 - Detail begins with the same handoff line, separates history/details from a contextual action rail, and keeps the next action visible.
 - Lists, people, history, and navigation share one separated ledger-row vocabulary.
+- Long record lists use `content-visibility` with a print-safe fallback; Home keeps attention and due-next IDs separate.
+- Async page payloads use Angular resources, while Add, due-date, and repayment input use typed Signal Forms.
 - Page titles use a compact mint icon well; section titles use a smaller unboxed symbol.
 - Empty states use a context icon and keep one clear next action where appropriate.
 

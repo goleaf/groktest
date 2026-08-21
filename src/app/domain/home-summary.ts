@@ -95,10 +95,7 @@ export function summarizeHome(
     .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
   const actionIds = new Set(actions.map((action) => action.loanId));
   const dueNext = active
-    .filter(
-      (loan) =>
-        loan.dueOn !== null && !isLoanOverdue(loan, today) && !actionIds.has(loan.id),
-    )
+    .filter((loan) => loan.dueOn !== null && !isLoanOverdue(loan, today) && !actionIds.has(loan.id))
     .sort(
       (left, right) =>
         (left.dueOn ?? '').localeCompare(right.dueOn ?? '') ||

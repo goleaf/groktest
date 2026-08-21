@@ -1,5 +1,7 @@
 @use 'styles/tokens';
+@use 'styles/shell';
 @use 'styles/ledger';
+@use 'styles/records';
 
 *,
 *::before,
@@ -252,19 +254,75 @@ app-icon svg {
   white-space: nowrap;
 }
 
-.language-switcher-compact {
-  width: auto;
-  grid-template-columns: repeat(3, auto);
-  gap: 2px;
-  padding: 3px;
+.language-select-wrap {
+  position: relative;
+  display: block;
+  width: 88px;
+  min-height: 44px;
+  color: var(--teal-deep);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition:
+    color 180ms var(--ease),
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    opacity 180ms var(--ease);
 }
 
-.language-switcher-compact .language-option {
-  min-width: 42px;
-  min-height: 40px;
-  gap: 5px;
-  padding: 0 7px;
-  font-size: 0.68rem;
+.language-select-wrap:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.language-select-wrap > app-icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.language-select-chevron {
+  right: 9px;
+  left: auto !important;
+  width: 12px !important;
+  height: 12px !important;
+  transform: translateY(-50%) rotate(90deg) !important;
+}
+
+.language-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 24px 0 34px;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 760;
+  text-overflow: clip;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
+}
+
+.language-select-saving {
+  opacity: 0.64;
+}
+
+.language-select:disabled {
+  cursor: wait;
+}
+
+.language-select:focus-visible {
+  outline: none;
 }
 
 .topbar .language-switcher {
@@ -1810,12 +1868,6 @@ details > label {
   }
 }
 
-@media (max-width: 360px) {
-  .topbar .language-switcher-compact .language-name {
-    display: none;
-  }
-}
-
 @media (min-width: 600px) {
   :root {
     --content-pad: 28px;
@@ -2268,6 +2320,12 @@ button.button,
 }
 
 @media (hover: hover) {
+  .language-select-wrap:hover {
+    color: var(--teal);
+    background: var(--surface);
+    border-color: color-mix(in oklch, var(--teal) 32%, var(--line));
+  }
+
   .header-add:hover,
   .button:hover:not(:disabled) {
     background: var(--teal-hover);
@@ -2282,15 +2340,6 @@ button.button,
 }
 
 @media (max-width: 520px) {
-  .app-header .language-switcher-compact .language-flag {
-    display: none;
-  }
-
-  .app-header .language-switcher-compact .language-option {
-    min-width: 36px;
-    padding: 0 5px;
-  }
-
   .app-header .brand-mark {
     width: 36px;
     height: 36px;
@@ -2575,8 +2624,8 @@ button.button,
 .ledger-return-action,
 .ledger-open-action {
   display: inline-flex;
-  min-width: 42px;
-  min-height: 42px;
+  min-width: 44px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 6px;

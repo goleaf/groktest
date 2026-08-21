@@ -1,0 +1,20 @@
+.app-frame input:focus-visible,
+.app-frame select:focus-visible,
+.app-frame textarea:focus-visible {
+  border-color: var(--action);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.field-error {
+  display: block;
+  margin: -4px 0 0;
+  color: var(--overdue);
+  font-size: 0.8rem;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+[aria-invalid='true'] {
+  border-color: var(--overdue-line);
+}

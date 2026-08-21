@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
@@ -20,7 +20,9 @@ import { PageHeading } from '../../ui/page-heading';
         [title]="i18n.t('home.heading')"
         [intro]="i18n.t('home.intro')"
       />
-      @if (summary(); as data) {
+      @if (loadError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      } @else if (summary(); as data) {
         @if (data.actions.length === 0) {
           <app-empty-state
             icon="home"
@@ -121,7 +123,7 @@ import { PageHeading } from '../../ui/page-heading';
                   <h2 id="due-rail-title">{{ i18n.t('home.dueNext') }}</h2>
                 </div>
                 <ol>
-                  @for (action of dueActions(); track action.loanId) {
+                  @for (action of data.dueNext; track action.loanId) {
                     <li>
                       <a [routerLink]="['/loans', action.loanId]">
                         <span>{{ action.personName }}</span>
@@ -170,24 +172,20 @@ import { PageHeading } from '../../ui/page-heading';
 export class HomePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
-  protected readonly summary = signal<HomeSummary | null>(null);
-  protected readonly dueActions = computed(
-    () =>
-      this.summary()
-        ?.actions.filter((action) => action.dueOn !== null)
-        .slice(0, 4) ?? [],
+  private readonly summaryResource = resource({
+    params: () => ({
+      revision: this.app.revision(),
+      currentDay: this.app.currentDay(),
+      locale: this.i18n.locale(),
+    }),
+    loader: ({ params }) => this.app.home(params.locale),
+  });
+  protected readonly summary = computed(() => this.summaryResource.value() ?? null);
+  protected readonly loadError = computed(() =>
+    this.summaryResource.error() ? this.i18n.t('home.loadError') : '',
   );
   protected readonly busyLoanId = signal<string | null>(null);
   protected readonly iconForAction = iconForAction;
-
-  constructor() {
-    effect(() => {
-      this.app.revision();
-      this.app.currentDay();
-      const locale = this.i18n.locale();
-      void this.app.home(locale).then((value) => this.summary.set(value));
-    });
-  }
 
   protected openCount(summary: HomeSummary): number {
     return summary.activeLentCount + summary.activeBorrowedCount;

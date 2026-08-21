@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormField, form, maxLength, required, submit } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import { DomainError } from '../../domain/errors';
@@ -10,14 +10,26 @@ import { HandoffLine } from '../../ui/handoff-line';
 import { Icon } from '../../ui/icon';
 import { PageHeading } from '../../ui/page-heading';
 
+interface AddRecordFormModel {
+  direction: 'lent' | 'borrowed';
+  kind: 'physical_item' | 'money';
+  personName: string;
+  personId: string | null;
+  itemName: string;
+  amount: string;
+  currency: CurrencyCode;
+  dueOn: string;
+  note: string;
+}
+
 @Component({
   selector: 'app-add-page',
-  imports: [FormsModule, HandoffLine, Icon, PageHeading],
+  imports: [FormField, HandoffLine, Icon, PageHeading],
   template: `
     <section class="page add-page">
       <app-page-heading icon="add" [title]="i18n.t('add.heading')" [intro]="i18n.t('add.intro')" />
       <div class="add-workspace">
-        <form (ngSubmit)="save()" class="stack add-form">
+        <form (submit)="save($event)" class="stack add-form" novalidate>
           <div class="handoff-builder" [attr.aria-label]="i18n.t('add.handoffLabel')">
             <fieldset>
               <legend class="sr-only">
@@ -72,15 +84,23 @@ import { PageHeading } from '../../ui/page-heading';
             <span class="icon-line"><app-icon name="person" /> {{ personPrompt() }}</span>
             <input
               id="person"
-              name="person"
               autocomplete="name"
-              maxlength="120"
-              [ngModel]="personName()"
-              (ngModelChange)="updatePersonName($event)"
+              [formField]="addForm.personName"
+              [attr.aria-invalid]="addForm.personName().touched() && addForm.personName().invalid()"
+              [attr.aria-describedby]="
+                addForm.personName().touched() && addForm.personName().invalid()
+                  ? 'person-error'
+                  : null
+              "
+              (input)="updatePersonName($any($event.target).value)"
               [placeholder]="i18n.t('add.personPlaceholder')"
-              required
             />
           </label>
+          @if (addForm.personName().touched() && addForm.personName().invalid()) {
+            <small id="person-error" class="field-error">{{
+              addForm.personName().errors()[0]?.message
+            }}</small>
+          }
           @if (recents().length) {
             <p class="hint icon-line">
               <app-icon [name]="personName().trim() && !personId() ? 'search' : 'history'" />
@@ -107,14 +127,19 @@ import { PageHeading } from '../../ui/page-heading';
               <span class="icon-line"><app-icon name="item" /> {{ i18n.t('add.itemLabel') }}</span>
               <input
                 id="item"
-                name="item"
-                maxlength="200"
-                [ngModel]="itemName()"
-                (ngModelChange)="itemName.set($event)"
+                [formField]="addForm.itemName"
+                [attr.aria-invalid]="addForm.itemName().touched() && addForm.itemName().invalid()"
+                [attr.aria-describedby]="
+                  addForm.itemName().touched() && addForm.itemName().invalid() ? 'item-error' : null
+                "
                 [placeholder]="i18n.t('add.itemPlaceholder')"
-                required
               />
             </label>
+            @if (addForm.itemName().touched() && addForm.itemName().invalid()) {
+              <small id="item-error" class="field-error">{{
+                addForm.itemName().errors()[0]?.message
+              }}</small>
+            }
           } @else {
             <label for="amount">
               <span class="icon-line"
@@ -122,24 +147,25 @@ import { PageHeading } from '../../ui/page-heading';
               >
               <input
                 id="amount"
-                name="amount"
                 inputmode="decimal"
-                [ngModel]="amount()"
-                (ngModelChange)="amount.set($event)"
+                [formField]="addForm.amount"
+                [attr.aria-invalid]="addForm.amount().touched() && addForm.amount().invalid()"
+                [attr.aria-describedby]="
+                  addForm.amount().touched() && addForm.amount().invalid() ? 'amount-error' : null
+                "
                 [placeholder]="i18n.t('add.amountPlaceholder')"
-                required
               />
             </label>
+            @if (addForm.amount().touched() && addForm.amount().invalid()) {
+              <small id="amount-error" class="field-error">{{
+                addForm.amount().errors()[0]?.message
+              }}</small>
+            }
             <label for="currency">
               <span class="icon-line"
                 ><app-icon name="money" /> {{ i18n.t('add.currencyLabel') }}</span
               >
-              <select
-                id="currency"
-                [ngModel]="currency()"
-                (ngModelChange)="currency.set($event)"
-                name="currency"
-              >
+              <select id="currency" [formField]="addForm.currency">
                 @for (code of currencies; track code) {
                   <option [value]="code">{{ code }}</option>
                 }
@@ -148,25 +174,13 @@ import { PageHeading } from '../../ui/page-heading';
           }
           <label for="due">
             <span class="icon-line"><app-icon name="calendar" /> {{ duePrompt() }}</span>
-            <input
-              id="due"
-              type="date"
-              name="due"
-              [ngModel]="dueOn()"
-              (ngModelChange)="dueOn.set($event)"
-            />
+            <input id="due" type="date" [formField]="addForm.dueOn" />
           </label>
           <details>
             <summary><app-icon name="more" /> {{ i18n.t('add.more') }}</summary>
             <label>
               <span class="icon-line"><app-icon name="note" /> {{ i18n.t('add.noteLabel') }}</span>
-              <textarea
-                name="note"
-                rows="2"
-                maxlength="4000"
-                [ngModel]="note()"
-                (ngModelChange)="note.set($event)"
-              ></textarea>
+              <textarea rows="2" [formField]="addForm.note"></textarea>
             </label>
           </details>
           @if (error()) {
@@ -210,16 +224,42 @@ export class AddPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  protected readonly direction = signal<'lent' | 'borrowed'>('lent');
-  protected readonly kind = signal<'physical_item' | 'money'>('physical_item');
-  protected readonly personName = signal('');
-  protected readonly personId = signal<string | undefined>(undefined);
-  protected readonly itemName = signal('');
-  protected readonly amount = signal('');
-  protected readonly currency = signal<CurrencyCode>('EUR');
-  protected readonly dueOn = signal('');
-  protected readonly note = signal('');
-  protected readonly busy = signal(false);
+  private readonly formModel = signal<AddRecordFormModel>({
+    direction: 'lent',
+    kind: 'physical_item',
+    personName: '',
+    personId: null,
+    itemName: '',
+    amount: '',
+    currency: 'EUR',
+    dueOn: '',
+    note: '',
+  });
+  protected readonly addForm = form(this.formModel, (record) => {
+    required(record.personName, { message: this.i18n.t('add.personRequired') });
+    maxLength(record.personName, 120);
+    required(record.itemName, {
+      message: this.i18n.t('add.itemRequired'),
+      when: ({ valueOf }) => valueOf(record.kind) === 'physical_item',
+    });
+    maxLength(record.itemName, 200);
+    required(record.amount, {
+      message: this.i18n.t('add.amountRequired'),
+      when: ({ valueOf }) => valueOf(record.kind) === 'money',
+    });
+    maxLength(record.amount, 80);
+    maxLength(record.note, 4000);
+  });
+  protected readonly direction = this.addForm.direction().value;
+  protected readonly kind = this.addForm.kind().value;
+  protected readonly personName = this.addForm.personName().value;
+  protected readonly personId = this.addForm.personId().value;
+  protected readonly itemName = this.addForm.itemName().value;
+  protected readonly amount = this.addForm.amount().value;
+  protected readonly currency = this.addForm.currency().value;
+  protected readonly dueOn = this.addForm.dueOn().value;
+  protected readonly note = this.addForm.note().value;
+  protected readonly busy = this.addForm().submitting;
   protected readonly error = signal('');
   private readonly people = signal<Person[]>([]);
   protected readonly recents = computed(() => {
@@ -260,17 +300,7 @@ export class AddPage {
   constructor() {
     void this.loadForm();
     effect((onCleanup) => {
-      const draft = {
-        direction: this.direction(),
-        kind: this.kind(),
-        personName: this.personName(),
-        personId: this.personId() ?? null,
-        itemName: this.itemName(),
-        amount: this.amount(),
-        currency: this.currency(),
-        dueOn: this.dueOn(),
-        note: this.note(),
-      };
+      const draft = this.formModel();
       if (!this.draftReady()) {
         return;
       }
@@ -305,17 +335,19 @@ export class AddPage {
     ]);
     this.people.set(people);
     if (draft) {
-      this.direction.set(draft.direction);
-      this.kind.set(draft.kind);
-      this.personName.set(draft.personName);
-      this.personId.set(draft.personId ?? undefined);
-      this.itemName.set(draft.itemName);
-      this.amount.set(draft.amount);
-      this.currency.set(draft.currency);
-      this.dueOn.set(draft.dueOn);
-      this.note.set(draft.note);
+      this.formModel.set({
+        direction: draft.direction,
+        kind: draft.kind,
+        personName: draft.personName,
+        personId: draft.personId,
+        itemName: draft.itemName,
+        amount: draft.amount,
+        currency: draft.currency,
+        dueOn: draft.dueOn,
+        note: draft.note,
+      });
     } else {
-      this.currency.set(settings.preferredCurrency);
+      this.formModel.update((model) => ({ ...model, currency: settings.preferredCurrency }));
     }
     const linkedPersonId = this.route.snapshot.queryParamMap.get('personId');
     const linkedPerson = people.find((person) => person.id === linkedPersonId);
@@ -328,7 +360,7 @@ export class AddPage {
   protected updatePersonName(value: string): void {
     const selected = this.people().find((person) => person.id === this.personId());
     if (selected && selected.displayName !== value) {
-      this.personId.set(undefined);
+      this.personId.set(null);
     }
     this.personName.set(value);
   }
@@ -338,36 +370,52 @@ export class AddPage {
     this.personId.set(person.id);
   }
 
-  protected async save(): Promise<void> {
+  protected async save(event?: Event): Promise<void> {
+    event?.preventDefault();
     this.error.set('');
-    this.busy.set(true);
     try {
-      const loan = await this.app.createRecord({
-        direction: this.direction(),
-        kind: this.kind(),
-        personName: this.personName(),
-        personId: this.personId(),
-        itemName: this.itemName(),
-        amount: this.amount(),
-        currency: this.currency(),
-        dueOn: this.dueOn() || null,
-        note: this.note() || null,
+      await submit(this.addForm, {
+        action: async (field) => {
+          const model = field().value();
+          const loan = await this.app.createRecord({
+            direction: model.direction,
+            kind: model.kind,
+            personName: model.personName,
+            personId: model.personId ?? undefined,
+            itemName: model.itemName,
+            amount: model.amount,
+            currency: model.currency,
+            dueOn: model.dueOn || null,
+            note: model.note || null,
+          });
+          this.draftReady.set(false);
+          if (this.draftTimer) {
+            clearTimeout(this.draftTimer);
+            this.draftTimer = undefined;
+          }
+          await this.app.clearRecordDraft();
+          await this.router.navigate(['/loans', loan.id]);
+          return undefined;
+        },
+        onInvalid: () => {
+          for (const field of [
+            this.addForm.personName,
+            this.addForm.itemName,
+            this.addForm.amount,
+          ]) {
+            if (field().invalid()) {
+              field().focusBoundControl();
+              break;
+            }
+          }
+        },
       });
-      this.draftReady.set(false);
-      if (this.draftTimer) {
-        clearTimeout(this.draftTimer);
-        this.draftTimer = undefined;
-      }
-      await this.app.clearRecordDraft();
-      await this.router.navigate(['/loans', loan.id]);
     } catch (caught) {
       if (caught instanceof DomainError) {
         this.error.set(this.i18n.t(`errors.${caught.code}`));
       } else {
         this.error.set(this.i18n.t('add.error'));
       }
-    } finally {
-      this.busy.set(false);
     }
   }
 }

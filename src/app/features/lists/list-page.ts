@@ -122,9 +122,7 @@ export class ListPage {
       locale: this.i18n.locale(),
     }),
     loader: async ({ params }) => {
-      const loans = await this.app.activeLoans(
-        params.scope === 'all' ? undefined : params.scope,
-      );
+      const loans = await this.app.activeLoans(params.scope === 'all' ? undefined : params.scope);
       return {
         loans,
         remaining: await this.app.remainingMap(loans, params.locale),
