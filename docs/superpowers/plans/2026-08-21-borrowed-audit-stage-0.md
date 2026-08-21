@@ -165,7 +165,7 @@ it('rejects returning an item before its handoff date', () => {
 - [ ] **Step 2: Run the focused test and observe red**
 
 ```bash
-pnpm test -- src/app/domain/commands.spec.ts
+pnpm exec ng test borrowed --watch=false --include src/app/domain/commands.spec.ts
 ```
 
 Expected: the new assertion fails because the current command completes the loan.
@@ -187,7 +187,9 @@ Keep the existing asset-kind and active-loan guards before this check.
 - [ ] **Step 4: Verify command and transaction behavior**
 
 ```bash
-pnpm test -- src/app/domain/commands.spec.ts src/app/data/dexie-store.spec.ts
+pnpm exec ng test borrowed --watch=false \
+  --include src/app/domain/commands.spec.ts \
+  --include src/app/data/dexie-store.spec.ts
 pnpm typecheck
 git diff --check -- src/app/domain/commands.ts src/app/domain/commands.spec.ts
 ```
@@ -260,7 +262,7 @@ describe('attention ordering', () => {
 - [ ] **Step 2: Run the rules test and observe missing comparator failure**
 
 ```bash
-pnpm test -- src/app/domain/loan-rules.spec.ts
+pnpm exec ng test borrowed --watch=false --include src/app/domain/loan-rules.spec.ts
 ```
 
 Expected: compilation/test failure because `compareLoansByAttention` is not exported.
@@ -320,11 +322,11 @@ date.
 - [ ] **Step 6: Verify all comparator consumers**
 
 ```bash
-pnpm test -- \
-  src/app/domain/loan-rules.spec.ts \
-  src/app/domain/home-summary.spec.ts \
-  src/app/domain/person-summary.spec.ts \
-  src/app/data/dexie-store.spec.ts
+pnpm exec ng test borrowed --watch=false \
+  --include src/app/domain/loan-rules.spec.ts \
+  --include src/app/domain/home-summary.spec.ts \
+  --include src/app/domain/person-summary.spec.ts \
+  --include src/app/data/dexie-store.spec.ts
 pnpm typecheck
 git diff --check -- src/app/domain src/app/data/borrowed-app.ts
 ```
@@ -378,7 +380,7 @@ expect(createRecord).toHaveBeenCalledWith(
 - [ ] **Step 2: Observe both tests fail because hidden max-length rules remain active**
 
 ```bash
-pnpm test -- src/app/features/add/add-page.spec.ts
+pnpm exec ng test borrowed --watch=false --include src/app/features/add/add-page.spec.ts
 ```
 
 - [ ] **Step 3: Make Signal Forms the source of conditional availability**
@@ -400,7 +402,7 @@ Keep both `maxLength` rules. Render the conditional block from
 - [ ] **Step 4: Verify Add behavior and strict templates**
 
 ```bash
-pnpm test -- src/app/features/add/add-page.spec.ts
+pnpm exec ng test borrowed --watch=false --include src/app/features/add/add-page.spec.ts
 pnpm typecheck
 ```
 
@@ -484,7 +486,9 @@ Use natural Lithuanian and Russian translations and let `i18n.spec.ts` enforce c
 - [ ] **Step 6: Verify initialization, draft, i18n and strict compilation**
 
 ```bash
-pnpm test -- src/app/features/add/add-page.spec.ts src/app/i18n/i18n.spec.ts
+pnpm exec ng test borrowed --watch=false \
+  --include src/app/features/add/add-page.spec.ts \
+  --include src/app/i18n/i18n.spec.ts
 pnpm typecheck
 ```
 
@@ -546,7 +550,9 @@ Use `history.retry: 'Retry'` and natural Lithuanian/Russian equivalents. Preserv
 - [ ] **Step 5: Verify History and catalog parity**
 
 ```bash
-pnpm test -- src/app/features/history/history-page.spec.ts src/app/i18n/i18n.spec.ts
+pnpm exec ng test borrowed --watch=false \
+  --include src/app/features/history/history-page.spec.ts \
+  --include src/app/i18n/i18n.spec.ts
 pnpm typecheck
 ```
 
