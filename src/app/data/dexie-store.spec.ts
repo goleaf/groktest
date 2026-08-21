@@ -118,6 +118,47 @@ describe('local persistence', () => {
     indexedDB.deleteDatabase(dbName);
   });
 
+  it('reads active and completed loans through bounded status queries', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const lent = await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Anna',
+      itemName: 'drill',
+    });
+    const borrowed = await app.createRecord({
+      direction: 'borrowed',
+      kind: 'physical_item',
+      personName: 'Peter',
+      itemName: 'ladder',
+    });
+    await app.markReturned(borrowed.id);
+    const deleted = await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Sergey',
+      itemName: 'book',
+    });
+    const deletedRecord = await app.loanDetail(deleted.id);
+    expect(deletedRecord).toBeTruthy();
+    if (deletedRecord) {
+      await store.putLoanBundle({
+        person: deletedRecord.person,
+        loan: { ...deletedRecord.loan, deletedAt: '2026-08-20T13:00:00.000Z' },
+        event: deletedRecord.events[0]!,
+        clock,
+      });
+    }
+
+    expect((await store.listActiveLoans()).map((loan) => loan.id)).toEqual([lent.id]);
+    expect((await store.listActiveLoans('borrowed')).map((loan) => loan.id)).toEqual([]);
+    expect((await store.listCompletedLoans()).map((loan) => loan.id)).toEqual([borrowed.id]);
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
   it('moves a deadline offline and keeps the change and activity after reload', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const first = await session(dbName);
@@ -277,30 +318,41 @@ describe('local persistence', () => {
     indexedDB.deleteDatabase(dbName);
   });
 
-  it('loads repayments in one bounded query for multi-loan summaries', async () => {
+  it('loads repayments only for visible money loans in one bounded query', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     const { app, store } = await session(dbName);
-    await app.createRecord({
+    const lentMoney = await app.createRecord({
       direction: 'lent',
       kind: 'money',
       personName: 'Peter',
       amount: '100',
       currency: 'EUR',
     });
-    await app.createRecord({
+    const borrowedMoney = await app.createRecord({
       direction: 'borrowed',
       kind: 'money',
       personName: 'Anna',
       amount: '50',
       currency: 'EUR',
     });
+    await app.createRecord({
+      direction: 'lent',
+      kind: 'physical_item',
+      personName: 'Sergey',
+      itemName: 'drill',
+    });
     const repaymentQueries = vi.spyOn(store, 'listRepayments');
     await app.home();
     expect(repaymentQueries).toHaveBeenCalledTimes(1);
 
     repaymentQueries.mockClear();
+    const boundedRepaymentQueries = vi.spyOn(store, 'listRepaymentsForLoanIds');
     await app.remainingMap(await app.activeLoans());
-    expect(repaymentQueries).toHaveBeenCalledTimes(1);
+    expect(boundedRepaymentQueries).toHaveBeenCalledExactlyOnceWith([
+      lentMoney.id,
+      borrowedMoney.id,
+    ]);
+    expect(repaymentQueries).not.toHaveBeenCalled();
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });

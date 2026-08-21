@@ -121,11 +121,21 @@ export interface HomeAction {
   readonly loanId: string;
   readonly direction: LoanDirection;
   readonly assetKind: AssetKind;
+  readonly personName: string;
+  readonly subject: string;
   readonly urgency: 'overdue' | 'due_soon' | 'open';
   readonly dueOn: CalendarDate | null;
   readonly daysUntilDue: number | null;
   readonly messageKey: string;
   readonly params: Readonly<Record<string, string>>;
+}
+
+export interface HomePersonSummary {
+  readonly personId: string;
+  readonly personName: string;
+  readonly activeCount: number;
+  readonly lentCount: number;
+  readonly borrowedCount: number;
 }
 
 export interface HomeSummary {
@@ -136,4 +146,6 @@ export interface HomeSummary {
   readonly overdueCount: number;
   readonly dueSoonCount: number;
   readonly actions: readonly HomeAction[];
+  readonly dueNext: readonly HomeAction[];
+  readonly recentPeople: readonly HomePersonSummary[];
 }

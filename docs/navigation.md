@@ -18,7 +18,7 @@ Why: separate Lent and Borrowed tabs duplicated one list and consumed navigation
 
 ## Desktop/tablet
 
-The persistent workspace rail exposes Home, Records, Search, People, History and Settings plus a labeled Add button. It does not invent a different workflow; it unwraps the More grouping when space permits. Content uses wider/two-column composition where useful.
+The persistent horizontal header exposes Home, Records, People and History, plus search, settings, language and a labeled Add button. It does not invent a different workflow; it unwraps the More grouping when space permits. Content uses wider ledger-and-context-rail composition where useful.
 
 ## Secondary screens
 

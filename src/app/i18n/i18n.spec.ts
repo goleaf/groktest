@@ -18,16 +18,16 @@ describe('I18n', () => {
       '🇷🇺 ru',
       '🇱🇹 lt',
     ]);
-    expect(i18n.t('home.heading')).toBe('Today');
+    expect(i18n.t('home.heading')).toBe('Overview');
 
     i18n.setLanguage('ru');
-    expect(i18n.t('home.heading')).toBe('Сегодня');
+    expect(i18n.t('home.heading')).toBe('Обзор');
     expect(i18n.t('add.saveRecord')).toBe('Сохранить запись');
     expect(i18n.locale()).toBe('ru-RU');
     expect(document.documentElement.lang).toBe('ru');
 
     i18n.setLanguage('lt');
-    expect(i18n.t('home.heading')).toBe('Šiandien');
+    expect(i18n.t('home.heading')).toBe('Apžvalga');
     expect(i18n.t('add.saveRecord')).toBe('Išsaugoti įrašą');
     expect(i18n.locale()).toBe('lt-LT');
     expect(document.documentElement.lang).toBe('lt');
@@ -91,7 +91,7 @@ describe('I18n', () => {
   });
 
   it('keeps metadata inside each locale file and resolves browser locale variants', () => {
-    expect(localeCatalog.en.messages.home.heading).toBe('Today');
+    expect(localeCatalog.en.messages.home.heading).toBe('Overview');
     expect(localeCatalog.ru.flag).toBe('🇷🇺');
     expect(localeCatalog.lt.name).toBe('Lietuvių');
     expect(resolveSupportedLanguage('lt-LT')).toBe('lt');

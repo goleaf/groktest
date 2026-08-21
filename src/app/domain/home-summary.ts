@@ -53,6 +53,8 @@ function actionFor(
       loanId: loan.id,
       direction: loan.direction,
       assetKind: loan.assetKind,
+      personName: loan.personNameSnapshot,
+      subject: loan.itemName ?? '',
       urgency,
       dueOn: loan.dueOn,
       daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
@@ -67,6 +69,8 @@ function actionFor(
     loanId: loan.id,
     direction: loan.direction,
     assetKind: loan.assetKind,
+    personName: loan.personNameSnapshot,
+    subject: amount,
     urgency,
     dueOn: loan.dueOn,
     daysUntilDue: loan.dueOn ? calendarDaysBetween(today, loan.dueOn) : null,
@@ -87,8 +91,43 @@ export function summarizeHome(
     (left, right) => urgencyRank(left, today) - urgencyRank(right, today),
   );
   const actions = ranked
-    .slice(0, 8)
+    .slice(0, 5)
     .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
+  const actionIds = new Set(actions.map((action) => action.loanId));
+  const dueNext = active
+    .filter(
+      (loan) =>
+        loan.dueOn !== null && !isLoanOverdue(loan, today) && !actionIds.has(loan.id),
+    )
+    .sort(
+      (left, right) =>
+        (left.dueOn ?? '').localeCompare(right.dueOn ?? '') ||
+        left.updatedAt.localeCompare(right.updatedAt),
+    )
+    .slice(0, 4)
+    .map((loan) => actionFor(loan, today, repaymentsByLoan.get(loan.id) ?? [], locale));
+  const people = new Map<
+    string,
+    {
+      personId: string;
+      personName: string;
+      activeCount: number;
+      lentCount: number;
+      borrowedCount: number;
+    }
+  >();
+  for (const loan of active) {
+    const current = people.get(loan.personId) ?? {
+      personId: loan.personId,
+      personName: loan.personNameSnapshot,
+      activeCount: 0,
+      lentCount: 0,
+      borrowedCount: 0,
+    };
+    current.activeCount += 1;
+    current[loan.direction === 'lent' ? 'lentCount' : 'borrowedCount'] += 1;
+    people.set(loan.personId, current);
+  }
   return {
     activeLentCount: active.filter((loan) => loan.direction === 'lent').length,
     activeBorrowedCount: active.filter((loan) => loan.direction === 'borrowed').length,
@@ -97,5 +136,12 @@ export function summarizeHome(
     overdueCount: active.filter((loan) => isLoanOverdue(loan, today)).length,
     dueSoonCount: active.filter((loan) => isLoanDueSoon(loan, today)).length,
     actions,
+    dueNext,
+    recentPeople: [...people.values()]
+      .sort(
+        (left, right) =>
+          right.activeCount - left.activeCount || left.personName.localeCompare(right.personName),
+      )
+      .slice(0, 5),
   };
 }

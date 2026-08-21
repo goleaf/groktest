@@ -13,11 +13,29 @@ const summary: HomeSummary = {
   dueSoonCount: 1,
   moneyOwedToMe: [{ currencyCode: 'EUR', minorUnits: 4500n }],
   moneyIOwe: [{ currencyCode: 'EUR', minorUnits: 4000n }],
+  recentPeople: [
+    {
+      personId: 'p1',
+      personName: 'Peter',
+      activeCount: 3,
+      lentCount: 2,
+      borrowedCount: 1,
+    },
+    {
+      personId: 'p2',
+      personName: 'Maya',
+      activeCount: 2,
+      lentCount: 0,
+      borrowedCount: 2,
+    },
+  ],
   actions: [
     {
       loanId: 'drill',
       direction: 'lent',
       assetKind: 'physical_item',
+      personName: 'Peter',
+      subject: 'cordless drill',
       urgency: 'overdue',
       dueOn: '2026-08-18',
       daysUntilDue: -2,
@@ -28,6 +46,8 @@ const summary: HomeSummary = {
       loanId: 'pump',
       direction: 'borrowed',
       assetKind: 'physical_item',
+      personName: 'Maya',
+      subject: 'bike pump',
       urgency: 'overdue',
       dueOn: '2026-08-15',
       daysUntilDue: -5,
@@ -38,17 +58,19 @@ const summary: HomeSummary = {
       loanId: 'ladder',
       direction: 'borrowed',
       assetKind: 'physical_item',
+      personName: 'Anna',
+      subject: 'ladder',
       urgency: 'open',
       dueOn: null,
       daysUntilDue: null,
       messageKey: 'home.action.borrowedItem',
       params: { person: 'Anna', item: 'ladder' },
     },
-  ] as unknown as HomeSummary['actions'],
+  ],
 };
 
 describe('HomePage', () => {
-  it('turns the lead physical record into an actionable custody tag', async () => {
+  it('renders a connected overview, handoff ledger, due rail, and related people', async () => {
     const markReturned = vi.fn(async () => undefined);
     await TestBed.configureTestingModule({
       imports: [HomePage],
@@ -71,21 +93,23 @@ describe('HomePage', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector('.page-header h1')?.textContent).toContain('Today');
-    expect(root.querySelector('.attention-band')?.textContent).toContain('cordless drill');
-    expect(root.querySelector('.attention-band')?.textContent).toContain('Overdue by 2 days');
+    expect(root.querySelector('.page-header h1')?.textContent).toContain('Overview');
+    expect(root.querySelectorAll('.overview-stat')).toHaveLength(4);
     expect(root.querySelector('.record-count')?.textContent).toContain('8 open records');
-    expect(root.querySelector('.lead-inline-action')?.textContent).toContain('Mark returned');
-    expect(root.querySelector('.open-list')?.textContent).toContain('bike pump');
-    expect(root.querySelector('.open-list')?.textContent).toContain('Overdue by 5 days');
-    expect(root.querySelector('.open-list')?.textContent).toContain('ladder');
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('cordless drill');
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('Overdue by 2 days');
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('bike pump');
+    expect(root.querySelectorAll('.home-ledger app-handoff-line')).toHaveLength(3);
+    expect(root.querySelector('.due-rail')?.textContent).toContain('Maya');
+    expect(root.querySelector('.people-rail')?.textContent).toContain('Peter');
+    expect(root.querySelector('.ledger-return-action')?.textContent).toContain('Mark returned');
 
-    (root.querySelector('.lead-inline-action') as HTMLButtonElement).click();
+    (root.querySelector('.ledger-return-action') as HTMLButtonElement).click();
     await fixture.whenStable();
     expect(markReturned).toHaveBeenCalledWith('drill');
   });
 
-  it('does not repeat an ordinary lead in the open-loans list', async () => {
+  it('renders every ordinary open handoff exactly once in the ledger', async () => {
     const ordinarySummary: HomeSummary = {
       activeLentCount: 1,
       activeBorrowedCount: 1,
@@ -93,11 +117,14 @@ describe('HomePage', () => {
       dueSoonCount: 0,
       moneyOwedToMe: [],
       moneyIOwe: [],
+      recentPeople: [],
       actions: [
         {
           loanId: 'ladder',
           direction: 'borrowed',
           assetKind: 'physical_item',
+          personName: 'Anna',
+          subject: 'ladder',
           urgency: 'open',
           dueOn: null,
           daysUntilDue: null,
@@ -108,13 +135,15 @@ describe('HomePage', () => {
           loanId: 'book',
           direction: 'lent',
           assetKind: 'physical_item',
+          personName: 'Maya',
+          subject: 'book',
           urgency: 'open',
           dueOn: null,
           daysUntilDue: null,
           messageKey: 'home.action.lentItem',
           params: { person: 'Maya', item: 'book' },
         },
-      ] as unknown as HomeSummary['actions'],
+      ],
     };
 
     await TestBed.configureTestingModule({
@@ -140,10 +169,9 @@ describe('HomePage', () => {
     const root = fixture.nativeElement as HTMLElement;
     const ladderLinks = root.querySelectorAll('a[href="/loans/ladder"]');
 
-    expect(root.querySelector('.attention-band')).toBeTruthy();
     expect(ladderLinks).toHaveLength(1);
-    expect(root.querySelector('.attention-band')?.textContent).toContain('ladder');
-    expect(root.querySelector('.open-list')?.textContent).toContain('book');
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('ladder');
+    expect(root.querySelector('.home-ledger')?.textContent).toContain('book');
   });
 
   it('refreshes its reminder summary when the local calendar day changes', async () => {

@@ -55,7 +55,7 @@ The Add screen persists one local form draft after a short debounce. It is not a
 
 ## Responsive continuity
 
-Phone navigation prioritizes Home, Records, Add, Search and More. Desktop unwraps People/History/Settings into a rail but keeps the same routes and wording. Wider space improves composition; it does not create an incompatible workflow. Layouts do not depend on fixed viewport height, so the mobile keyboard can scroll important controls into reach.
+Phone navigation prioritizes Home, Records, Add, Search and More. Desktop unwraps People/History/Settings into a horizontal header but keeps the same routes and wording. Wider space improves composition; it does not create an incompatible workflow. Layouts do not depend on fixed viewport height, so the mobile keyboard can scroll important controls into reach.
 
 People are relationship hubs, not CRM contacts. One open page answers both item directions, both money directions and completed history. Selecting an existing person is explicit and fast; equal names are never merged automatically, and the other person never needs an account or invitation.
 

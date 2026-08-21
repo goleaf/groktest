@@ -8,23 +8,28 @@ const processApi = globalThis as typeof globalThis & {
     };
   };
 };
-const styles = processApi.process
-  .getBuiltinModule('fs')
-  .readFileSync(`${processApi.process.cwd()}/src/styles.scss`, 'utf8');
+const fileSystem = processApi.process.getBuiltinModule('fs');
+const styles = ['src/styles.scss', 'src/styles/_tokens.scss', 'src/styles/_ledger.scss']
+  .map((path) => fileSystem.readFileSync(`${processApi.process.cwd()}/${path}`, 'utf8'))
+  .join('\n');
 
 describe('design system contract', () => {
-  it('frames the work surface with explicit mobile and desktop navigation', () => {
-    expect(styles).toContain('@media (min-width: 880px)');
-    expect(styles).toContain('grid-template-columns: 248px minmax(0, 1fr)');
+  it('frames the work surface with a horizontal desktop header and mobile navigation', () => {
+    expect(styles).toContain('@media (min-width: 70rem)');
+    expect(styles).toContain('.app-header');
+    expect(styles).toContain('.desktop-nav');
+    expect(styles).toContain('.header-tools');
     expect(styles).toContain('.mobile-nav');
-    expect(styles).toContain('.rail-nav');
-    expect(styles).toMatch(/\.main\s*\{[^}]*grid-column:\s*2/s);
+    expect(styles).toMatch(/\.header-inner\s*\{[^}]*max-width:\s*1320px/s);
   });
 
-  it('defines the flat custody-board palette and accessible interaction defaults', () => {
-    for (const token of ['--canvas', '--paper', '--chrome', '--mint', '--action', '--overdue']) {
+  it('defines the flat handoff-ledger palette and accessible interaction defaults', () => {
+    expect(styles).toContain("@use 'styles/tokens'");
+    for (const token of ['--canvas', '--surface', '--teal', '--teal-deep', '--ink', '--overdue']) {
       expect(styles).toContain(token);
     }
+    expect(styles).toContain('oklch(0.48 0.11 188)');
+    expect(styles).toContain('.handoff-line');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
     expect(styles).toMatch(/min-height:\s*(44|48|52)px/);
     expect(styles).toMatch(/\.search-field:focus-within\s*\{[^}]*outline:\s*3px\s+solid/s);
@@ -52,5 +57,11 @@ describe('design system contract', () => {
     expect(styles).toMatch(/\.heading-icon\s*\{[^}]*width:\s*40px[^}]*height:\s*40px/s);
     expect(styles).toMatch(/\.status-with-icon\s*\{[^}]*min-width:\s*0/s);
     expect(styles).toMatch(/\.status-with-icon app-icon\s*\{[^}]*flex:\s*0 0 auto/s);
+  });
+
+  it('bounds long record rendering and keeps phone filters horizontally reachable', () => {
+    expect(styles).toMatch(/\.records-page \.loan-list > li\s*\{[^}]*content-visibility:\s*auto/s);
+    expect(styles).toMatch(/\.records-page \.chips\s*\{[^}]*overflow-x:\s*auto/s);
+    expect(styles).toMatch(/@media print\s*\{[^}]*content-visibility:\s*visible/s);
   });
 });

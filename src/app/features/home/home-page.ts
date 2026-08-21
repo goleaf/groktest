@@ -2,17 +2,17 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { HomeAction, HomeSummary } from '../../domain/types';
-import { formatMinorUnits } from '../../domain/money';
 import { I18n } from '../../i18n/i18n';
 import { DueStatus } from '../../ui/due-status';
 import { EmptyState } from '../../ui/empty-state';
+import { HandoffLine } from '../../ui/handoff-line';
 import { Icon } from '../../ui/icon';
 import { iconForAction } from '../../ui/icon-for';
 import { PageHeading } from '../../ui/page-heading';
 
 @Component({
   selector: 'app-home-page',
-  imports: [DueStatus, EmptyState, RouterLink, Icon, PageHeading],
+  imports: [DueStatus, EmptyState, HandoffLine, RouterLink, Icon, PageHeading],
   template: `
     <section class="page home-page">
       <app-page-heading
@@ -28,102 +28,138 @@ import { PageHeading } from '../../ui/page-heading';
             [actionLabel]="i18n.t('home.emptyAction')"
           />
         } @else {
-          @if (lead(); as first) {
-            <section class="attention-band" [class.is-overdue]="first.urgency === 'overdue'">
-              <a class="lead-record" [routerLink]="['/loans', first.loanId]">
-                <span class="lead-record-icon" aria-hidden="true">
-                  <app-icon [name]="iconForAction(first.messageKey)" />
-                </span>
-                <span class="attention-copy">
-                  <h2>{{ i18n.t(first.messageKey, first.params) }}</h2>
-                  <app-due-status
-                    class="attention-meta"
-                    [dueOn]="first.dueOn"
-                    [daysUntilDue]="first.daysUntilDue"
-                  />
-                </span>
-                <app-icon class="lead-chevron" name="chevron" />
-              </a>
-              @if (first.assetKind === 'physical_item') {
-                <button
-                  class="lead-inline-action"
-                  type="button"
-                  [disabled]="busyLoanId() === first.loanId"
-                  (click)="markReturned(first)"
-                >
-                  <app-icon name="check" />
-                  {{ i18n.t('home.markReturned') }}
-                </button>
-              } @else {
-                <a class="lead-inline-action" [routerLink]="['/loans', first.loanId]">
-                  <app-icon name="records" />
-                  {{ i18n.t('home.openRecord') }}
-                </a>
-              }
-            </section>
-          }
-          <a class="record-count" routerLink="/records">
-            <app-icon name="records" />
-            <strong>{{ i18n.t('home.openCount', { count: openCount(data) }) }}</strong>
-            <app-icon name="chevron" />
-          </a>
+          <section class="overview-ribbon" [attr.aria-label]="i18n.t('home.summary')">
+            <a class="overview-stat record-count" routerLink="/records">
+              <span>{{ i18n.t('home.openLabel') }}</span>
+              <strong>{{ openCount(data) }}</strong>
+              <small>{{ i18n.t('home.openCount', { count: openCount(data) }) }}</small>
+            </a>
+            <a class="overview-stat" routerLink="/lent">
+              <span>{{ i18n.t('nav.lent') }}</span>
+              <strong>{{ data.activeLentCount }}</strong>
+              <small>{{ i18n.t('home.lentCount', { count: data.activeLentCount }) }}</small>
+            </a>
+            <a class="overview-stat" routerLink="/borrowed">
+              <span>{{ i18n.t('nav.borrowed') }}</span>
+              <strong>{{ data.activeBorrowedCount }}</strong>
+              <small>{{ i18n.t('home.borrowedCount', { count: data.activeBorrowedCount }) }}</small>
+            </a>
+            <a class="overview-stat is-overdue" routerLink="/records">
+              <span>{{ i18n.t('home.overdueLabel') }}</span>
+              <strong>{{ data.overdueCount }}</strong>
+              <small>{{ i18n.t('home.overdue', { count: data.overdueCount }) }}</small>
+            </a>
+          </section>
+
           <div class="home-workspace">
-            <section class="home-records" aria-labelledby="open-records-title">
+            <section class="home-ledger" aria-labelledby="open-records-title">
               <div class="section-bar">
-                <h2 id="open-records-title" class="section-heading">
-                  <app-icon name="records" />
-                  {{ i18n.t('home.openRecords') }}
-                </h2>
+                <div>
+                  <p class="section-kicker">{{ i18n.t('home.needsAttention') }}</p>
+                  <h2 id="open-records-title" class="section-heading">
+                    {{ i18n.t('home.openRecords') }}
+                  </h2>
+                </div>
                 <a class="icon-link" routerLink="/records">
                   {{ i18n.t('home.viewAll') }}
                   <app-icon name="chevron" />
                 </a>
               </div>
-              <ul class="action-list open-list">
-                @for (action of remainingActions(); track action.loanId) {
-                  <li>
-                    <a [routerLink]="['/loans', action.loanId]">
+              <ul class="home-ledger-list">
+                @for (action of data.actions; track action.loanId) {
+                  <li class="home-ledger-row" [class.is-overdue]="action.urgency === 'overdue'">
+                    <span class="ledger-icon" aria-hidden="true">
                       <app-icon [name]="iconForAction(action.messageKey)" />
-                      <span class="action-copy">
-                        <strong>{{ i18n.t(action.messageKey, action.params) }}</strong>
-                        @if (action.dueOn) {
-                          <small>
-                            <app-due-status
-                              [dueOn]="action.dueOn"
-                              [daysUntilDue]="action.daysUntilDue"
-                            />
-                          </small>
-                        } @else {
-                          <small>{{ directionLabel(action) }}</small>
-                        }
-                      </span>
-                      <app-icon name="chevron" />
+                    </span>
+                    <a class="ledger-record" [routerLink]="['/loans', action.loanId]">
+                      <app-handoff-line
+                        [direction]="action.direction"
+                        [personName]="action.personName"
+                      />
+                      <strong>{{ action.subject }}</strong>
+                      <small>{{ i18n.t(action.messageKey, action.params) }}</small>
                     </a>
+                    <span class="ledger-due">
+                      @if (action.dueOn) {
+                        <app-due-status
+                          [dueOn]="action.dueOn"
+                          [daysUntilDue]="action.daysUntilDue"
+                        />
+                      } @else {
+                        <small>{{ i18n.t('home.noDueDate') }}</small>
+                      }
+                    </span>
+                    @if (action.assetKind === 'physical_item') {
+                      <button
+                        class="ledger-return-action"
+                        type="button"
+                        [attr.aria-label]="i18n.t('home.markReturned')"
+                        [disabled]="busyLoanId() === action.loanId"
+                        (click)="markReturned(action)"
+                      >
+                        <app-icon name="check" />
+                        <span>{{ i18n.t('home.markReturned') }}</span>
+                      </button>
+                    } @else {
+                      <a
+                        class="ledger-open-action"
+                        [routerLink]="['/loans', action.loanId]"
+                        [attr.aria-label]="i18n.t('home.openRecord')"
+                      >
+                        <app-icon name="chevron" />
+                      </a>
+                    }
                   </li>
                 }
               </ul>
             </section>
-            <aside class="home-aside" aria-labelledby="home-aside-title">
-              <h2 id="home-aside-title" class="section-heading">
-                <app-icon name="info" />
-                {{ i18n.t('home.atAGlance') }}
-              </h2>
-              <dl class="glance-list">
-                <div>
-                  <dt><app-icon name="records" /> {{ i18n.t('home.openLabel') }}</dt>
-                  <dd>{{ openCount(data) }}</dd>
+
+            <aside class="home-context-rail">
+              <section class="due-rail" aria-labelledby="due-rail-title">
+                <div class="rail-heading">
+                  <app-icon name="calendar" />
+                  <h2 id="due-rail-title">{{ i18n.t('home.dueNext') }}</h2>
                 </div>
-                <div class="overdue-glance">
-                  <dt><app-icon name="overdue" /> {{ i18n.t('home.overdueLabel') }}</dt>
-                  <dd>{{ data.overdueCount }}</dd>
+                <ol>
+                  @for (action of dueActions(); track action.loanId) {
+                    <li>
+                      <a [routerLink]="['/loans', action.loanId]">
+                        <span>{{ action.personName }}</span>
+                        <strong>{{ action.subject }}</strong>
+                        <app-due-status
+                          [dueOn]="action.dueOn"
+                          [daysUntilDue]="action.daysUntilDue"
+                        />
+                      </a>
+                    </li>
+                  }
+                </ol>
+              </section>
+
+              <section class="people-rail" aria-labelledby="people-rail-title">
+                <div class="rail-heading">
+                  <app-icon name="people" />
+                  <h2 id="people-rail-title">{{ i18n.t('home.people') }}</h2>
                 </div>
-              </dl>
-              <nav class="direction-links" [attr.aria-label]="i18n.t('home.byDirection')">
-                <a routerLink="/lent"><app-icon name="lent" /> {{ i18n.t('nav.lent') }}</a>
-                <a routerLink="/borrowed"
-                  ><app-icon name="borrowed" /> {{ i18n.t('nav.borrowed') }}</a
-                >
-              </nav>
+                <ul>
+                  @for (person of data.recentPeople; track person.personId) {
+                    <li>
+                      <a [routerLink]="['/people', person.personId]">
+                        <span class="person-avatar" aria-hidden="true">{{
+                          person.personName.charAt(0)
+                        }}</span>
+                        <span>
+                          <strong>{{ person.personName }}</strong>
+                          <small>{{
+                            i18n.t('home.personOpen', { count: person.activeCount })
+                          }}</small>
+                        </span>
+                        <app-icon name="chevron" />
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </section>
             </aside>
           </div>
         }
@@ -135,9 +171,11 @@ export class HomePage {
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
   protected readonly summary = signal<HomeSummary | null>(null);
-  protected readonly lead = computed(() => this.summary()?.actions[0] ?? null);
-  protected readonly remainingActions = computed(
-    () => this.summary()?.actions.filter((action) => action.loanId !== this.lead()?.loanId) ?? [],
+  protected readonly dueActions = computed(
+    () =>
+      this.summary()
+        ?.actions.filter((action) => action.dueOn !== null)
+        .slice(0, 4) ?? [],
   );
   protected readonly busyLoanId = signal<string | null>(null);
   protected readonly iconForAction = iconForAction;
@@ -151,16 +189,8 @@ export class HomePage {
     });
   }
 
-  protected money(currency: string, minor: bigint): string {
-    return formatMinorUnits(minor, currency, this.i18n.locale());
-  }
-
-  protected openCount(summary: HomeSummary): string {
-    return String(summary.activeLentCount + summary.activeBorrowedCount);
-  }
-
-  protected directionLabel(action: HomeAction): string {
-    return this.i18n.t(action.direction === 'lent' ? 'home.youLentIt' : 'home.youBorrowedIt');
+  protected openCount(summary: HomeSummary): number {
+    return summary.activeLentCount + summary.activeBorrowedCount;
   }
 
   protected async markReturned(action: HomeAction): Promise<void> {

@@ -214,6 +214,20 @@ export class DexieBorrowedStore extends BorrowedStore {
     return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
   }
 
+  async listActiveLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
+    const rows = await this.db.loans.where('status').equals('active').toArray();
+    return rows
+      .filter(
+        (row) => row.deletedAt === null && (direction === undefined || row.direction === direction),
+      )
+      .map(loanFromRow);
+  }
+
+  async listCompletedLoans(): Promise<Loan[]> {
+    const rows = await this.db.loans.where('status').equals('completed').toArray();
+    return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
+  }
+
   async listLoansForPerson(personId: string): Promise<Loan[]> {
     const rows = await this.db.loans.where('personId').equals(personId).toArray();
     return rows.filter((row) => row.deletedAt === null).map(loanFromRow);

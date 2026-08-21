@@ -123,6 +123,9 @@ describe('DetailPage', () => {
 
     expect(root.querySelector('.detail-hero h1')?.textContent).toContain('Cordless drill');
     expect(root.querySelector('.detail-context')?.textContent).toContain('You lent this to Peter');
+    expect(root.querySelector('.detail-hero app-handoff-line')?.textContent).toContain('Peter');
+    expect(root.querySelector('.detail-workspace')).toBeTruthy();
+    expect(root.querySelector('.detail-action-rail h2')?.textContent).toContain('Next step');
     expect(root.querySelector('.person-link')?.textContent).toContain('Peter');
     expect(root.querySelector('.status-panel')?.textContent).toContain('Overdue by 2 days');
     expect(root.querySelector('.primary-detail-action')?.textContent).toContain('Returned to me');
@@ -196,10 +199,12 @@ describe('DetailPage', () => {
     expect(root.querySelector('[data-balance="original"]')?.textContent).toContain('€100.00');
     expect(root.querySelector('[data-balance="repaid"]')?.textContent).toContain('€30.00');
     expect(root.querySelector('[data-balance="remaining"]')?.textContent).toContain('€70.00');
-    expect(root.querySelector('.section-heading')?.textContent).toContain(
+    expect(root.querySelector('.repayment-form .section-heading')?.textContent).toContain(
       'How much was returned to you?',
     );
-    expect(root.querySelector('button[type="submit"]')?.textContent).toContain('Returned to me');
+    expect(root.querySelector('.repayment-form button[type="submit"]')?.textContent).toContain(
+      'Returned to me',
+    );
     expect(root.querySelector('.timeline')?.textContent).toContain('Returned €30.00');
   });
 
@@ -229,10 +234,12 @@ describe('DetailPage', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
 
-    expect(root.querySelector('.section-heading')?.textContent).toContain(
+    expect(root.querySelector('.repayment-form .section-heading')?.textContent).toContain(
       'How much did you return?',
     );
-    expect(root.querySelector('button[type="submit"]')?.textContent).toContain('I returned this');
+    expect(root.querySelector('.repayment-form button[type="submit"]')?.textContent).toContain(
+      'I returned this',
+    );
   });
 
   it('moves the return date and renders the localized change in history', async () => {

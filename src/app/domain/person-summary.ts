@@ -14,6 +14,13 @@ export interface PersonRelationshipSummary {
   readonly remainingMinorUnitsByLoan: ReadonlyMap<string, bigint>;
 }
 
+function physicalQuantity(loans: readonly Loan[]): number {
+  return loans.reduce(
+    (total, loan) => total + (loan.assetKind === 'physical_item' ? (loan.quantity ?? 0) : 0),
+    0,
+  );
+}
+
 export function summarizePersonRelationships(
   loans: readonly Loan[],
   repaymentsByLoan: ReadonlyMap<string, readonly Repayment[]>,
@@ -42,8 +49,8 @@ export function summarizePersonRelationships(
     history: visible
       .filter((loan) => loan.status === 'completed')
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
-    lentItemCount: activeLent.filter((loan) => loan.assetKind === 'physical_item').length,
-    borrowedItemCount: activeBorrowed.filter((loan) => loan.assetKind === 'physical_item').length,
+    lentItemCount: physicalQuantity(activeLent),
+    borrowedItemCount: physicalQuantity(activeBorrowed),
     owedToMe: groupOutstandingMoney(active, repaymentsByLoan, 'lent'),
     iOwe: groupOutstandingMoney(active, repaymentsByLoan, 'borrowed'),
     remainingMinorUnitsByLoan,

@@ -35,7 +35,7 @@ Dependencies point inward. Domain code has no Angular, Dexie, Capacitor or Elect
 - Angular 22 standalone components, strict templates, signals and zoneless change detection.
 - No NgRx: local persisted state is authoritative; signals hold screen state and the application revision marker.
 - Feature routes are lazy loaded. The shell is eager so navigation and the first landmark appear quickly.
-- One flow is used at all widths. Mobile uses a five-item bottom navigation; desktop uses a rail and wider content area.
+- One flow is used at all widths. Mobile uses a five-item bottom navigation; desktop uses a horizontal header and wider ledger workspace.
 - User text comes from self-contained EN/RU/LT locale files. `catalog.ts` derives supported languages and selector metadata; English is the fallback and structural reference. Named parameters and `Intl.PluralRules` handle grammar without concatenating translated fragments. See `docs/i18n.md`.
 - The add form keeps one device-local draft and clears it only after a successful committed record.
 

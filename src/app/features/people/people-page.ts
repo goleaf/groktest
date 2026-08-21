@@ -20,6 +20,24 @@ import { PageHeading } from '../../ui/page-heading';
       @if (rows().length === 0) {
         <app-empty-state icon="people" [message]="i18n.t('people.empty')" />
       } @else {
+        <section class="people-overview" [attr.aria-label]="i18n.t('people.summary')">
+          <div>
+            <span>{{ i18n.t('people.peopleLabel') }}</span>
+            <strong>{{ rows().length }}</strong>
+          </div>
+          <div>
+            <span>{{ i18n.t('people.openLabel') }}</span>
+            <strong>{{ activeTotal() }}</strong>
+          </div>
+          <div>
+            <span>{{ i18n.t('nav.lent') }}</span>
+            <strong>{{ lentTotal() }}</strong>
+          </div>
+          <div>
+            <span>{{ i18n.t('nav.borrowed') }}</span>
+            <strong>{{ borrowedTotal() }}</strong>
+          </div>
+        </section>
         <label class="people-search" for="people-search">
           <span class="icon-line"
             ><app-icon name="search" /> {{ i18n.t('people.searchLabel') }}</span
@@ -88,6 +106,15 @@ export class PeoplePage {
   private readonly app = inject(BorrowedApp);
   protected readonly rows = signal<PersonListRow[]>([]);
   protected readonly query = signal('');
+  protected readonly activeTotal = computed(() =>
+    this.rows().reduce((total, row) => total + row.activeCount, 0),
+  );
+  protected readonly lentTotal = computed(() =>
+    this.rows().reduce((total, row) => total + row.lentActiveCount, 0),
+  );
+  protected readonly borrowedTotal = computed(() =>
+    this.rows().reduce((total, row) => total + row.borrowedActiveCount, 0),
+  );
   protected readonly visibleRows = computed(() => {
     const query = this.query().trim().toLocaleLowerCase(this.i18n.locale());
     if (!query) {

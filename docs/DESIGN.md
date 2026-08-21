@@ -2,25 +2,24 @@
 
 ## Product posture
 
-Borrowed is a compact custody board. It helps a person see what is still away, act on the next handoff, and capture a new record in seconds.
+Borrowed is a compact handoff ledger. It helps a person see what is still away, who is on the other side of every transfer, act on the next deadline, and capture a new record in seconds.
 
 Physical scene: the user is standing in a hallway or garage doorway in daylight, using one hand while an object changes hands. The interface should feel like a durable equipment label: immediate, high-contrast, and calm.
 
 ## Visual identity
 
-The dark forest frame identifies the tool; the cool near-white work surface keeps records readable. Desaturated mint groups related controls. Mineral blue marks the primary action and focus. Coral appears only with explicit overdue text.
+White record surfaces and a cool hue-188 canvas make the ledger calm and readable. Deep teal identifies navigation, direction lines, primary actions, and focus. Rust appears only with explicit overdue text.
 
-| Token             | Value                    | Role                                |
-| ----------------- | ------------------------ | ----------------------------------- |
-| `--canvas`        | `oklch(0.975 0.004 164)` | Cool-neutral workspace              |
-| `--paper`         | `oklch(1 0 0)`           | Inputs and record surfaces          |
-| `--chrome`        | `oklch(0.19 0.045 164)`  | Mobile frame and desktop navigation |
-| `--chrome-raised` | `oklch(0.27 0.052 164)`  | Selected navigation                 |
-| `--mint`          | `oklch(0.94 0.025 164)`  | Grouping rails and icon wells       |
-| `--ink`           | `oklch(0.19 0.025 164)`  | Primary text                        |
-| `--muted`         | `oklch(0.43 0.022 164)`  | Secondary text                      |
-| `--action`        | `oklch(0.55 0.19 255)`   | Primary actions and focus           |
-| `--overdue`       | `oklch(0.57 0.19 29)`    | Overdue only                        |
+| Token             | Value                    | Role                                 |
+| ----------------- | ------------------------ | ------------------------------------ |
+| `--canvas`        | `oklch(0.975 0.012 188)` | Cool-teal workspace                  |
+| `--surface`       | `oklch(1 0 0)`           | Ledger, form, and navigation surface |
+| `--surface-muted` | `oklch(0.955 0.02 188)`  | Grouping rails and icon wells        |
+| `--teal`          | `oklch(0.48 0.11 188)`   | Primary actions and direction lines  |
+| `--teal-deep`     | `oklch(0.29 0.07 188)`   | Active navigation and strong labels  |
+| `--ink`           | `oklch(0.2 0.02 188)`    | Primary text                         |
+| `--muted`         | `oklch(0.46 0.025 188)`  | Secondary text                       |
+| `--overdue`       | `oklch(0.52 0.16 38)`    | Overdue only                         |
 
 Lent and borrowed are always distinguished by words and directional icons, never color alone.
 
@@ -38,16 +37,17 @@ The spacing system uses 4px micro steps and an 8px base. Controls use a 10px rad
 
 ## Shell and information architecture
 
-Mobile uses a dark compact brand bar and dark bottom navigation: Home, Records, Add, Search, More. Desktop switches at 880px to a 248px dark rail with Home, Records, Search, People, History, Add record, Settings, and the truthful local-device state.
+Mobile uses a compact white brand bar and white bottom navigation: Home, Records, Add, Search, More. Desktop switches at 880px to one horizontal white header with Home, Records, People, History, search, settings, language, and Add record. The truthful local-device state sits in the footer.
 
 Records is the unified active-record destination. Lent and Borrowed remain routes and direction scopes, not competing primary navigation systems.
 
 ## Signature patterns
 
-- Home begins with one action-ready handoff tag, then a single open-record count rail and open rows.
-- Add reads as a sentence: `I lent an item`, followed by who and what moved.
-- Detail begins with an asset marker, direction sentence, person, state, and action before metadata.
-- Lists, people, history, and navigation share one open-row vocabulary.
+- Home begins with one connected four-part summary ribbon, then a dense handoff ledger and contextual due/people rail.
+- Every open record displays the shared handoff line `You → Peter` or `Anna → You`; words and accessible copy carry direction as well as the arrow.
+- Add reads as a sentence and renders a live record preview beside the form.
+- Detail begins with the same handoff line, separates history/details from a contextual action rail, and keeps the next action visible.
+- Lists, people, history, and navigation share one separated ledger-row vocabulary.
 - Page titles use a compact mint icon well; section titles use a smaller unboxed symbol.
 - Empty states use a context icon and keep one clear next action where appropriate.
 
@@ -57,4 +57,4 @@ State transitions last 160–200ms and only clarify selection, focus, hover, or 
 
 ## Prohibited patterns
 
-No gradients, glass, warm cream, wide shadows, nested cards, metric dashboards, display serif, decorative badges, direction-by-color, or invented illustration data.
+No gradients, glass, warm cream, wide shadows, nested cards, display serif, decorative badges, direction-by-color, invented sync/social features, or illustration data. Summary metrics are allowed only when they navigate to real records and remain part of one connected ledger ribbon.

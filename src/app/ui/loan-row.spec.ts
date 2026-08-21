@@ -46,7 +46,9 @@ describe('LoanRow', () => {
 
     expect(root.querySelector('.row-leading app-icon')).toBeTruthy();
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('Peter');
-    expect(root.querySelector('.record-row__identity')?.textContent).toContain('Cordless drill');
+    expect(root.querySelector('.record-row__asset')?.textContent).toContain('Cordless drill');
+    expect(root.querySelector('.handoff-line')?.textContent).toContain('You');
+    expect(root.querySelector('.handoff-line')?.textContent).toContain('Peter');
     expect(root.querySelector('.record-row__direction')?.textContent).toContain('You lent it');
     expect(root.querySelector('.meta')?.textContent).toContain('Overdue by 2 days');
     expect(root.querySelector('.meta app-icon')).toBeTruthy();

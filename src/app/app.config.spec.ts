@@ -13,11 +13,12 @@ const source = processApi.process
   .readFileSync(`${processApi.process.cwd()}/src/app/app.config.ts`, 'utf8');
 
 describe('production application initializer', () => {
-  it('initializes persistence and restores the saved language without demo records', () => {
+  it('initializes persistence, restores language, and limits demo records to development', () => {
     expect(source).toContain('const app = inject(BorrowedApp)');
     expect(source).toContain('const settings = await app.initialize()');
     expect(source).toContain('i18n.setLanguage(settings.preferredLanguage)');
-    expect(source).not.toContain('seedDemoIfEmpty');
+    expect(source).toContain('if (isDevMode())');
+    expect(source).toContain('await seedDemoIfEmpty(app, clock)');
   });
 
   it('registers the production service worker for an offline application shell', () => {

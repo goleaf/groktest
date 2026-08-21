@@ -13,10 +13,11 @@ import { I18n } from '../../i18n/i18n';
 import { Icon } from '../../ui/icon';
 import { iconForLoan } from '../../ui/icon-for';
 import { DueStatus } from '../../ui/due-status';
+import { HandoffLine } from '../../ui/handoff-line';
 
 @Component({
   selector: 'app-detail-page',
-  imports: [DueStatus, FormsModule, RouterLink, Icon],
+  imports: [DueStatus, FormsModule, HandoffLine, RouterLink, Icon],
   template: `
     <section class="page detail-page">
       <button type="button" class="back" (click)="back()">
@@ -41,6 +42,10 @@ import { DueStatus } from '../../ui/due-status';
             <div>
               <p class="record-label">{{ i18n.t('detail.recordLabel') }}</p>
               <h1>{{ title() }}</h1>
+              <app-handoff-line
+                [direction]="data.loan.direction"
+                [personName]="data.loan.personNameSnapshot"
+              />
               <p class="detail-context">{{ directionCopy() }}</p>
             </div>
           </div>
@@ -52,127 +57,149 @@ import { DueStatus } from '../../ui/due-status';
             <app-icon name="chevron" />
           </a>
         </header>
-        @if (data.loan.status === 'active' && data.loan.dueOn) {
-          <div class="status-panel">
-            <app-due-status [dueOn]="data.loan.dueOn" [daysUntilDue]="daysUntilDue()" />
-          </div>
-        }
-        @if (moneyBalance(); as balance) {
-          <dl class="money-breakdown" [attr.aria-label]="i18n.t('detail.balanceLabel')">
-            <div data-balance="original">
-              <dt><app-icon name="money" /> {{ i18n.t('detail.original') }}</dt>
-              <dd>{{ balance.original }}</dd>
-            </div>
-            <div data-balance="repaid">
-              <dt><app-icon name="history" /> {{ i18n.t('detail.repaid') }}</dt>
-              <dd>{{ balance.repaid }}</dd>
-            </div>
-            <div data-balance="remaining">
-              <dt><app-icon name="clock" /> {{ i18n.t('detail.remainingLabel') }}</dt>
-              <dd>{{ balance.remaining }}</dd>
-            </div>
-          </dl>
-        }
-        @if (data.loan.status === 'active' && data.loan.assetKind === 'physical_item') {
-          <button class="button primary-detail-action" type="button" (click)="markReturned()">
-            <app-icon name="check" />
-            {{ returnAction() }}
-          </button>
-        }
-        @if (data.loan.status === 'active' && data.loan.assetKind === 'money') {
-          <form (ngSubmit)="repay()" class="stack">
-            <h2 class="section-heading">
-              <app-icon name="money" />
-              {{ repayPrompt() }}
-            </h2>
-            <label>
-              <span class="icon-line">
-                <app-icon name="money" />
-                {{ i18n.t('detail.repayAmount') }}
-              </span>
-              <input name="repay" inputmode="decimal" [(ngModel)]="repayAmount" />
-            </label>
-            <button class="button" type="submit">
-              <app-icon name="money" />
-              {{ repayAction() }}
-            </button>
-          </form>
-        }
-        <section class="detail-summary" [attr.aria-label]="i18n.t('detail.details')">
-          <div class="detail-row">
-            <span class="icon-line"
-              ><app-icon name="calendar" /> {{ i18n.t('detail.dueDate') }}</span
-            >
-            <strong>
-              {{
-                data.loan.dueOn
-                  ? formatCalendarDate(data.loan.dueOn, i18n.locale())
-                  : i18n.t('detail.noDue')
-              }}
-            </strong>
-          </div>
-          @if (data.loan.note) {
-            <div class="detail-row">
-              <span class="icon-line"><app-icon name="note" /> {{ i18n.t('detail.note') }}</span>
-              <strong>{{ data.loan.note }}</strong>
-            </div>
-          }
-        </section>
-        @if (data.loan.status === 'active') {
-          <details class="due-editor">
-            <summary>
-              <span class="icon-line">
-                <app-icon name="calendar" />
-                {{ i18n.t('detail.changeDueDate') }}
-              </span>
-              <app-icon class="disclosure-chevron" name="chevron" />
-            </summary>
-            <form class="due-date-form" (ngSubmit)="saveDueDate()">
-              <label>
-                <span class="icon-line">
-                  <app-icon name="calendar" />
-                  {{ i18n.t('detail.newDueDate') }}
-                </span>
-                <input
-                  type="date"
-                  name="dueDate"
-                  required
-                  [min]="data.loan.occurredOn"
-                  [(ngModel)]="dueDateDraft"
-                />
-              </label>
-              <button
-                class="button"
-                type="submit"
-                [disabled]="savingDueDate() || !dueDateDraft || dueDateDraft === data.loan.dueOn"
-                [attr.aria-busy]="savingDueDate()"
-              >
-                <app-icon name="calendar" />
-                {{ i18n.t(savingDueDate() ? 'detail.savingDueDate' : 'detail.saveDueDate') }}
-              </button>
-            </form>
-          </details>
-        }
-        @if (error()) {
-          <p class="error icon-line" role="alert">
-            <app-icon name="warning" />
-            {{ error() }}
-          </p>
-        }
-        <section class="section-block">
-          <h2 class="section-heading">
-            <app-icon name="history" /> {{ i18n.t('detail.historyHeading') }}
-          </h2>
-          <ol class="timeline">
-            @for (event of data.events; track event.id) {
-              <li>
-                <time [attr.datetime]="event.occurredAt">{{ eventDate(event.occurredAt) }}</time>
-                <span class="timeline-marker" aria-hidden="true"></span>
-                <span>{{ eventCopy(event) }}</span>
-              </li>
+        <div class="detail-workspace">
+          <div class="detail-main">
+            @if (data.loan.status === 'active' && data.loan.dueOn) {
+              <div class="status-panel">
+                <app-due-status [dueOn]="data.loan.dueOn" [daysUntilDue]="daysUntilDue()" />
+              </div>
             }
-          </ol>
-        </section>
+            @if (moneyBalance(); as balance) {
+              <dl class="money-breakdown" [attr.aria-label]="i18n.t('detail.balanceLabel')">
+                <div data-balance="original">
+                  <dt><app-icon name="money" /> {{ i18n.t('detail.original') }}</dt>
+                  <dd>{{ balance.original }}</dd>
+                </div>
+                <div data-balance="repaid">
+                  <dt><app-icon name="history" /> {{ i18n.t('detail.repaid') }}</dt>
+                  <dd>{{ balance.repaid }}</dd>
+                </div>
+                <div data-balance="remaining">
+                  <dt><app-icon name="clock" /> {{ i18n.t('detail.remainingLabel') }}</dt>
+                  <dd>{{ balance.remaining }}</dd>
+                </div>
+              </dl>
+            }
+            <section class="detail-summary" [attr.aria-label]="i18n.t('detail.details')">
+              <div class="detail-row">
+                <span class="icon-line"
+                  ><app-icon name="calendar" /> {{ i18n.t('detail.dueDate') }}</span
+                >
+                <strong>
+                  {{
+                    data.loan.dueOn
+                      ? formatCalendarDate(data.loan.dueOn, i18n.locale())
+                      : i18n.t('detail.noDue')
+                  }}
+                </strong>
+              </div>
+              @if (data.loan.note) {
+                <div class="detail-row">
+                  <span class="icon-line"
+                    ><app-icon name="note" /> {{ i18n.t('detail.note') }}</span
+                  >
+                  <strong>{{ data.loan.note }}</strong>
+                </div>
+              }
+            </section>
+            @if (data.loan.status === 'active') {
+              <details class="due-editor">
+                <summary>
+                  <span class="icon-line">
+                    <app-icon name="calendar" />
+                    {{ i18n.t('detail.changeDueDate') }}
+                  </span>
+                  <app-icon class="disclosure-chevron" name="chevron" />
+                </summary>
+                <form class="due-date-form" (ngSubmit)="saveDueDate()">
+                  <label>
+                    <span class="icon-line">
+                      <app-icon name="calendar" />
+                      {{ i18n.t('detail.newDueDate') }}
+                    </span>
+                    <input
+                      type="date"
+                      name="dueDate"
+                      required
+                      [min]="data.loan.occurredOn"
+                      [(ngModel)]="dueDateDraft"
+                    />
+                  </label>
+                  <button
+                    class="button"
+                    type="submit"
+                    [disabled]="
+                      savingDueDate() || !dueDateDraft || dueDateDraft === data.loan.dueOn
+                    "
+                    [attr.aria-busy]="savingDueDate()"
+                  >
+                    <app-icon name="calendar" />
+                    {{ i18n.t(savingDueDate() ? 'detail.savingDueDate' : 'detail.saveDueDate') }}
+                  </button>
+                </form>
+              </details>
+            }
+            @if (error()) {
+              <p class="error icon-line" role="alert">
+                <app-icon name="warning" />
+                {{ error() }}
+              </p>
+            }
+            <section class="section-block">
+              <h2 class="section-heading">
+                <app-icon name="history" /> {{ i18n.t('detail.historyHeading') }}
+              </h2>
+              <ol class="timeline">
+                @for (event of data.events; track event.id) {
+                  <li>
+                    <time [attr.datetime]="event.occurredAt">{{
+                      eventDate(event.occurredAt)
+                    }}</time>
+                    <span class="timeline-marker" aria-hidden="true"></span>
+                    <span>{{ eventCopy(event) }}</span>
+                  </li>
+                }
+              </ol>
+            </section>
+          </div>
+          <aside class="detail-action-rail" [attr.aria-label]="i18n.t('detail.nextStep')">
+            <p class="section-kicker">{{ i18n.t('detail.actionsKicker') }}</p>
+            <h2>{{ i18n.t('detail.nextStep') }}</h2>
+            @if (data.loan.status === 'active' && data.loan.assetKind === 'physical_item') {
+              <button class="button primary-detail-action" type="button" (click)="markReturned()">
+                <app-icon name="check" />
+                {{ returnAction() }}
+              </button>
+            }
+            @if (data.loan.status === 'active' && data.loan.assetKind === 'money') {
+              <form (ngSubmit)="repay()" class="stack repayment-form">
+                <h3 class="section-heading">
+                  <app-icon name="money" />
+                  {{ repayPrompt() }}
+                </h3>
+                <label>
+                  <span class="icon-line">
+                    <app-icon name="money" />
+                    {{ i18n.t('detail.repayAmount') }}
+                  </span>
+                  <input name="repay" inputmode="decimal" [(ngModel)]="repayAmount" />
+                </label>
+                <button class="button" type="submit">
+                  <app-icon name="money" />
+                  {{ repayAction() }}
+                </button>
+              </form>
+            }
+            @if (data.loan.status !== 'active') {
+              <p class="detail-completed">
+                <app-icon name="check" /> {{ i18n.t('loan.statusCompleted') }}
+              </p>
+            }
+            <p class="detail-local-note">
+              <app-icon name="info" /> {{ i18n.t('detail.localHint') }}
+            </p>
+          </aside>
+        </div>
       }
     </section>
   `,

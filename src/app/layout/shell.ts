@@ -11,52 +11,56 @@ import { CurrentDayTracker } from './current-day-tracker';
   template: `
     <div class="app-frame">
       <a class="skip-link" href="#main">{{ i18n.t('app.skipToContent') }}</a>
-      <aside class="app-navigation">
-        <header class="topbar">
+      <header class="app-header">
+        <div class="header-inner">
           <a class="brand-link" routerLink="/" [attr.aria-label]="i18n.t('app.homeLabel')">
             <span class="brand-mark" aria-hidden="true"><app-icon name="brand" /></span>
             <span class="brand">{{ i18n.t('app.name') }}</span>
           </a>
-          <app-language-switcher [compact]="true" />
-        </header>
-        <nav class="rail-nav" [attr.aria-label]="i18n.t('nav.workspaceLabel')">
-          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            <app-icon name="home" />
-            <span>{{ i18n.t('nav.home') }}</span>
-          </a>
-          <a routerLink="/records" routerLinkActive="active">
-            <app-icon name="records" />
-            <span>{{ i18n.t('nav.records') }}</span>
-          </a>
-          <a routerLink="/search" routerLinkActive="active">
-            <app-icon name="search" />
-            <span>{{ i18n.t('nav.search') }}</span>
-          </a>
-          <a routerLink="/people" routerLinkActive="active">
-            <app-icon name="people" />
-            <span>{{ i18n.t('nav.people') }}</span>
-          </a>
-          <a routerLink="/history" routerLinkActive="active">
-            <app-icon name="history" />
-            <span>{{ i18n.t('nav.history') }}</span>
-          </a>
-          <a routerLink="/settings" routerLinkActive="active">
-            <app-icon name="settings" />
-            <span>{{ i18n.t('nav.settings') }}</span>
-          </a>
-        </nav>
-        <a class="rail-add" routerLink="/add">
-          <app-icon name="add" />
-          {{ i18n.t('nav.addRecord') }}
-        </a>
-        <p class="presence rail-presence">
-          <app-icon name="device" />
-          {{ i18n.t('app.onThisDevice') }}
-        </p>
-      </aside>
+          <nav class="desktop-nav" [attr.aria-label]="i18n.t('nav.workspaceLabel')">
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+              <app-icon name="home" />
+              <span>{{ i18n.t('nav.home') }}</span>
+            </a>
+            <a routerLink="/records" routerLinkActive="active">
+              <app-icon name="records" />
+              <span>{{ i18n.t('nav.records') }}</span>
+            </a>
+            <a routerLink="/people" routerLinkActive="active">
+              <app-icon name="people" />
+              <span>{{ i18n.t('nav.people') }}</span>
+            </a>
+            <a routerLink="/history" routerLinkActive="active">
+              <app-icon name="history" />
+              <span>{{ i18n.t('nav.history') }}</span>
+            </a>
+          </nav>
+          <div class="header-tools">
+            <a class="header-tool-link" routerLink="/search" routerLinkActive="active">
+              <app-icon name="search" />
+              <span>{{ i18n.t('nav.search') }}</span>
+            </a>
+            <a class="header-tool-link" routerLink="/settings" routerLinkActive="active">
+              <app-icon name="settings" />
+              <span>{{ i18n.t('nav.settings') }}</span>
+            </a>
+            <app-language-switcher [compact]="true" />
+            <a class="header-add" routerLink="/add" [attr.aria-label]="i18n.t('nav.addRecord')">
+              <app-icon name="add" />
+              <span>{{ i18n.t('nav.addRecord') }}</span>
+            </a>
+          </div>
+        </div>
+      </header>
       <main id="main" class="main">
         <router-outlet />
       </main>
+      <footer class="app-footer">
+        <p class="presence">
+          <app-icon name="device" />
+          {{ i18n.t('app.onThisDevice') }}
+        </p>
+      </footer>
       <nav class="tabbar mobile-nav" [attr.aria-label]="i18n.t('nav.primaryLabel')">
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           <app-icon name="home" />
@@ -74,7 +78,7 @@ import { CurrentDayTracker } from './current-day-tracker';
           <app-icon name="search" />
           <span>{{ i18n.t('nav.search') }}</span>
         </a>
-        <a routerLink="/more" routerLinkActive="active" [attr.aria-label]="i18n.t('nav.moreLabel')">
+        <a routerLink="/more" routerLinkActive="active">
           <app-icon name="more" />
           <span>
             {{ i18n.t('nav.more') }}

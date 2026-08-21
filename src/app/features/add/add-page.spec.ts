@@ -45,6 +45,10 @@ describe('AddPage', () => {
     expect(root.querySelector('details input[type="date"]')).toBeNull();
     expect(root.querySelector('details summary')?.textContent).toContain('Add a note');
     expect(root.querySelector('button[type="submit"]')?.textContent).toContain('Save record');
+    expect(root.querySelector('.add-preview h2')?.textContent).toContain('Record preview');
+    expect(root.querySelector('.add-preview app-handoff-line')).toBeTruthy();
+    expect(root.querySelector('.add-preview')?.textContent).toContain('Person’s name');
+    expect(root.querySelector('.add-preview')?.textContent).toContain('Item or object');
 
     choiceButtons[1]?.dispatchEvent(new Event('click'));
     fixture.detectChanges();

@@ -7,17 +7,25 @@ import type { Loan } from '../domain/types';
 import { Icon } from './icon';
 import { iconForLoan } from './icon-for';
 import { DueStatus } from './due-status';
+import { HandoffLine } from './handoff-line';
 
 @Component({
   selector: 'app-loan-row',
-  imports: [DueStatus, RouterLink, Icon],
+  imports: [DueStatus, HandoffLine, RouterLink, Icon],
   template: `
     <a class="loan-row" [routerLink]="['/loans', loan().id]">
       <span class="row-leading" aria-hidden="true"><app-icon [name]="icon()" /></span>
-      <span class="body record-row__identity">
-        <strong>{{ loan().personNameSnapshot }}</strong>
-        <span>{{ title() }}</span>
-        <small class="record-row__direction">{{ directionLabel() }}</small>
+      <span class="body record-row__content">
+        <span class="record-row__identity">
+          <app-handoff-line
+            [direction]="loan().direction"
+            [personName]="loan().personNameSnapshot"
+          />
+          <small class="record-row__direction">{{ directionLabel() }}</small>
+        </span>
+        <span class="record-row__asset">
+          <strong class="record-row__title">{{ title() }}</strong>
+        </span>
       </span>
       <span class="meta">
         @if (remaining()) {

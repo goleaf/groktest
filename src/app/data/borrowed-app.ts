@@ -162,14 +162,12 @@ export class BorrowedApp {
 
   async activeLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
     const today = this.today();
-    const loans = (await this.store.listLoans()).filter(
-      (loan) => loan.status === 'active' && (!direction || loan.direction === direction),
-    );
+    const loans = await this.store.listActiveLoans(direction);
     return loans.sort((left, right) => urgencyRank(left, today) - urgencyRank(right, today));
   }
 
   async history(): Promise<Loan[]> {
-    const loans = (await this.store.listLoans()).filter((loan) => loan.status === 'completed');
+    const loans = await this.store.listCompletedLoans();
     return loans.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
   }
 
@@ -303,7 +301,12 @@ export class BorrowedApp {
     locale = 'en-GB',
   ): Promise<ReadonlyMap<string, string | null>> {
     const map = new Map<string, string | null>();
-    const repaymentsByLoan = await this.repaymentsByLoan();
+    const moneyLoanIds = loans
+      .filter((loan) => loan.assetKind === 'money')
+      .map((loan) => loan.id);
+    const repaymentsByLoan = this.groupRepayments(
+      await this.store.listRepaymentsForLoanIds(moneyLoanIds),
+    );
     for (const loan of loans) {
       if (loan.assetKind !== 'money' || !loan.currencyCode || loan.originalMinorUnits === null) {
         map.set(loan.id, null);

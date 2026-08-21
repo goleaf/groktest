@@ -39,8 +39,13 @@ describe('Shell', () => {
     expect(mobileNavigation?.querySelectorAll('a')).toHaveLength(5);
     expect(mobileNavigation?.querySelector('a[href="/records"]')).toBeTruthy();
     expect(mobileNavigation?.querySelector('a[href="/search"]')).toBeTruthy();
-    expect(desktopNavigation?.querySelectorAll('a')).toHaveLength(6);
-    expect(root.querySelector('.rail-add[href="/add"]')).toBeTruthy();
+    expect(root.querySelector('aside.app-navigation')).toBeNull();
+    expect(root.querySelector('header.app-header')).toBeTruthy();
+    expect(desktopNavigation?.querySelectorAll('a')).toHaveLength(4);
+    expect(root.querySelector('.header-tools a[href="/search"]')).toBeTruthy();
+    expect(root.querySelector('.header-tools a[href="/settings"]')).toBeTruthy();
+    expect(root.querySelector('.header-add[href="/add"]')).toBeTruthy();
+    expect(root.querySelector('footer.app-footer')).toBeTruthy();
     expect(root.querySelector('.brand-mark app-icon')).toBeTruthy();
     expect(root.querySelectorAll('.mobile-nav app-icon')).toHaveLength(5);
     expect(root.querySelector('a[href="#main"]')?.textContent).toContain('Skip to main content');

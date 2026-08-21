@@ -43,12 +43,44 @@ describe('home action urgency', () => {
       urgency: 'overdue',
       dueOn: '2026-08-19',
       daysUntilDue: -1,
+      personName: 'Peter',
+      subject: '€50.00',
     });
     expect(summary.actions[1]).toMatchObject({
       loanId: 'open-money',
       urgency: 'open',
       daysUntilDue: null,
     });
+  });
+
+  it('summarizes the busiest people and preserves both handoff directions', () => {
+    const summary = summarizeHome(
+      [
+        moneyLoan(),
+        moneyLoan({ id: 'borrowed', direction: 'borrowed' }),
+        moneyLoan({ id: 'anna', personId: 'p2', personNameSnapshot: 'Anna' }),
+      ],
+      new Map(),
+      '2026-08-20',
+      'en',
+    );
+
+    expect(summary.recentPeople).toEqual([
+      {
+        personId: 'p1',
+        personName: 'Peter',
+        activeCount: 2,
+        lentCount: 1,
+        borrowedCount: 1,
+      },
+      {
+        personId: 'p2',
+        personName: 'Anna',
+        activeCount: 1,
+        lentCount: 1,
+        borrowedCount: 0,
+      },
+    ]);
   });
 
   it('carries exact day distance for tomorrow and the due-soon window', () => {
@@ -70,5 +102,28 @@ describe('home action urgency', () => {
       urgency: 'due_soon',
       daysUntilDue: 3,
     });
+  });
+
+  it('bounds attention and due-next rows without duplicating or showing overdue deadlines', () => {
+    const loans = Array.from({ length: 12 }, (_, index) =>
+      moneyLoan({
+        id: `loan-${index}`,
+        dueOn: index < 2 ? `2026-08-${String(18 + index).padStart(2, '0')}` : `2026-09-${String(index).padStart(2, '0')}`,
+      }),
+    );
+
+    const summary = summarizeHome(loans, new Map(), '2026-08-20', 'en');
+    const actionIds = new Set(summary.actions.map((action) => action.loanId));
+
+    expect(summary.actions).toHaveLength(5);
+    expect(summary.dueNext).toHaveLength(4);
+    expect(summary.dueNext.every((action) => action.urgency !== 'overdue')).toBe(true);
+    expect(summary.dueNext.every((action) => !actionIds.has(action.loanId))).toBe(true);
+    expect(summary.dueNext.map((action) => action.dueOn)).toEqual([
+      '2026-09-05',
+      '2026-09-06',
+      '2026-09-07',
+      '2026-09-08',
+    ]);
   });
 });

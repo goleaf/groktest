@@ -38,7 +38,7 @@ CI performs all web gates and a separate Java 21 Android build. Full iOS compila
 
 - 320×568, 375×812, 390×844: no ordinary horizontal scroll; bottom navigation respects safe area; form controls and submit remain reachable.
 - Tablet around 768×1024: usable layout with no mobile-only hover dependency.
-- Desktop around 1440×900: rail, landmarks, readable line length and wider layout.
+- Desktop around 1440×900: horizontal header, ledger/context columns, landmarks and readable line length.
 - Keyboard: skip link, logical focus order, visible focus, form labels and actionable buttons.
 - Production PWA: load online once, verify active service worker, create a record, switch offline, reload, find the same record, perform another local action.
 - Console: zero application errors/warnings. Network failures expected only after explicit offline simulation and must not break core behavior.

@@ -37,7 +37,7 @@ Status: **Implemented** means present and verified in this Part; **Designed/defe
 |  31 | Implemented                      | Independent EN/RU/LT locale files, catalog parity, plurals, immediate switching, locale dates/currency; architecture supports more languages.         |
 |  32 | Implemented                      | Semantic landmarks/labels, keyboard focus, 44px targets, word+icon state, a11y lint.                                                                  |
 |  33 | Implemented                      | Mobile bottom nav, safe areas, no hover dependency/modal stack/fixed-height form.                                                                     |
-|  34 | Implemented                      | Desktop rail and wider composition reuse identical routes/flows.                                                                                      |
+|  34 | Implemented                      | Desktop horizontal header and wider ledger composition reuse identical routes/flows.                                                                  |
 |  35 | Implemented                      | Local-first reads, lazy routes, optimized production bundle; no premature database tuning claim.                                                      |
 |  36 | Implemented + deferred           | IndexedDB/Dexie structured store with migrations/transactions/indexes; native SQLite adapter is evidence-driven future work.                          |
 |  37 | Designed/deferred                | Durable v0 queue plus documented idempotency, versions, tombstones, retries, cursors and conflicts; no transport.                                     |

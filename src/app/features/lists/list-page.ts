@@ -1,20 +1,27 @@
-import { Component, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, resource } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { BorrowedApp } from '../../data/borrowed-app';
 import type { ListFilter } from '../../domain/query';
-import type { Loan } from '../../domain/types';
 import { I18n } from '../../i18n/i18n';
 import { EmptyState } from '../../ui/empty-state';
 import { Icon, type IconName } from '../../ui/icon';
 import { iconForFilter, iconForScope } from '../../ui/icon-for';
 import { LoanRow } from '../../ui/loan-row';
 import { PageHeading } from '../../ui/page-heading';
+import {
+  parseRecordListState,
+  recordListQueryParams,
+  type RecordListScope,
+  type RecordListState,
+} from './record-list-state';
 
 @Component({
   selector: 'app-list-page',
   imports: [EmptyState, LoanRow, Icon, FormsModule, PageHeading],
   template: `
-    <section class="page">
+    <section class="page records-page">
       <app-page-heading [icon]="icon()" [title]="i18n.t(titleKey())" />
       <div class="scope-switch" role="group" [attr.aria-label]="i18n.t('records.scopeLabel')">
         @for (option of scopes; track option) {
@@ -22,14 +29,18 @@ import { PageHeading } from '../../ui/page-heading';
             type="button"
             [class.on]="scope() === option"
             [attr.aria-pressed]="scope() === option"
-            (click)="scope.set(option)"
+            (click)="setScope(option)"
           >
             <app-icon class="control-icon" [name]="iconForScope(option)" />
             {{ i18n.t('records.' + option) }}
           </button>
         }
       </div>
-      @if (all().length === 0) {
+      @if (loadError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      } @else if (loading() && all().length === 0) {
+        <p class="search-guidance" role="status">{{ i18n.t('records.loading') }}</p>
+      } @else if (all().length === 0) {
         <app-empty-state
           [icon]="icon()"
           [message]="i18n.t(emptyKey())"
@@ -42,7 +53,7 @@ import { PageHeading } from '../../ui/page-heading';
             type="search"
             [attr.aria-label]="i18n.t('search.title')"
             [ngModel]="query()"
-            (ngModelChange)="query.set($event)"
+            (ngModelChange)="setQuery($event)"
             [placeholder]="i18n.t('search.placeholder')"
             name="list-search"
           />
@@ -53,16 +64,25 @@ import { PageHeading } from '../../ui/page-heading';
               type="button"
               [class.on]="filter() === option"
               [attr.aria-pressed]="filter() === option"
-              (click)="filter.set(option)"
+              (click)="setFilter(option)"
             >
               <app-icon class="control-icon" [name]="iconForFilter(option)" />
               {{ i18n.t('filter.' + option) }}
             </button>
           }
         </div>
+        <div class="results-bar" role="status" aria-live="polite">
+          <strong>{{ i18n.t('records.showing', { count: shown().length }) }}</strong>
+          <span>{{ i18n.t('records.localOnly') }}</span>
+        </div>
         @if (shown().length === 0) {
           <p class="search-guidance"><app-icon name="search" /> {{ i18n.t('search.none') }}</p>
         } @else {
+          <div class="ledger-columns" aria-hidden="true">
+            <span>{{ i18n.t('records.handoff') }}</span>
+            <span>{{ i18n.t('records.asset') }}</span>
+            <span>{{ i18n.t('records.status') }}</span>
+          </div>
           <ul class="loan-list">
             @for (loan of shown(); track loan.id) {
               <li><app-loan-row [loan]="loan" [remaining]="remainingOf(loan.id)" /></li>
@@ -82,32 +102,69 @@ export class ListPage {
 
   protected readonly i18n = inject(I18n);
   private readonly app = inject(BorrowedApp);
-  protected readonly all = signal<Loan[]>([]);
-  protected readonly scope = linkedSignal<'all' | 'lent' | 'borrowed'>(() => this.direction());
-  protected readonly scopes: ('all' | 'lent' | 'borrowed')[] = ['all', 'lent', 'borrowed'];
-  protected readonly remaining = signal<ReadonlyMap<string, string | null>>(new Map());
-  protected readonly query = signal('');
-  protected readonly filter = signal<ListFilter>('all');
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly queryParamMap = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  private readonly urlState = computed(() =>
+    parseRecordListState(this.queryParamMap(), this.direction()),
+  );
+  protected readonly scope = computed(() => this.urlState().scope);
+  protected readonly scopes: RecordListScope[] = ['all', 'lent', 'borrowed'];
+  protected readonly query = computed(() => this.urlState().query);
+  protected readonly filter = computed(() => this.urlState().filter);
   protected readonly filters: ListFilter[] = ['all', 'items', 'money', 'overdue', 'due_soon'];
+  private readonly recordsResource = resource({
+    params: () => ({
+      revision: this.app.revision(),
+      scope: this.scope(),
+      locale: this.i18n.locale(),
+    }),
+    loader: async ({ params }) => {
+      const loans = await this.app.activeLoans(
+        params.scope === 'all' ? undefined : params.scope,
+      );
+      return {
+        loans,
+        remaining: await this.app.remainingMap(loans, params.locale),
+      };
+    },
+  });
+  protected readonly all = computed(() => this.recordsResource.value()?.loans ?? []);
+  protected readonly remaining = computed(
+    () => this.recordsResource.value()?.remaining ?? new Map<string, string | null>(),
+  );
+  protected readonly loading = this.recordsResource.isLoading;
+  protected readonly loadError = computed(() =>
+    this.recordsResource.error() ? this.i18n.t('records.loadError') : '',
+  );
   protected readonly shown = computed(() =>
     this.app.filterLoans(this.all(), this.query(), this.filter()),
   );
   protected readonly iconForScope = iconForScope;
   protected readonly iconForFilter = iconForFilter;
 
-  constructor() {
-    effect(() => {
-      this.app.revision();
-      const direction = this.scope();
-      const locale = this.i18n.locale();
-      void this.app.activeLoans(direction === 'all' ? undefined : direction).then(async (value) => {
-        this.all.set(value);
-        this.remaining.set(await this.app.remainingMap(value, locale));
-      });
-    });
-  }
-
   protected remainingOf(id: string): string | null {
     return this.remaining().get(id) ?? null;
+  }
+
+  protected setScope(scope: RecordListScope): void {
+    this.navigateWithState({ ...this.urlState(), scope });
+  }
+
+  protected setFilter(filter: ListFilter): void {
+    this.navigateWithState({ ...this.urlState(), filter });
+  }
+
+  protected setQuery(query: string): void {
+    this.navigateWithState({ ...this.urlState(), query });
+  }
+
+  private navigateWithState(state: RecordListState): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: recordListQueryParams(state, this.direction(), this.route.snapshot.queryParams),
+    });
   }
 }

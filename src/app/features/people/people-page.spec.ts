@@ -41,6 +41,9 @@ describe('PeoplePage', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
 
+    expect(root.querySelectorAll('.people-overview > div')).toHaveLength(4);
+    expect(root.querySelector('.people-overview')?.textContent).toContain('2');
+    expect(root.querySelector('.people-overview')?.textContent).toContain('Open handoffs');
     expect(root.querySelector('.person-avatar')?.textContent).toContain('P');
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('Peter');
     expect(root.querySelector('.record-row__identity')?.textContent).toContain('1 lent');

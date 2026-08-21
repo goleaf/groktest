@@ -1,0 +1,29 @@
+.records-page .loan-list > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
+
+@media (max-width: 620px) {
+  .records-page .chips {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    margin-right: calc(var(--content-pad) * -1);
+    margin-left: calc(var(--content-pad) * -1);
+    padding: 2px var(--content-pad) 8px;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: var(--content-pad);
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .records-page .chips button {
+    flex: 0 0 auto;
+  }
+}
+
+@media print {
+  .records-page .loan-list > li {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
+}
