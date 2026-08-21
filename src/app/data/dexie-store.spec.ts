@@ -2,8 +2,9 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { indexedDB } from 'fake-indexeddb';
 import { describe, expect, it, vi } from 'vitest';
-import type { DomainClock } from '../domain/commands';
+import { changeLoanDueDate, type DomainClock } from '../domain/commands';
 import { outstandingMinorUnits } from '../domain/loan-rules';
+import type { Repayment, SyncMutation } from '../domain/types';
 import { BorrowedApp } from './borrowed-app';
 import { DexieBorrowedStore } from './dexie-store';
 
@@ -22,7 +23,120 @@ async function session(
   return { app, store };
 }
 
+async function tombstoneRepayment(
+  app: BorrowedApp,
+  store: DexieBorrowedStore,
+  loanId: string,
+  repaymentIndex = 0,
+) {
+  const record = await app.loanDetail(loanId);
+  const repayment = record?.repayments[repaymentIndex];
+  const event = record?.events.at(-1);
+  if (!record || !repayment || !event) {
+    throw new Error('repayment_fixture_missing');
+  }
+
+  const deleted = { ...repayment, deletedAt: '2026-08-20T13:00:00.000Z' as const };
+  await store.putLoanBundle({
+    person: record.person,
+    loan: record.loan,
+    event,
+    extra: { repayment: deleted },
+    clock,
+  });
+  return deleted;
+}
+
+function settingsMutations(mutations: readonly SyncMutation[]): SyncMutation[] {
+  return mutations.filter((entry) => entry.entityType === 'settings' && entry.entityId === 'local');
+}
+
 describe('local persistence', () => {
+  it('creates one stable local settings record and mutation on a normal first run', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const store = new DexieBorrowedStore(dbName);
+
+    const created = await store.initialize(clock);
+    const persisted = await store.getSettings();
+    const mutations = settingsMutations(await store.listPendingMutations());
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+
+    expect(created.id).toBe('local');
+    expect(persisted).toEqual(created);
+    expect(mutations).toHaveLength(1);
+    expect(mutations[0]?.payloadJson).toContain(created.localIdentityId);
+  });
+
+  it('returns existing local settings without replacing identity or adding a mutation', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const firstStore = new DexieBorrowedStore(dbName);
+    const created = await firstStore.initialize(clock);
+    await firstStore.close();
+
+    const laterClock: DomainClock = {
+      now: () => new Date('2026-08-21T12:00:00.000Z'),
+      timeZone: () => 'UTC',
+    };
+    const secondStore = new DexieBorrowedStore(dbName);
+    const existing = await secondStore.initialize(laterClock);
+    const persisted = await secondStore.getSettings();
+    const mutations = settingsMutations(await secondStore.listPendingMutations());
+
+    await secondStore.close();
+    indexedDB.deleteDatabase(dbName);
+
+    expect(existing).toEqual(created);
+    expect(persisted).toEqual(created);
+    expect(mutations).toHaveLength(1);
+  });
+
+  it('keeps one settings identity and mutation across concurrent first-run stores', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const firstStore = new DexieBorrowedStore(dbName);
+    const secondStore = new DexieBorrowedStore(dbName);
+
+    const [first, second] = await Promise.all([
+      firstStore.initialize(clock),
+      secondStore.initialize(clock),
+    ]);
+    const persisted = await firstStore.getSettings();
+    const mutations = settingsMutations(await secondStore.listPendingMutations());
+
+    await Promise.all([firstStore.close(), secondStore.close()]);
+    indexedDB.deleteDatabase(dbName);
+
+    expect(mutations).toHaveLength(1);
+    expect(second.localIdentityId).toBe(first.localIdentityId);
+    expect(persisted.localIdentityId).toBe(first.localIdentityId);
+    expect(mutations[0]?.payloadJson).toContain(first.localIdentityId);
+  });
+
+  it('keeps the concurrent initialization winner stable after reload', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const firstStore = new DexieBorrowedStore(dbName);
+    const secondStore = new DexieBorrowedStore(dbName);
+    const [first, second] = await Promise.all([
+      firstStore.initialize(clock),
+      secondStore.initialize(clock),
+    ]);
+    await Promise.all([firstStore.close(), secondStore.close()]);
+
+    const reloadedStore = new DexieBorrowedStore(dbName);
+    const reloaded = await reloadedStore.initialize(clock);
+    const persisted = await reloadedStore.getSettings();
+    const mutations = settingsMutations(await reloadedStore.listPendingMutations());
+
+    await reloadedStore.close();
+    indexedDB.deleteDatabase(dbName);
+
+    expect(second.localIdentityId).toBe(first.localIdentityId);
+    expect(reloaded.localIdentityId).toBe(first.localIdentityId);
+    expect(persisted.localIdentityId).toBe(first.localIdentityId);
+    expect(mutations).toHaveLength(1);
+  });
+
   it('updates relative due state when the local calendar day changes without editing a loan', async () => {
     const dbName = `borrowed-test-${crypto.randomUUID()}`;
     let now = new Date('2026-08-20T12:00:00.000Z');
@@ -96,6 +210,108 @@ describe('local persistence', () => {
     expect(afterFull?.loan.status).toBe('completed');
     const history = await app.history();
     expect(history).toHaveLength(1);
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('excludes soft-deleted repayments from current one-loan and batched reads', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Peter',
+      amount: '100',
+      currency: 'EUR',
+    });
+    await app.repay(loan.id, '25', 'EUR');
+    await app.repay(loan.id, '10', 'EUR');
+    const activeId = (await app.loanDetail(loan.id))?.repayments[0]?.id;
+    const deleted = await tombstoneRepayment(app, store, loan.id, 1);
+    const oneLoanRepaymentIds = (await store.listRepayments(loan.id)).map(
+      (repayment) => repayment.id,
+    );
+    const allRepaymentIds = (await store.listRepayments()).map((repayment) => repayment.id);
+    const batchedRepaymentIds = (await store.listRepaymentsForLoanIds([loan.id])).map(
+      (repayment) => repayment.id,
+    );
+
+    expect(oneLoanRepaymentIds).toEqual([activeId]);
+    expect(allRepaymentIds).toEqual([activeId]);
+    expect(batchedRepaymentIds).toEqual([activeId]);
+    expect(oneLoanRepaymentIds).not.toContain(deleted.id);
+    expect(await app.pendingMutations()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entityType: 'repayment',
+          entityId: deleted.id,
+          payloadJson: expect.stringContaining(`"deletedAt":"${deleted.deletedAt}"`),
+        }),
+      ]),
+    );
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('passes only active repayments to transactional mutation projections', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Peter',
+      amount: '100',
+      currency: 'EUR',
+      dueOn: '2026-08-25',
+    });
+    await app.repay(loan.id, '25', 'EUR');
+    await tombstoneRepayment(app, store, loan.id);
+    const observedRepayments = vi.fn<(repayments: readonly Repayment[]) => void>();
+
+    await store.updateLoan({
+      loanId: loan.id,
+      clock,
+      apply: (current, repayments) => {
+        observedRepayments(repayments);
+        return changeLoanDueDate(current, '2026-08-26', clock);
+      },
+    });
+
+    expect(observedRepayments).toHaveBeenCalledExactlyOnceWith([]);
+
+    await store.close();
+    indexedDB.deleteDatabase(dbName);
+  });
+
+  it('keeps tombstoned repayments out of balances, summaries, detail, lists, and export', async () => {
+    const dbName = `borrowed-test-${crypto.randomUUID()}`;
+    const { app, store } = await session(dbName);
+    const loan = await app.createRecord({
+      direction: 'lent',
+      kind: 'money',
+      personName: 'Peter',
+      amount: '100',
+      currency: 'EUR',
+    });
+    await app.repay(loan.id, '25', 'EUR');
+    await tombstoneRepayment(app, store, loan.id);
+
+    expect(await app.remainingFor(loan)).toBe(10000n);
+    expect((await app.remainingMap([loan])).get(loan.id)).toBeNull();
+    expect((await app.loanDetail(loan.id))?.repayments).toEqual([]);
+
+    const home = await app.home('en-GB');
+    expect(home.moneyOwedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 10000n }]);
+    expect(home.actions.find((action) => action.loanId === loan.id)?.subject).toBe('€100.00');
+
+    const person = await app.personOverview(loan.personId);
+    expect(person.owedToMe).toEqual([{ currencyCode: 'EUR', minorUnits: 10000n }]);
+    expect(person.remainingMinorUnitsByLoan.get(loan.id)).toBe(10000n);
+
+    const exported: unknown = JSON.parse(await app.exportJson());
+    expect(exported).toMatchObject({ repayments: [] });
+
     await store.close();
     indexedDB.deleteDatabase(dbName);
   });

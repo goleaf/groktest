@@ -17,6 +17,10 @@ export const localeCatalog = {
 export type SupportedLanguage = keyof typeof localeCatalog;
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
 
+export function isSupportedLanguage(value: string): value is SupportedLanguage {
+  return Object.prototype.hasOwnProperty.call(localeCatalog, value);
+}
+
 export interface LanguageOption {
   readonly code: SupportedLanguage;
   readonly flag: string;
@@ -30,9 +34,7 @@ export const LANGUAGE_OPTIONS: readonly LanguageOption[] = Object.values(localeC
 
 export function resolveSupportedLanguage(value: string | null | undefined): SupportedLanguage {
   const normalized = value?.trim().toLowerCase().split(/[-_]/)[0];
-  return normalized && normalized in localeCatalog
-    ? (normalized as SupportedLanguage)
-    : DEFAULT_LANGUAGE;
+  return normalized && isSupportedLanguage(normalized) ? normalized : DEFAULT_LANGUAGE;
 }
 
 export function validateLocaleCatalogs(): readonly string[] {

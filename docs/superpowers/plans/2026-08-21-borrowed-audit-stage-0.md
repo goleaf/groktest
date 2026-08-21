@@ -40,7 +40,7 @@ Fresh clean-HEAD baseline on 2026-08-21:
 
 ### Current-HEAD reconciliation — 2026-08-21
 
-- **Current HEAD:** `c7100bbfc587b9d84eed32a90f6a3933ac985aec` on `main`, matching
+- **Current HEAD:** `b6de8861511dbd0922194ae3170b8c5bb9bc687e` on `main`, matching
   `origin/main` at pre-flight.
 - **Completed:** Tasks 1-6 and all of their behavioral checkboxes are present in current code and
   tests. The strict compiler contract, return chronology invariant, shared attention comparator,
@@ -56,15 +56,16 @@ Fresh clean-HEAD baseline on 2026-08-21:
   required disposable-browser checks at 390x844 and 1440x1000, inspect the final diff/history, and
   append current-HEAD evidence below. No missing Stage 0 production behavior was found, so no new
   behavioral implementation or artificial RED test is required.
-- **Dirty files owned by other work:**
-  `docs/superpowers/plans/0000-ACTIVE-CODEX-COORDINATION.md` is modified and
-  `src/app/architecture-boundaries.spec.ts` is untracked. This Stage 0 closeout does not edit,
-  format, stage, commit, or absorb either path.
+- **Dirty files owned by other work:** none at the latest reconciliation. Pre-flight initially
+  found coordinator-owned changes in `0000-ACTIVE-CODEX-COORDINATION.md` and
+  `src/app/architecture-boundaries.spec.ts`; another worker published both in `b6de886` while this
+  task was running. This closeout did not edit or stage either path.
 - **Changes after this plan was written:** `222ba08` had already supplied Detail's duplicate-return
   busy guard; `329bdac` recorded the first Stage 0 completion evidence; `50884e7` began Stage 1;
   and published commit `c7100bb` combined Stage 0 typed-test cleanup with Stage 1 Task 2 raw-balance
-  changes. Those later Stage 1 changes are verification context only and are not extended or
-  refactored by this task.
+  changes. Concurrent `b6de886` then published the coordination/architecture guard and this
+  reconciliation paragraph without changing production behavior. Those later Stage 1 changes are
+  verification context only and are not extended or refactored by this task.
 
 ## File ownership for this plan
 
@@ -646,6 +647,49 @@ no whitespace errors.
   outline. The browser console contained zero errors and zero warnings.
 - No Stage 0 production/test paths remained dirty. An externally created untracked
   `2026-08-21-borrowed-audit-stage-0-final-verification.md` was preserved unchanged.
+
+## Current-HEAD completion evidence — `b6de886`
+
+This refresh verifies the already-landed Stage 0 implementation without reopening it or entering
+Stage 1:
+
+- [x] Focused Stage 0 matrix passed: 9 files / 79 tests covering commands, the attention
+      comparator and both summary consumers, Dexie transactions, Add, History, Detail, and i18n
+      parity.
+- [x] `pnpm audit --audit-level high` exited 0 with one moderate advisory and no high/critical
+      advisory.
+- [ ] `pnpm lint` is not repository-green: Angular ESLint passed, but Prettier reported only
+      `src/app/features/lists/list-page.ts` and
+      `src/app/features/people/person-page.ts`. Both were introduced by later Stage 1 Task 2 work
+      in `c7100bb`; changing them is outside this Stage 0 task. No Stage 0 source or owned plan path
+      was reported.
+- [x] Full tests passed: 42 files / 190 tests, including the concurrent untracked architecture
+      characterization guard.
+- [x] `pnpm typecheck`, the production `pnpm build`, and `git diff --check` exited 0. Production
+      styles remained 37.92 kB raw / 6.58 kB estimated transfer.
+- [x] Angular CLI MCP built and served the app at `http://localhost:4200/`; Playwright used its
+      disposable browser context at 390x844 and 1440x1000. Both widths had one `main`, one `h1`,
+      and no horizontal overflow.
+- [x] Add mounted its initialized Signal Form, switched item/money fields from the form-hidden
+      contract, persisted a draft with a polite live status, retained its live preview, and showed
+      a keyboard-focused input with a visible 3px teal outline. Initialization failure/retry and
+      draft-write error preservation remain covered by the focused component tests; no production
+      fault-injection hook was added.
+- [x] History rendered 32 completed rows at both widths, keyboard Tab reached its search field with
+      the visible 3px focus ring, and a non-matching query rendered the distinct filtered-empty
+      state. Error/retry and stale-generation ordering remain covered by its focused component
+      tests.
+- [x] Detail completed one item return in the disposable database and announced success through a
+      polite status region. Its transient disabled/`aria-busy` duplicate-write guard remains
+      covered by the focused Detail component test rather than browser fault injection.
+- [x] The browser console contained zero errors and zero warnings. All 43 observed development
+      requests returned HTTP 200. The disposable browser profile was closed and the Angular dev
+      server was stopped; no browser artifact was added to the repository.
+
+**Current closeout status:** all Stage 0 behavior and Stage 0-owned verification are complete.
+The whole-repository lint checkbox remains blocked solely by the two later Stage 1 formatting
+failures above. This plan does not authorize absorbing that work, weakening the gate, or marking
+the aggregate suite fully green.
 
 ## Plan self-review
 

@@ -9,6 +9,12 @@ export const lt = {
     onThisDevice: 'Šiame įrenginyje',
     skipToContent: 'Pereiti prie pagrindinio turinio',
     homeLabel: 'Į Borrowed pradžią',
+    dataCorruptionEyebrow: 'Vietinių duomenų apsauga',
+    dataCorruptionTitle: 'Nepavyko atverti vietinių duomenų',
+    dataCorruptionBody:
+      'Borrowed šiame įrenginyje rado išsaugotų duomenų, kurių negali saugiai perskaityti. Niekas nebuvo pakeista ar ištrinta.',
+    dataCorruptionDetail:
+      'Palikite šį įrenginį ir jo duomenis nepakeistus. Šioje versijoje atkūrimo įrankių dar nėra.',
   },
   nav: {
     home: 'Pradžia',

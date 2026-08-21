@@ -38,6 +38,7 @@ export abstract class BorrowedStore {
   abstract updateLoan(input: {
     loanId: string;
     clock: DomainClock;
+    /** Receives only active repayments; tombstoned rows stay a persistence concern. */
     apply: (loan: Loan, repayments: readonly Repayment[]) => LoanUpdate;
   }): Promise<Loan>;
   abstract listLoans(): Promise<Loan[]>;
@@ -45,7 +46,9 @@ export abstract class BorrowedStore {
   abstract listCompletedLoans(): Promise<Loan[]>;
   abstract listLoansForPerson(personId: string): Promise<Loan[]>;
   abstract findLoan(id: string): Promise<Loan | undefined>;
+  /** Lists active repayments only. Historical/deleted reads require a separate explicit API. */
   abstract listRepayments(loanId?: string): Promise<Repayment[]>;
+  /** Lists active repayments only for the requested loan ids. */
   abstract listRepaymentsForLoanIds(loanIds: readonly string[]): Promise<Repayment[]>;
   abstract listEvents(loanId: string): Promise<LoanEvent[]>;
   abstract loadLoanRecord(id: string): Promise<LoanRecord | undefined>;

@@ -3,6 +3,7 @@ import type {
   LoanEvent,
   LocalSettings,
   Person,
+  RecordDraft,
   Repayment,
   SyncMutation,
 } from '../domain/types';
@@ -12,15 +13,25 @@ import type {
   MutationRow,
   PersonRow,
   RepaymentRow,
+  RecordDraftRow,
   SettingsRow,
 } from './rows';
+import {
+  decodeLoanEventRow,
+  decodeLoanRow,
+  decodeMutationRow,
+  decodePersonRow,
+  decodeRecordDraftRow,
+  decodeRepaymentRow,
+  decodeSettingsRow,
+} from './row-decoders';
 
 export function personToRow(person: Person): PersonRow {
   return { ...person };
 }
 
-export function personFromRow(row: PersonRow): Person {
-  return { ...row };
+export function personFromRow(row: unknown): Person {
+  return decodePersonRow(row);
 }
 
 export function loanToRow(loan: Loan): LoanRow {
@@ -31,19 +42,16 @@ export function loanToRow(loan: Loan): LoanRow {
   };
 }
 
-export function loanFromRow(row: LoanRow): Loan {
-  return {
-    ...row,
-    originalMinorUnits: row.originalMinorUnits === null ? null : BigInt(row.originalMinorUnits),
-  };
+export function loanFromRow(row: unknown): Loan {
+  return decodeLoanRow(row);
 }
 
 export function repaymentToRow(repayment: Repayment): RepaymentRow {
   return { ...repayment, minorUnits: repayment.minorUnits.toString() };
 }
 
-export function repaymentFromRow(row: RepaymentRow): Repayment {
-  return { ...row, minorUnits: BigInt(row.minorUnits) };
+export function repaymentFromRow(row: unknown): Repayment {
+  return decodeRepaymentRow(row);
 }
 
 export function eventToRow(event: LoanEvent): LoanEventRow {
@@ -58,30 +66,30 @@ export function eventToRow(event: LoanEvent): LoanEventRow {
   };
 }
 
-export function eventFromRow(row: LoanEventRow): LoanEvent {
-  return {
-    id: row.id,
-    loanId: row.loanId,
-    type: row.type,
-    summaryKey: row.summaryKey,
-    summaryParams: JSON.parse(row.summaryParamsJson) as Record<string, string>,
-    occurredAt: row.occurredAt,
-    createdAt: row.createdAt,
-  };
+export function eventFromRow(row: unknown): LoanEvent {
+  return decodeLoanEventRow(row);
 }
 
 export function settingsToRow(settings: LocalSettings): SettingsRow {
   return { ...settings };
 }
 
-export function settingsFromRow(row: SettingsRow): LocalSettings {
-  return { ...row };
+export function settingsFromRow(row: unknown): LocalSettings {
+  return decodeSettingsRow(row);
 }
 
 export function mutationToRow(mutation: SyncMutation): MutationRow {
   return { ...mutation };
 }
 
-export function mutationFromRow(row: MutationRow): SyncMutation {
-  return { ...row };
+export function mutationFromRow(row: unknown): SyncMutation {
+  return decodeMutationRow(row);
+}
+
+export function recordDraftToRow(draft: RecordDraft): RecordDraftRow {
+  return { ...draft };
+}
+
+export function recordDraftFromRow(row: unknown): RecordDraft {
+  return decodeRecordDraftRow(row);
 }

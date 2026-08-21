@@ -14,11 +14,12 @@ const source = processApi.process
 
 describe('production application initializer', () => {
   it('initializes persistence, restores language, and limits demo records to development', () => {
-    expect(source).toContain('const app = inject(BorrowedApp)');
-    expect(source).toContain('const settings = await app.initialize()');
-    expect(source).toContain('i18n.setLanguage(settings.preferredLanguage)');
-    expect(source).toContain('if (isDevMode())');
-    expect(source).toContain('await seedDemoIfEmpty(app, clock)');
+    expect(source).toContain('initializeBorrowedApplication({');
+    expect(source).toContain('app: inject(BorrowedApp)');
+    expect(source).toContain('i18n: inject(I18n)');
+    expect(source).toContain('state: inject(ApplicationInitializationState)');
+    expect(source).toContain('development: isDevMode()');
+    expect(source).toContain('seed: seedDemoIfEmpty');
   });
 
   it('registers the production service worker for an offline application shell', () => {

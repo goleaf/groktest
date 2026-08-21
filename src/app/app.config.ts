@@ -15,6 +15,10 @@ import { browserClock, CLOCK } from './data/clock';
 import { routes } from './app.routes';
 import { I18n } from './i18n/i18n';
 import { seedDemoIfEmpty } from './data/seed';
+import {
+  ApplicationInitializationState,
+  initializeBorrowedApplication,
+} from './application-initialization';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,15 +31,15 @@ export const appConfig: ApplicationConfig = {
     }),
     { provide: CLOCK, useFactory: browserClock },
     ...provideBorrowedPersistence(),
-    provideAppInitializer(async () => {
-      const app = inject(BorrowedApp);
-      const i18n = inject(I18n);
-      const clock = inject(CLOCK);
-      const settings = await app.initialize();
-      i18n.setLanguage(settings.preferredLanguage);
-      if (isDevMode()) {
-        await seedDemoIfEmpty(app, clock);
-      }
-    }),
+    provideAppInitializer(() =>
+      initializeBorrowedApplication({
+        app: inject(BorrowedApp),
+        i18n: inject(I18n),
+        clock: inject(CLOCK),
+        state: inject(ApplicationInitializationState),
+        development: isDevMode(),
+        seed: seedDemoIfEmpty,
+      }),
+    ),
   ],
 };

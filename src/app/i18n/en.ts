@@ -7,6 +7,12 @@ export const en = {
     onThisDevice: 'On this device',
     skipToContent: 'Skip to main content',
     homeLabel: 'Borrowed home',
+    dataCorruptionEyebrow: 'Local data protection',
+    dataCorruptionTitle: 'Your local data could not be opened',
+    dataCorruptionBody:
+      'Borrowed found saved data on this device that it cannot safely read. Nothing was changed or deleted.',
+    dataCorruptionDetail:
+      'Keep this device and its data as-is. Recovery tools are not available in this version.',
   },
   nav: {
     home: 'Home',

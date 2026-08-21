@@ -22,13 +22,21 @@ import {
   mutationToRow,
   personFromRow,
   personToRow,
+  recordDraftFromRow,
+  recordDraftToRow,
   repaymentFromRow,
   repaymentToRow,
   settingsFromRow,
   settingsToRow,
 } from './mappers';
+import type { RepaymentRow } from './rows';
+import { isPendingMutationRow } from './row-decoders';
 import type { LoanRecord } from './store';
 import { BorrowedStore } from './store';
+
+function activeRepaymentsFromRows(rows: readonly RepaymentRow[]): Repayment[] {
+  return rows.map(repaymentFromRow).filter((repayment) => repayment.deletedAt === null);
+}
 
 function mutation(
   entityType: SyncEntityType,
@@ -58,28 +66,29 @@ export class DexieBorrowedStore extends BorrowedStore {
   }
 
   async initialize(clock: DomainClock): Promise<LocalSettings> {
-    const existing = await this.db.settings.get(LOCAL_SETTINGS_ID);
-    if (existing) {
-      return settingsFromRow(existing);
-    }
-    const at = instantFrom(clock.now());
-    const settings: LocalSettings = {
-      id: 'local',
-      localIdentityId: createId(),
-      preferredCurrency: DEFAULT_CURRENCY,
-      preferredLanguage: 'en',
-      schemaVersion: LOCAL_SCHEMA_VERSION,
-      version: 1,
-      createdAt: at,
-      updatedAt: at,
-    };
-    await this.db.transaction('rw', this.db.settings, this.db.mutations, async () => {
-      await this.db.settings.put(settingsToRow(settings));
-      await this.db.mutations.put(
+    return this.db.transaction('rw', this.db.settings, this.db.mutations, async () => {
+      const existing = await this.db.settings.get(LOCAL_SETTINGS_ID);
+      if (existing) {
+        return settingsFromRow(existing);
+      }
+
+      const at = instantFrom(clock.now());
+      const settings: LocalSettings = {
+        id: 'local',
+        localIdentityId: createId(),
+        preferredCurrency: DEFAULT_CURRENCY,
+        preferredLanguage: 'en',
+        schemaVersion: LOCAL_SCHEMA_VERSION,
+        version: 1,
+        createdAt: at,
+        updatedAt: at,
+      };
+      await this.db.settings.add(settingsToRow(settings));
+      await this.db.mutations.add(
         mutationToRow(mutation('settings', settings.id, settings, clock)),
       );
+      return settings;
     });
-    return settings;
   }
 
   async getSettings(): Promise<LocalSettings> {
@@ -106,7 +115,7 @@ export class DexieBorrowedStore extends BorrowedStore {
 
   async listPeople(): Promise<Person[]> {
     const rows = await this.db.people.toArray();
-    return rows.filter((row) => row.deletedAt === null).map(personFromRow);
+    return rows.map(personFromRow).filter((person) => person.deletedAt === null);
   }
 
   async putLoanBundle(input: {
@@ -173,14 +182,18 @@ export class DexieBorrowedStore extends BorrowedStore {
       this.db.mutations,
       async () => {
         const loanRow = await this.db.loans.get(input.loanId);
-        if (!loanRow || loanRow.deletedAt !== null) {
+        if (!loanRow) {
+          throw new Error('loan_missing');
+        }
+        const loan = loanFromRow(loanRow);
+        if (loan.deletedAt !== null) {
           throw new Error('loan_missing');
         }
         const repaymentRows = await this.db.repayments
           .where('loanId')
           .equals(input.loanId)
           .toArray();
-        const result = input.apply(loanFromRow(loanRow), repaymentRows.map(repaymentFromRow));
+        const result = input.apply(loan, activeRepaymentsFromRows(repaymentRows));
         await this.db.loans.put(loanToRow(result.loan));
         await this.db.events.put(eventToRow(result.event));
         await this.db.mutations.put(
@@ -211,38 +224,43 @@ export class DexieBorrowedStore extends BorrowedStore {
 
   async listLoans(): Promise<Loan[]> {
     const rows = await this.db.loans.toArray();
-    return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
+    return rows.map(loanFromRow).filter((loan) => loan.deletedAt === null);
   }
 
   async listActiveLoans(direction?: 'lent' | 'borrowed'): Promise<Loan[]> {
     const rows = await this.db.loans.where('status').equals('active').toArray();
     return rows
+      .map(loanFromRow)
       .filter(
-        (row) => row.deletedAt === null && (direction === undefined || row.direction === direction),
-      )
-      .map(loanFromRow);
+        (loan) =>
+          loan.deletedAt === null && (direction === undefined || loan.direction === direction),
+      );
   }
 
   async listCompletedLoans(): Promise<Loan[]> {
     const rows = await this.db.loans.where('status').equals('completed').toArray();
-    return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
+    return rows.map(loanFromRow).filter((loan) => loan.deletedAt === null);
   }
 
   async listLoansForPerson(personId: string): Promise<Loan[]> {
     const rows = await this.db.loans.where('personId').equals(personId).toArray();
-    return rows.filter((row) => row.deletedAt === null).map(loanFromRow);
+    return rows.map(loanFromRow).filter((loan) => loan.deletedAt === null);
   }
 
   async findLoan(id: string): Promise<Loan | undefined> {
     const row = await this.db.loans.get(id);
-    return row && row.deletedAt === null ? loanFromRow(row) : undefined;
+    if (!row) {
+      return undefined;
+    }
+    const loan = loanFromRow(row);
+    return loan.deletedAt === null ? loan : undefined;
   }
 
   async listRepayments(loanId?: string): Promise<Repayment[]> {
     const rows = loanId
       ? await this.db.repayments.where('loanId').equals(loanId).toArray()
       : await this.db.repayments.toArray();
-    return rows.map(repaymentFromRow);
+    return activeRepaymentsFromRows(rows);
   }
 
   async listRepaymentsForLoanIds(loanIds: readonly string[]): Promise<Repayment[]> {
@@ -253,7 +271,7 @@ export class DexieBorrowedStore extends BorrowedStore {
       .where('loanId')
       .anyOf([...loanIds])
       .toArray();
-    return rows.map(repaymentFromRow);
+    return activeRepaymentsFromRows(rows);
   }
 
   async listEvents(loanId: string): Promise<LoanEvent[]> {
@@ -281,18 +299,19 @@ export class DexieBorrowedStore extends BorrowedStore {
   }
 
   async listPendingMutations(): Promise<SyncMutation[]> {
-    const rows = await this.db.mutations.filter((row) => row.ackedAt === null).toArray();
+    const rows = await this.db.mutations.filter(isPendingMutationRow).toArray();
     return rows
       .map(mutationFromRow)
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
   async getRecordDraft(): Promise<RecordDraft | undefined> {
-    return this.db.drafts.get('add-record');
+    const row = await this.db.drafts.get('add-record');
+    return row ? recordDraftFromRow(row) : undefined;
   }
 
   async saveRecordDraft(draft: RecordDraft): Promise<void> {
-    await this.db.drafts.put(draft);
+    await this.db.drafts.put(recordDraftToRow(draft));
   }
 
   async clearRecordDraft(): Promise<void> {
