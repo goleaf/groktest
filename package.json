@@ -9,6 +9,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
+    "test:deployment": "node --test deploy/deployment-contract.test.mjs",
     "typecheck": "ng build --configuration development",
     "lint": "pnpm lint:eslint && pnpm lint:format",
     "lint:eslint": "ng lint",
