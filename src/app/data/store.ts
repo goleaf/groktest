@@ -1,3 +1,4 @@
+import type { Instant } from '../domain/calendar-date';
 import type { DomainClock } from '../domain/commands';
 import type {
   Loan,
@@ -56,5 +57,7 @@ export abstract class BorrowedStore {
   abstract getRecordDraft(): Promise<RecordDraft | undefined>;
   abstract saveRecordDraft(draft: RecordDraft): Promise<void>;
   abstract clearRecordDraft(): Promise<void>;
+  /** Raw user-triggered diagnostic snapshot. This is not a validated backup contract. */
+  abstract exportRawRecoveryJson(exportedAt: Instant): Promise<string>;
   abstract close(): Promise<void>;
 }

@@ -9,12 +9,30 @@ export const ru = {
     onThisDevice: 'На этом устройстве',
     skipToContent: 'Перейти к основному содержимому',
     homeLabel: 'На главную Borrowed',
-    dataCorruptionEyebrow: 'Защита локальных данных',
-    dataCorruptionTitle: 'Не удалось открыть локальные данные',
-    dataCorruptionBody:
+    localRecoveryEyebrow: 'Защита локальных данных',
+    localRecoveryTitle: 'Не удалось открыть локальные данные',
+    localRecoveryCorruptionBody:
       'Borrowed обнаружил на этом устройстве сохранённые данные, которые нельзя безопасно прочитать. Ничего не было изменено или удалено.',
-    dataCorruptionDetail:
-      'Оставьте устройство и данные без изменений. В этой версии инструменты восстановления ещё недоступны.',
+    localRecoveryUnavailableBody:
+      'Сейчас Borrowed не может получить доступ к локальной базе данных на этом устройстве. Ничего не было изменено или удалено.',
+    localRecoveryUnchanged:
+      'Пока вы пробуете восстановить доступ, не изменяйте данные Borrowed на этом устройстве.',
+    localRecoveryActionsLabel: 'Действия для восстановления локальных данных',
+    localRecoveryRetry: 'Повторить открытие данных',
+    localRecoveryRetrying: 'Повторяем…',
+    localRecoveryRetryFailed:
+      'Локальную базу данных всё ещё не удалось открыть. Можно повторить попытку.',
+    localRecoveryExport: 'Скачать данные для восстановления',
+    localRecoveryExporting: 'Подготавливаем файл…',
+    localRecoveryExportSuccess: 'Файл с данными для восстановления скачан.',
+    localRecoveryExportFailed: 'Не удалось подготовить файл с данными для восстановления.',
+    localRecoveryExportPrivacy:
+      'Файл может содержать необработанные личные имена и заметки. Храните его в защищённом месте.',
+    localRecoveryResetTitle: 'Сброс уничтожит локальные данные',
+    localRecoveryResetBody:
+      'Сброс локальных данных навсегда удалит все записи Borrowed на этом устройстве. Borrowed ничего не сбрасывает автоматически, и на этом экране сброс недоступен.',
+    localRecoveryRestore: 'Восстановить из резервной копии',
+    localRecoveryRestoreUnavailable: 'Восстановление из резервной копии пока недоступно.',
   },
   nav: {
     home: 'Главная',

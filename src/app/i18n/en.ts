@@ -7,12 +7,28 @@ export const en = {
     onThisDevice: 'On this device',
     skipToContent: 'Skip to main content',
     homeLabel: 'Borrowed home',
-    dataCorruptionEyebrow: 'Local data protection',
-    dataCorruptionTitle: 'Your local data could not be opened',
-    dataCorruptionBody:
+    localRecoveryEyebrow: 'Local data protection',
+    localRecoveryTitle: 'Your local data could not be opened',
+    localRecoveryCorruptionBody:
       'Borrowed found saved data on this device that it cannot safely read. Nothing was changed or deleted.',
-    dataCorruptionDetail:
-      'Keep this device and its data as-is. Recovery tools are not available in this version.',
+    localRecoveryUnavailableBody:
+      'Borrowed cannot access its local database on this device right now. Nothing was changed or deleted.',
+    localRecoveryUnchanged: 'Keep this device and its local data as-is while you try recovery.',
+    localRecoveryActionsLabel: 'Local data recovery actions',
+    localRecoveryRetry: 'Retry opening data',
+    localRecoveryRetrying: 'Retrying…',
+    localRecoveryRetryFailed: 'The local database still could not be opened. You can try again.',
+    localRecoveryExport: 'Download recovery diagnostics',
+    localRecoveryExporting: 'Preparing diagnostics…',
+    localRecoveryExportSuccess: 'The recovery diagnostic file was downloaded.',
+    localRecoveryExportFailed: 'The recovery diagnostic file could not be prepared.',
+    localRecoveryExportPrivacy:
+      'This file can contain raw private names and notes. Store it somewhere private.',
+    localRecoveryResetTitle: 'Reset would destroy local data',
+    localRecoveryResetBody:
+      'Resetting local data would permanently delete every Borrowed record on this device. Borrowed will not reset anything automatically, and reset is not offered on this screen.',
+    localRecoveryRestore: 'Restore from backup',
+    localRecoveryRestoreUnavailable: 'Restore from backup is not available yet.',
   },
   nav: {
     home: 'Home',

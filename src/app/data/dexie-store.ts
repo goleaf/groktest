@@ -1,4 +1,4 @@
-import { instantFrom } from '../domain/calendar-date';
+import { instantFrom, type Instant } from '../domain/calendar-date';
 import { DEFAULT_CURRENCY, LOCAL_SETTINGS_ID } from '../domain/config';
 import type { DomainClock } from '../domain/commands';
 import { createId } from '../domain/ids';
@@ -55,6 +55,10 @@ function mutation(
     attempts: 0,
     lastError: null,
   };
+}
+
+function recoveryJsonReplacer(_key: string, value: unknown): unknown {
+  return typeof value === 'bigint' ? { type: 'bigint', decimalString: value.toString() } : value;
 }
 
 export class DexieBorrowedStore extends BorrowedStore {
@@ -316,6 +320,45 @@ export class DexieBorrowedStore extends BorrowedStore {
 
   async clearRecordDraft(): Promise<void> {
     await this.db.drafts.delete('add-record');
+  }
+
+  async exportRawRecoveryJson(exportedAt: Instant): Promise<string> {
+    const tables = await this.db.transaction(
+      'r',
+      [
+        this.db.settings,
+        this.db.people,
+        this.db.loans,
+        this.db.repayments,
+        this.db.events,
+        this.db.mutations,
+        this.db.drafts,
+      ],
+      async () => {
+        const [settings, people, loans, repayments, events, mutations, drafts] = await Promise.all([
+          this.db.settings.toArray(),
+          this.db.people.toArray(),
+          this.db.loans.toArray(),
+          this.db.repayments.toArray(),
+          this.db.events.toArray(),
+          this.db.mutations.toArray(),
+          this.db.drafts.toArray(),
+        ]);
+        return { settings, people, loans, repayments, events, mutations, drafts };
+      },
+    );
+
+    return JSON.stringify(
+      {
+        kind: 'borrowed-local-recovery-diagnostic',
+        formatVersion: 1,
+        databaseSchemaVersion: LOCAL_SCHEMA_VERSION,
+        exportedAt,
+        tables,
+      },
+      recoveryJsonReplacer,
+      2,
+    );
   }
 
   async close(): Promise<void> {

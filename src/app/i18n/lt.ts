@@ -9,12 +9,30 @@ export const lt = {
     onThisDevice: 'Šiame įrenginyje',
     skipToContent: 'Pereiti prie pagrindinio turinio',
     homeLabel: 'Į Borrowed pradžią',
-    dataCorruptionEyebrow: 'Vietinių duomenų apsauga',
-    dataCorruptionTitle: 'Nepavyko atverti vietinių duomenų',
-    dataCorruptionBody:
+    localRecoveryEyebrow: 'Vietinių duomenų apsauga',
+    localRecoveryTitle: 'Nepavyko atverti vietinių duomenų',
+    localRecoveryCorruptionBody:
       'Borrowed šiame įrenginyje rado išsaugotų duomenų, kurių negali saugiai perskaityti. Niekas nebuvo pakeista ar ištrinta.',
-    dataCorruptionDetail:
-      'Palikite šį įrenginį ir jo duomenis nepakeistus. Šioje versijoje atkūrimo įrankių dar nėra.',
+    localRecoveryUnavailableBody:
+      'Borrowed šiuo metu negali pasiekti vietinės duomenų bazės šiame įrenginyje. Niekas nebuvo pakeista ar ištrinta.',
+    localRecoveryUnchanged:
+      'Kol bandote atkurti prieigą, palikite šį įrenginį ir jo vietinius duomenis nepakeistus.',
+    localRecoveryActionsLabel: 'Vietinių duomenų atkūrimo veiksmai',
+    localRecoveryRetry: 'Bandyti atverti dar kartą',
+    localRecoveryRetrying: 'Bandoma dar kartą…',
+    localRecoveryRetryFailed:
+      'Vietinės duomenų bazės vis dar nepavyko atverti. Galite bandyti dar kartą.',
+    localRecoveryExport: 'Atsisiųsti atkūrimo diagnostiką',
+    localRecoveryExporting: 'Ruošiama diagnostika…',
+    localRecoveryExportSuccess: 'Atkūrimo diagnostikos failas atsisiųstas.',
+    localRecoveryExportFailed: 'Nepavyko paruošti atkūrimo diagnostikos failo.',
+    localRecoveryExportPrivacy:
+      'Šiame faile gali būti neapdorotų privačių vardų ir pastabų. Laikykite jį privačioje vietoje.',
+    localRecoveryResetTitle: 'Vietinių duomenų išvalymas juos sunaikintų',
+    localRecoveryResetBody:
+      'Išvalius vietinius duomenis būtų visam laikui ištrinti visi Borrowed įrašai šiame įrenginyje. Borrowed nieko neišvalo automatiškai, o šiame ekrane išvalymo veiksmas nesiūlomas.',
+    localRecoveryRestore: 'Atkurti iš atsarginės kopijos',
+    localRecoveryRestoreUnavailable: 'Atkūrimas iš atsarginės kopijos dar nepasiekiamas.',
   },
   nav: {
     home: 'Pradžia',

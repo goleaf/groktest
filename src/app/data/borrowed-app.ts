@@ -375,6 +375,10 @@ export class BorrowedApp {
     );
   }
 
+  async exportRawRecoveryJson(): Promise<string> {
+    return this.store.exportRawRecoveryJson(instantFrom(this.clock.now()));
+  }
+
   private async repaymentsByLoan(): Promise<Map<string, Repayment[]>> {
     return this.groupRepayments(await this.store.listRepayments());
   }
