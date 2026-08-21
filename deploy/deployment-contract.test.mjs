@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -74,8 +82,14 @@ test('the packager emits a verified SHA-bound PWA archive', () => {
   const checksum = `${archive}.sha256`;
 
   assert.equal(result.status, 0, result.stderr.toString());
-  assert.equal(existsSync(archive), true);
-  assert.equal(existsSync(checksum), true);
+  const diagnostic = JSON.stringify({
+    archive,
+    files: readdirSync(fixtureOutput),
+    stderr: result.stderr.toString(),
+    stdout: result.stdout.toString(),
+  });
+  assert.equal(existsSync(archive), true, diagnostic);
+  assert.equal(existsSync(checksum), true, diagnostic);
   execFileSync('sha256sum', ['--check', checksum], { cwd: fixtureOutput });
 
   const extracted = join(fixtureRoot, 'extracted');
@@ -99,6 +113,8 @@ test('activation is least-privilege, integrity-checked, atomic, and rollback-saf
   assert.match(activation, /mv -Tf/);
   assert.match(activation, /ngsw-bypass: true/);
   assert.match(activation, /restore_previous_release/);
+  assert.match(activation, /cleanup_on_exit/);
+  assert.match(activation, /local exit_status=\$\?/);
   assert.match(rollback, /mv -Tf/);
   assert.match(rollback, /restore_previous_release/);
 });
